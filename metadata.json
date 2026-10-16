@@ -1,0 +1,6 @@
+{
+  "name": "Cartera de Valores",
+  "description": "Gestión integral de carteras de inversión, acciones USA y europeas, plusvalías FIFO, dividendos con retenciones, informes fiscales IRPF y soporte PWA móvil.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

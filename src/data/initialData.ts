@@ -1,0 +1,662 @@
+import { StockPosition, Operation, ClosedPosition, DividendRecord, UpcomingDividend, Broker } from '../types/portfolio';
+
+export const INITIAL_POSITIONS: StockPosition[] = [
+  {
+    id: 'msft',
+    symbol: 'MSFT',
+    company: 'Microsoft',
+    country: 'USA',
+    currency: 'USD',
+    shares: 100,
+    buyPrice: 427.00,
+    currentPrice: 506.32,
+    currentValueEUR: 45365.20,
+    gainLossEUR: 7138.20,
+    gainLossPercent: 18.5,
+    sector: 'Tecnología',
+    color: '#00a4ef',
+    isFavorite: true,
+    dayChangePercent: 2.35,
+    peRatio: 34.2,
+    dividendYield: 0.72,
+    high52: 512.40,
+    low52: 388.10,
+    notes: 'Posición núcleo en Cloud e Inteligencia Artificial.'
+  },
+  {
+    id: 'aapl',
+    symbol: 'AAPL',
+    company: 'Apple',
+    country: 'USA',
+    currency: 'USD',
+    shares: 80,
+    buyPrice: 178.50,
+    currentPrice: 201.76,
+    currentValueEUR: 16140.80,
+    gainLossEUR: 1860.80,
+    gainLossPercent: 13.1,
+    sector: 'Tecnología',
+    color: '#94a3b8',
+    isFavorite: true,
+    dayChangePercent: 1.15,
+    peRatio: 31.8,
+    dividendYield: 0.54,
+    high52: 237.20,
+    low52: 164.08,
+    notes: 'Ecosistema de servicios y recompras masivas.'
+  },
+  {
+    id: 'meta',
+    symbol: 'META',
+    company: 'Meta Platforms',
+    country: 'USA',
+    currency: 'USD',
+    shares: 60,
+    buyPrice: 670.90,
+    currentPrice: 712.34,
+    currentValueEUR: 42740.40,
+    gainLossEUR: 2486.40,
+    gainLossPercent: 6.1,
+    sector: 'Tecnología',
+    color: '#0668e1',
+    isFavorite: false,
+    dayChangePercent: -0.42,
+    peRatio: 26.4,
+    dividendYield: 0.35,
+    high52: 735.00,
+    low52: 450.20,
+    notes: 'Líder en monetización publicitaria y modelos abiertos.'
+  },
+  {
+    id: 'amzn',
+    symbol: 'AMZN',
+    company: 'Amazon',
+    country: 'USA',
+    currency: 'USD',
+    shares: 50,
+    buyPrice: 260.00,
+    currentPrice: 287.21,
+    currentValueEUR: 21497.50,
+    gainLossEUR: 2047.50,
+    gainLossPercent: 10.5,
+    sector: 'Consumo',
+    color: '#ff9900',
+    isFavorite: false,
+    dayChangePercent: 0.88,
+    peRatio: 42.1,
+    dividendYield: 0.0,
+    high52: 295.00,
+    low52: 175.50,
+    notes: 'AWS y logística de alta eficiencia.'
+  },
+  {
+    id: 'googl',
+    symbol: 'GOOGL',
+    company: 'Alphabet',
+    country: 'USA',
+    currency: 'USD',
+    shares: 40,
+    buyPrice: 142.30,
+    currentPrice: 167.52,
+    currentValueEUR: 6700.80,
+    gainLossEUR: 1008.80,
+    gainLossPercent: 17.7,
+    sector: 'Tecnología',
+    color: '#ea4335',
+    isFavorite: true,
+    dayChangePercent: 1.45,
+    peRatio: 23.8,
+    dividendYield: 0.48,
+    high52: 191.75,
+    low52: 131.55,
+    notes: 'Google Cloud, Search y YouTube.'
+  },
+  {
+    id: 'sie',
+    symbol: 'SIE',
+    company: 'Siemens',
+    country: 'DE',
+    currency: 'EUR',
+    shares: 70,
+    buyPrice: 125.40,
+    currentPrice: 148.75,
+    currentValueEUR: 10412.50,
+    gainLossEUR: 1634.50,
+    gainLossPercent: 18.6,
+    sector: 'Otros',
+    color: '#00646e',
+    isFavorite: false,
+    dayChangePercent: 0.65,
+    peRatio: 16.2,
+    dividendYield: 2.85,
+    high52: 188.00,
+    low52: 120.10,
+    notes: 'Automatización industrial y digitalización.'
+  },
+  {
+    id: 'san',
+    symbol: 'SAN',
+    company: 'Santander',
+    country: 'ES',
+    currency: 'EUR',
+    shares: 200,
+    buyPrice: 3.80,
+    currentPrice: 4.72,
+    currentValueEUR: 944.00,
+    gainLossEUR: 184.00,
+    gainLossPercent: 24.2,
+    sector: 'Finanzas',
+    color: '#ec0000',
+    isFavorite: false,
+    dayChangePercent: -0.21,
+    peRatio: 6.8,
+    dividendYield: 4.10,
+    high52: 4.95,
+    low52: 3.65,
+    notes: 'Diversificación bancaria España y Latinoamérica.'
+  },
+  {
+    id: 'nvda',
+    symbol: 'NVDA',
+    company: 'Nvidia',
+    country: 'USA',
+    currency: 'USD',
+    shares: 110,
+    buyPrice: 105.20,
+    currentPrice: 128.40,
+    currentValueEUR: 14124.00,
+    gainLossEUR: 2552.00,
+    gainLossPercent: 22.1,
+    sector: 'Tecnología',
+    color: '#76b900',
+    isFavorite: true,
+    dayChangePercent: 3.10,
+    peRatio: 45.0,
+    dividendYield: 0.08,
+    high52: 140.76,
+    low52: 85.00,
+    notes: 'Líder absoluto de centros de datos GPU.'
+  },
+  {
+    id: 'asml',
+    symbol: 'ASML',
+    company: 'ASML Holding',
+    country: 'DE',
+    currency: 'EUR',
+    shares: 25,
+    buyPrice: 720.00,
+    currentPrice: 865.00,
+    currentValueEUR: 21625.00,
+    gainLossEUR: 3625.00,
+    gainLossPercent: 20.1,
+    sector: 'Tecnología',
+    color: '#0f4c81',
+    isFavorite: false,
+    dayChangePercent: 0.95,
+    peRatio: 38.5,
+    dividendYield: 1.10,
+    high52: 920.00,
+    low52: 640.00,
+    notes: 'Monopolio en máquinas de litografía EUV.'
+  },
+  {
+    id: 'ibe',
+    symbol: 'IBE',
+    company: 'Iberdrola',
+    country: 'ES',
+    currency: 'EUR',
+    shares: 1100,
+    buyPrice: 10.80,
+    currentPrice: 12.95,
+    currentValueEUR: 14245.00,
+    gainLossEUR: 2365.00,
+    gainLossPercent: 19.9,
+    sector: 'Energía',
+    color: '#16a34a',
+    isFavorite: false,
+    dayChangePercent: 0.40,
+    peRatio: 14.2,
+    dividendYield: 4.80,
+    high52: 13.80,
+    low52: 10.20,
+    notes: 'Líder en energías renovables y redes eléctricas.'
+  },
+  {
+    id: 'novo',
+    symbol: 'NOVO',
+    company: 'Novo Nordisk',
+    country: 'DE',
+    currency: 'EUR',
+    shares: 140,
+    buyPrice: 92.00,
+    currentPrice: 112.50,
+    currentValueEUR: 15750.00,
+    gainLossEUR: 2870.00,
+    gainLossPercent: 22.3,
+    sector: 'Salud',
+    color: '#0055b8',
+    isFavorite: false,
+    dayChangePercent: 1.20,
+    peRatio: 35.0,
+    dividendYield: 1.30,
+    high52: 130.00,
+    low52: 88.00,
+    notes: 'Tratamientos de diabetes y obesidad.'
+  },
+  {
+    id: 'lly',
+    symbol: 'LLY',
+    company: 'Eli Lilly',
+    country: 'USA',
+    currency: 'USD',
+    shares: 28,
+    buyPrice: 710.00,
+    currentPrice: 855.00,
+    currentValueEUR: 23940.00,
+    gainLossEUR: 4060.00,
+    gainLossPercent: 20.4,
+    sector: 'Salud',
+    color: '#b91c1c',
+    isFavorite: false,
+    dayChangePercent: 0.50,
+    peRatio: 52.0,
+    dividendYield: 0.70,
+    high52: 960.00,
+    low52: 680.00,
+    notes: 'Líder farmacéutico global.'
+  },
+  {
+    id: 'itx',
+    symbol: 'ITX',
+    company: 'Inditex',
+    country: 'ES',
+    currency: 'EUR',
+    shares: 180,
+    buyPrice: 38.50,
+    currentPrice: 46.20,
+    currentValueEUR: 8316.00,
+    gainLossEUR: 1386.00,
+    gainLossPercent: 20.0,
+    sector: 'Consumo',
+    color: '#1e293b',
+    isFavorite: false,
+    dayChangePercent: 0.75,
+    peRatio: 22.0,
+    dividendYield: 3.20,
+    high52: 48.50,
+    low52: 36.10,
+    notes: 'Modelo de retail flexible y caja neta récord.'
+  },
+  {
+    id: 'tte',
+    symbol: 'TTE',
+    company: 'TotalEnergies',
+    country: 'DE',
+    currency: 'EUR',
+    shares: 110,
+    buyPrice: 58.00,
+    currentPrice: 62.40,
+    currentValueEUR: 6864.00,
+    gainLossEUR: 484.00,
+    gainLossPercent: 7.6,
+    sector: 'Energía',
+    color: '#e11d48',
+    isFavorite: false,
+    dayChangePercent: 0.30,
+    peRatio: 7.5,
+    dividendYield: 5.60,
+    high52: 69.00,
+    low52: 55.00,
+    notes: 'Flujo de caja libre y transición multi-energética.'
+  },
+  {
+    id: 'sap',
+    symbol: 'SAP',
+    company: 'SAP SE',
+    country: 'DE',
+    currency: 'EUR',
+    shares: 60,
+    buyPrice: 165.00,
+    currentPrice: 195.50,
+    currentValueEUR: 11730.00,
+    gainLossEUR: 1830.00,
+    gainLossPercent: 18.5,
+    sector: 'Tecnología',
+    color: '#0284c7',
+    isFavorite: false,
+    dayChangePercent: 0.80,
+    peRatio: 33.0,
+    dividendYield: 1.15,
+    high52: 210.00,
+    low52: 155.00,
+    notes: 'Software empresarial ERP en la nube.'
+  }
+];
+
+export const INITIAL_OPERATIONS: Operation[] = [];
+
+
+export const INITIAL_CLOSED_POSITIONS: ClosedPosition[] = [
+  {
+    id: 'cl-1',
+    symbol: 'TSLA',
+    company: 'Tesla',
+    saleDate: '14/02/2024',
+    year: 2024,
+    shares: 30,
+    salePrice: 210.40,
+    buyPrice: 133.25,
+    resultEUR: 2314.50,
+    resultPercent: 57.9
+  },
+  {
+    id: 'cl-2',
+    symbol: 'AAPL',
+    company: 'Apple',
+    saleDate: '03/05/2024',
+    year: 2024,
+    shares: 20,
+    salePrice: 195.60,
+    buyPrice: 135.38,
+    resultEUR: 1204.30,
+    resultPercent: 44.5
+  },
+  {
+    id: 'cl-3',
+    symbol: 'MSFT',
+    company: 'Microsoft',
+    saleDate: '17/07/2024',
+    year: 2024,
+    shares: 30,
+    salePrice: 480.00,
+    buyPrice: 384.23,
+    resultEUR: 2873.20,
+    resultPercent: 24.9
+  },
+  {
+    id: 'cl-4',
+    symbol: 'SAN',
+    company: 'Santander',
+    saleDate: '11/11/2024',
+    year: 2024,
+    shares: 100,
+    salePrice: 4.90,
+    buyPrice: 0.69,
+    resultEUR: 420.50,
+    resultPercent: 12.0
+  },
+  {
+    id: 'cl-5',
+    symbol: 'BBVA',
+    company: 'BBVA',
+    saleDate: '29/12/2024',
+    year: 2024,
+    shares: 50,
+    salePrice: 8.70,
+    buyPrice: 2.50,
+    resultEUR: 310.00,
+    resultPercent: 9.8
+  },
+  {
+    id: 'cl-6',
+    symbol: 'NFLX',
+    company: 'Netflix',
+    saleDate: '15/10/2023',
+    year: 2023,
+    shares: 25,
+    salePrice: 420.00,
+    buyPrice: 340.00,
+    resultEUR: 2000.00,
+    resultPercent: 23.5
+  },
+  {
+    id: 'cl-7',
+    symbol: 'INTC',
+    company: 'Intel',
+    saleDate: '04/09/2022',
+    year: 2022,
+    shares: 80,
+    salePrice: 31.50,
+    buyPrice: 38.00,
+    resultEUR: -520.00,
+    resultPercent: -17.1
+  }
+];
+
+export const INITIAL_DIVIDENDS: DividendRecord[] = [
+  {
+    id: 'div-1',
+    date: '15/02/2024',
+    year: 2024,
+    company: 'Microsoft',
+    symbol: 'MSFT',
+    grossEUR: 320.00,
+    withholdingEUR: 48.00,
+    netEUR: 272.00
+  },
+  {
+    id: 'div-2',
+    date: '12/04/2024',
+    year: 2024,
+    company: 'Apple',
+    symbol: 'AAPL',
+    grossEUR: 180.00,
+    withholdingEUR: 27.00,
+    netEUR: 153.00
+  },
+  {
+    id: 'div-3',
+    date: '20/07/2024',
+    year: 2024,
+    company: 'Meta',
+    symbol: 'META',
+    grossEUR: 210.50,
+    withholdingEUR: 31.58,
+    netEUR: 178.92
+  },
+  {
+    id: 'div-4',
+    date: '05/10/2024',
+    year: 2024,
+    company: 'Amazon',
+    symbol: 'AMZN',
+    grossEUR: 150.30,
+    withholdingEUR: 22.55,
+    netEUR: 127.75
+  },
+  {
+    id: 'div-5',
+    date: '18/12/2024',
+    year: 2024,
+    company: 'Siemens',
+    symbol: 'SIE',
+    grossEUR: 120.00,
+    withholdingEUR: 18.00,
+    netEUR: 102.00
+  },
+  {
+    id: 'div-6',
+    date: '15/02/2025',
+    year: 2025,
+    company: 'Microsoft',
+    symbol: 'MSFT',
+    grossEUR: 345.00,
+    withholdingEUR: 51.75,
+    netEUR: 293.25
+  },
+  {
+    id: 'div-7',
+    date: '22/04/2025',
+    year: 2025,
+    company: 'Apple',
+    symbol: 'AAPL',
+    grossEUR: 195.00,
+    withholdingEUR: 29.25,
+    netEUR: 165.75
+  },
+  {
+    id: 'div-8',
+    date: '02/07/2025',
+    year: 2025,
+    company: 'Iberdrola',
+    symbol: 'IBE',
+    grossEUR: 410.00,
+    withholdingEUR: 77.90,
+    netEUR: 332.10
+  }
+];
+
+export const INITIAL_UPCOMING_DIVIDENDS: UpcomingDividend[] = [
+  {
+    id: 'up-1',
+    date: '15/09/2026',
+    company: 'Microsoft',
+    symbol: 'MSFT',
+    dividendPerShareEUR: 0.83,
+    estimatedTotalEUR: 83.00
+  },
+  {
+    id: 'up-2',
+    date: '30/09/2026',
+    company: 'Apple',
+    symbol: 'AAPL',
+    dividendPerShareEUR: 0.24,
+    estimatedTotalEUR: 19.20
+  },
+  {
+    id: 'up-3',
+    date: '12/10/2026',
+    company: 'Meta',
+    symbol: 'META',
+    dividendPerShareEUR: 0.42,
+    estimatedTotalEUR: 25.20
+  },
+  {
+    id: 'up-4',
+    date: '20/11/2026',
+    company: 'Amazon',
+    symbol: 'AMZN',
+    dividendPerShareEUR: 0.33,
+    estimatedTotalEUR: 16.50
+  },
+  {
+    id: 'up-5',
+    date: '15/12/2026',
+    company: 'Iberdrola',
+    symbol: 'IBE',
+    dividendPerShareEUR: 0.22,
+    estimatedTotalEUR: 242.00
+  }
+];
+
+export const INITIAL_BROKERS: Broker[] = [
+  {
+    id: 'brk-1',
+    name: 'Interactive Brokers',
+    type: 'USA / Europa',
+    active: true,
+    notes: 'Broker principal para acciones estadounidenses e instrumentos con comisión reducida.'
+  },
+  {
+    id: 'brk-2',
+    name: 'Trade Republic',
+    type: 'USA / Europa',
+    active: true,
+    notes: 'Planes de inversión periódica y comisiones fijas de 1 €.'
+  },
+  {
+    id: 'brk-3',
+    name: 'ClickTrade',
+    type: 'España',
+    active: true,
+    notes: 'Broker español con reporte automático a la Agencia Tributaria (AEAT).'
+  },
+  {
+    id: 'brk-4',
+    name: 'DeGiro',
+    type: 'Europa',
+    active: true,
+    notes: 'Broker europeo con cuenta Flatex regulada.'
+  }
+];
+
+export const HISTORICAL_CHART_DATA = [
+  { label: 'Ene', value: 182400 },
+  { label: 'Feb', value: 195200 },
+  { label: 'Mar', value: 208500 },
+  { label: 'Abr', value: 201100 },
+  { label: 'May', value: 219400 },
+  { label: 'Jun', value: 231800 },
+  { label: 'Jul', value: 227600 },
+  { label: 'Ago', value: 248532.75 }
+];
+
+export const SECTOR_DATA = [
+  { name: 'Tecnología', percentage: 38, color: '#3b82f6', valueEUR: 94442.45 },
+  { name: 'Salud', percentage: 16, color: '#10b981', valueEUR: 39765.24 },
+  { name: 'Consumo', percentage: 14, color: '#f59e0b', valueEUR: 34794.59 },
+  { name: 'Energía', percentage: 10, color: '#ef4444', valueEUR: 24853.28 },
+  { name: 'Otros', percentage: 14, color: '#8b5cf6', valueEUR: 34794.59 },
+  { name: 'Finanzas', percentage: 8, color: '#06b6d4', valueEUR: 19882.60 }
+];
+
+export const COUNTRY_DATA = [
+  { name: 'USA', flag: '🇺🇸', performance: 22.4, weight: 64, color: '#3b82f6' },
+  { name: 'España', flag: '🇪🇸', performance: 18.2, weight: 14, color: '#10b981' },
+  { name: 'Alemania', flag: '🇩🇪', performance: 15.6, weight: 12, color: '#f59e0b' },
+  { name: 'Otros', flag: '🌍', performance: 11.8, weight: 10, color: '#8b5cf6' }
+];
+
+export const TOP_5_POSITIONS = [
+  { symbol: 'MSFT', company: 'Microsoft', percentage: 18.5, color: '#22c55e', valueEUR: 45365.20 },
+  { symbol: 'META', company: 'Meta Platforms', percentage: 15.2, color: '#16a34a', valueEUR: 42740.40 },
+  { symbol: 'AMZN', company: 'Amazon', percentage: 10.5, color: '#eab308', valueEUR: 21497.50 },
+  { symbol: 'AAPL', company: 'Apple', percentage: 8.7, color: '#f97316', valueEUR: 16140.80 },
+  { symbol: 'GOOGL', company: 'Alphabet', percentage: 6.3, color: '#ef4444', valueEUR: 6700.80 }
+];
+
+export const INITIAL_CASH_EUR = 18450.00;
+
+export const INITIAL_WATCHLIST = [
+  {
+    id: 'w-1',
+    symbol: 'MSFT',
+    company: 'Microsoft',
+    currentPrice: 506.32,
+    targetPrice: 590.00,
+    interestedBuyPrice: 430.00,
+    currency: 'USD' as const,
+    notes: 'Esperar corrección hacia 430 € para aumentar posición. Crecimiento en IA.'
+  },
+  {
+    id: 'w-2',
+    symbol: 'NVDA',
+    company: 'Nvidia',
+    currentPrice: 128.40,
+    targetPrice: 160.00,
+    interestedBuyPrice: 110.00,
+    currency: 'USD' as const,
+    notes: 'Líder absoluto de infraestructura de cómputo para Inteligencia Artificial.'
+  },
+  {
+    id: 'w-3',
+    symbol: 'AMZN',
+    company: 'Amazon',
+    currentPrice: 287.21,
+    targetPrice: 320.00,
+    interestedBuyPrice: 240.00,
+    currency: 'USD' as const,
+    notes: 'Margen operativo en expansión por AWS y publicidad digital.'
+  },
+  {
+    id: 'w-4',
+    symbol: 'ASML',
+    company: 'ASML Holding',
+    currentPrice: 865.00,
+    targetPrice: 950.00,
+    interestedBuyPrice: 750.00,
+    currency: 'EUR' as const,
+    notes: 'Monopolio tecnológico en litografía ultravioleta extrema (EUV).'
+  }
+];
+
