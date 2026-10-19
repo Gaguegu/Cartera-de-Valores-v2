@@ -110,31 +110,7 @@ export default function App() {
 
   const [operations, setOperations] = useState<Operation[]>(() => {
     const saved = localStorage.getItem('cartera_operations');
-    let raw: Operation[] = saved ? JSON.parse(saved) : INITIAL_OPERATIONS;
-
-    // Quitar únicamente las operaciones anteriores al año 2026 que no son del usuario
-    // Conservando intactas todas las operaciones del año 2026 o posteriores introducidas por el usuario
-    const getOpYear = (dateStr?: string): number => {
-      if (!dateStr) return 0;
-      const parts = String(dateStr).trim().split(/[/-]/);
-      if (parts.length === 3) {
-        if (parts[2].length === 4) return parseInt(parts[2], 10);
-        if (parts[0].length === 4) return parseInt(parts[0], 10);
-      }
-      const d = new Date(dateStr);
-      return isNaN(d.getFullYear()) ? 0 : d.getFullYear();
-    };
-
-    if (Array.isArray(raw)) {
-      const cleaned = raw.filter(op => {
-        const yr = getOpYear(op.date);
-        return yr >= 2026;
-      });
-      if (cleaned.length !== raw.length) {
-        raw = cleaned;
-        localStorage.setItem('cartera_operations', JSON.stringify(cleaned));
-      }
-    }
+    const raw: Operation[] = saved ? JSON.parse(saved) : INITIAL_OPERATIONS;
 
     return raw.map((op: Operation, idx: number) => ({
       ...op,

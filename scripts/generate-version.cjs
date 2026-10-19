@@ -39,7 +39,7 @@ const info = {
   message: cleanMsg,
   author: process.env.GITHUB_ACTOR || 'Gaguegu',
   branch: process.env.GITHUB_REF_NAME || 'principal',
-  repo: 'Gaguegu/Cartera-de-Valores'
+  repo: 'Gaguegu/Cartera-de-Valores-v2'
 };
 
 const publicDir = path.resolve(__dirname, '../public');
