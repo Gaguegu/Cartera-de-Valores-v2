@@ -158,50 +158,7 @@ export default function App() {
     });
   });
 
-  // Sincronizar y persistir corrección de pérdidas de ORLY (-577,90) y Naturgy (-601,13)
-  useEffect(() => {
-    let closedChanged = false;
-    const fixedClosed = closedPositions.map(c => {
-      const is576 =
-        (typeof c.resultEUR === 'number' && Math.abs(Math.abs(c.resultEUR) - 576.35) < 1.5 && c.resultEUR !== -577.90) ||
-        (typeof c.resultEUR === 'number' && Math.abs(c.resultEUR - (-576.35)) < 1.5 && c.resultEUR !== -577.90) ||
-        (c.symbol && c.symbol.toUpperCase() === 'ORLY' && c.resultEUR !== -577.90);
-      if (is576) {
-        closedChanged = true;
-        return {
-          ...c,
-          resultEUR: -577.90,
-          resultPercent:
-            c.buyPrice && c.buyPrice > 0
-              ? Number(((-577.90 / (c.buyPrice * c.shares)) * 100).toFixed(2))
-              : c.resultPercent,
-        };
-      }
 
-      const isNtgy =
-        ((c.symbol && c.symbol.toUpperCase() === 'NTGY') || (c.company && c.company.toUpperCase().includes('NATURGY'))) &&
-        typeof c.resultEUR === 'number' &&
-        Math.abs(c.resultEUR - (-600.50)) < 2.0 &&
-        c.resultEUR !== -601.13;
-      if (isNtgy) {
-        closedChanged = true;
-        return {
-          ...c,
-          resultEUR: -601.13,
-          resultPercent:
-            c.buyPrice && c.buyPrice > 0
-              ? Number(((-601.13 / (c.buyPrice * c.shares)) * 100).toFixed(2))
-              : c.resultPercent,
-        };
-      }
-
-      return c;
-    });
-    if (closedChanged) {
-      setClosedPositions(fixedClosed);
-      localStorage.setItem('cartera_closed_positions', JSON.stringify(fixedClosed));
-    }
-  }, [closedPositions]);
 
   // Sincronizar y persistir corrección de pérdidas de Naturgy (-601,13) en cartera abierta
   useEffect(() => {
@@ -843,6 +800,80 @@ export default function App() {
     );
   };
 
+  const handleReconstructOperationsFromClosed = () => {
+    let countAdded = 0;
+    const currentOps = [...operations];
+
+    closedPositions.forEach((cp, idx) => {
+      const sym = cp.symbol.toUpperCase();
+
+      // Verificar si ya existe apunte de Venta para esta posición cerrada
+      const saleExists = currentOps.some(
+        o =>
+          o.type === 'Venta' &&
+          o.symbol.toUpperCase() === sym &&
+          (o.id === cp.operationId || o.date === cp.saleDate)
+      );
+
+      // Verificar si ya existe apunte de Compra para este símbolo
+      const buyExists = currentOps.some(
+        o => o.type === 'Compra' && o.symbol.toUpperCase() === sym
+      );
+
+      // Calcular precio de compra derivado si no está explícito
+      const derivedBuyPrice =
+        cp.buyPrice && cp.buyPrice > 0
+          ? cp.buyPrice
+          : cp.shares > 0
+          ? Number(((cp.shares * cp.salePrice - cp.resultEUR) / cp.shares).toFixed(2))
+          : 100;
+
+      // 1. Si no existe compra previa, registrar compra en 2025
+      if (!buyExists) {
+        const buyOp: Operation = {
+          id: `op-recon-buy-${sym}-${idx}-${Date.now()}`,
+          date: '15/10/2025',
+          type: 'Compra',
+          symbol: sym,
+          company: cp.company,
+          shares: cp.shares,
+          price: derivedBuyPrice,
+          totalEUR: Number((cp.shares * derivedBuyPrice).toFixed(2)),
+          commissionEUR: 0,
+          broker: 'Broker Principal',
+        };
+        currentOps.unshift(buyOp);
+        countAdded++;
+      }
+
+      // 2. Si no existe venta, registrar venta en 2026
+      if (!saleExists) {
+        const saleOp: Operation = {
+          id: cp.operationId || `op-recon-sale-${sym}-${idx}-${Date.now()}`,
+          date: cp.saleDate || '19/03/2026',
+          type: 'Venta',
+          symbol: sym,
+          company: cp.company,
+          shares: cp.shares,
+          price: cp.salePrice,
+          totalEUR: Number((cp.shares * cp.salePrice).toFixed(2)),
+          commissionEUR: 0,
+          broker: 'Broker Principal',
+        };
+        currentOps.unshift(saleOp);
+        countAdded++;
+      }
+    });
+
+    if (countAdded > 0) {
+      setOperations(currentOps);
+      localStorage.setItem('cartera_operations', JSON.stringify(currentOps));
+      alert(`¡Sincronización completada! Se han generado ${countAdded} operaciones (compras y ventas) que ahora puedes consultar y editar en la pestaña "Operaciones".`);
+    } else {
+      alert('Todas las compras y ventas de tus posiciones cerradas ya están registradas en la pestaña "Operaciones".');
+    }
+  };
+
   const handleClearAllDataToZero = () => {
     setPositions([]);
     setOperations([]);
@@ -1085,6 +1116,7 @@ export default function App() {
             {currentTab === 'current' && (
               <CurrentPortfolio
                 positions={positions}
+                operations={operations}
                 onSelectStock={stock => setSelectedStock(stock)}
                 onOpenNewOperation={handleOpenNewOperation}
                 onOpenNewDividend={() => {
@@ -1118,6 +1150,7 @@ export default function App() {
                 onUpdateClosedPosition={handleUpdateClosedPosition}
                 onDeleteClosedPosition={handleDeleteClosedPosition}
                 onOpenPrintReport={handleOpenPrintReport}
+                onReconstructOperations={handleReconstructOperationsFromClosed}
               />
             )}
 

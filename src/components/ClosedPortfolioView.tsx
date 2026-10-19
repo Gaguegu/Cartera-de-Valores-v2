@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ClosedPosition } from '../types/portfolio';
 import { formatEUR, formatNumber, downloadCSV, getAvailableFiscalYears } from '../utils/formatters';
-import { Download, TrendingUp, Calendar, Pencil, Trash2, X, Check, Calculator, Printer } from 'lucide-react';
+import { Download, TrendingUp, Calendar, Pencil, Trash2, X, Check, Calculator, Printer, RefreshCw } from 'lucide-react';
 
 interface ClosedPortfolioViewProps {
   closedPositions: ClosedPosition[];
@@ -11,6 +11,7 @@ interface ClosedPortfolioViewProps {
     type: 'closed' | 'full' | 'annual' | 'tax',
     options?: { charts?: boolean; dividends?: boolean; closed?: boolean; year?: number | string }
   ) => void;
+  onReconstructOperations?: () => void;
 }
 
 export function ClosedPortfolioView({
@@ -18,6 +19,7 @@ export function ClosedPortfolioView({
   onUpdateClosedPosition,
   onDeleteClosedPosition,
   onOpenPrintReport,
+  onReconstructOperations,
 }: ClosedPortfolioViewProps) {
   // Años dinámicos: incluye automáticamente 2026, 2025, el año actual (2027, 2028...) y cualquier operación futura
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
@@ -35,23 +37,7 @@ export function ClosedPortfolioView({
   const [editBuyPrice, setEditBuyPrice] = useState(0);
   const [editResultEUR, setEditResultEUR] = useState(0);
 
-  // Auto-correct any legacy record with -576.35 to -577.90
-  useEffect(() => {
-    const recordToFix = closedPositions.find(
-      p =>
-        (Math.abs(Math.abs(p.resultEUR) - 576.35) < 1.5 ||
-          Math.abs(p.resultEUR - (-576.35)) < 1.5 ||
-          Math.abs(Math.abs(p.resultEUR) - 576.00) < 1.0 ||
-          p.symbol.toUpperCase() === 'ORLY') &&
-        p.resultEUR !== -577.90
-    );
-    if (recordToFix && onUpdateClosedPosition) {
-      onUpdateClosedPosition({
-        ...recordToFix,
-        resultEUR: -577.90,
-      });
-    }
-  }, [closedPositions, onUpdateClosedPosition]);
+
 
   const handleOpenEdit = (item: ClosedPosition) => {
     setEditingItem(item);
@@ -173,25 +159,38 @@ export function ClosedPortfolioView({
           ))}
         </div>
 
-        <button
-          onClick={() => {
-            if (onOpenPrintReport) {
-              onOpenPrintReport('closed', {
-                year: selectedYear,
-                closed: true,
-                dividends: false,
-                charts: false,
-              });
-            } else {
-              window.print();
-            }
-          }}
-          className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer"
-          title="Generar PDF o imprimir las operaciones cerradas"
-        >
-          <Printer className="w-3.5 h-3.5 text-blue-400" />
-          <span>Generar PDF/Imprimir</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {onReconstructOperations && (
+            <button
+              onClick={onReconstructOperations}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-white flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-md"
+              title="Crea automáticamente los apuntes de compra y venta en la pestaña Operaciones para que coincidan con estas carteras cerradas"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+              <span>Sincronizar compras/ventas a Operaciones</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              if (onOpenPrintReport) {
+                onOpenPrintReport('closed', {
+                  year: selectedYear,
+                  closed: true,
+                  dividends: false,
+                  charts: false,
+                });
+              } else {
+                window.print();
+              }
+            }}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer"
+            title="Generar PDF o imprimir las operaciones cerradas"
+          >
+            <Printer className="w-3.5 h-3.5 text-blue-400" />
+            <span>Generar PDF/Imprimir</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Table */}

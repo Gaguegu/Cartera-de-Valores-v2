@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { StockPosition } from '../types/portfolio';
-import { formatEUR, formatNumber, formatPercent, downloadCSV } from '../utils/formatters';
-import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { StockPosition, Operation } from '../types/portfolio';
+import { formatEUR, formatNumber, formatPercent, downloadCSV, parseYearFromDate, getAvailableFiscalYears } from '../utils/formatters';
+import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer, Calendar } from 'lucide-react';
 
 interface CurrentPortfolioProps {
   positions: StockPosition[];
+  operations?: Operation[];
   onSelectStock: (stock: StockPosition) => void;
   onOpenNewOperation: (symbol?: string) => void;
   onOpenNewDividend?: () => void;
@@ -18,6 +19,7 @@ interface CurrentPortfolioProps {
 
 export function CurrentPortfolio({
   positions,
+  operations = [],
   onSelectStock,
   onOpenNewOperation,
   onOpenNewDividend,
@@ -26,11 +28,39 @@ export function CurrentPortfolio({
   onOpenPrintReport,
 }: CurrentPortfolioProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedYear, setSelectedYear] = useState<string>('TODOS');
   const [selectedCountry, setSelectedCountry] = useState<string>('TODOS');
   const [selectedSector, setSelectedSector] = useState<string>('TODOS');
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<keyof StockPosition>('currentValueEUR');
   const [sortAsc, setSortAsc] = useState(false);
+
+  // Años dinámicos disponibles en compras de la cartera (2026, 2025, etc.)
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<number>();
+    yearsSet.add(2026);
+    yearsSet.add(2025);
+    (operations || []).forEach(o => {
+      if (o.type === 'Compra') {
+        const y = parseYearFromDate(o.date);
+        if (y > 1900) yearsSet.add(y);
+      }
+    });
+    return Array.from(yearsSet).sort((a, b) => b - a);
+  }, [operations]);
+
+  // Helper para obtener los años de compra de un valor
+  const getPositionYearsInfo = (symbol: string) => {
+    const symbolPurchases = (operations || []).filter(
+      o => o.symbol.toUpperCase() === symbol.toUpperCase() && o.type === 'Compra'
+    );
+    if (symbolPurchases.length === 0) {
+      return { years: [2026], dates: [] };
+    }
+    const years = Array.from(new Set(symbolPurchases.map(o => parseYearFromDate(o.date)))).sort();
+    const dates = symbolPurchases.map(o => o.date);
+    return { years, dates };
+  };
 
   // Filtering
   const filtered = positions.filter(pos => {
@@ -39,7 +69,23 @@ export function CurrentPortfolio({
       pos.company.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCountry = selectedCountry === 'TODOS' || pos.country === selectedCountry;
     const matchesSector = selectedSector === 'TODOS' || pos.sector === selectedSector;
-    return matchesSearch && matchesCountry && matchesSector;
+
+    // Filtro por año de compra
+    let matchesYear = true;
+    if (selectedYear !== 'TODOS') {
+      const yearNum = parseInt(selectedYear, 10);
+      const symbolPurchases = (operations || []).filter(
+        o => o.symbol.toUpperCase() === pos.symbol.toUpperCase() && o.type === 'Compra'
+      );
+      if (symbolPurchases.length > 0) {
+        matchesYear = symbolPurchases.some(o => parseYearFromDate(o.date) === yearNum);
+      } else {
+        // Posiciones demo iniciales sin apunte explícito se consideran del ejercicio actual (2026)
+        matchesYear = yearNum === 2026;
+      }
+    }
+
+    return matchesSearch && matchesCountry && matchesSector && matchesYear;
   });
 
   // Sorting
@@ -52,8 +98,8 @@ export function CurrentPortfolio({
     return 0;
   });
 
-  const totalValueEUR = positions.reduce((acc, p) => acc + p.currentValueEUR, 0);
-  const totalGainEUR = positions.reduce((acc, p) => acc + p.gainLossEUR, 0);
+  const totalValueEUR = filtered.reduce((acc, p) => acc + p.currentValueEUR, 0);
+  const totalGainEUR = filtered.reduce((acc, p) => acc + p.gainLossEUR, 0);
   const totalCost = totalValueEUR - totalGainEUR;
   const totalPercent = totalCost > 0 ? (totalGainEUR / totalCost) * 100 : 0;
 
@@ -94,7 +140,26 @@ export function CurrentPortfolio({
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Action and Filter Bar - Screen 2 Header */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/70 shadow-md">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Selector rápido de ejercicio / año de compra */}
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner">
+            <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="text-slate-400 font-medium hidden sm:inline">Año compra:</span>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(e.target.value)}
+              className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
+              title="Filtrar cartera por año de compra de las acciones"
+            >
+              <option value="TODOS" className="bg-slate-900 text-white">Todos los años</option>
+              {availableYears.map(yr => (
+                <option key={yr} value={String(yr)} className="bg-slate-900 text-white">
+                  Año {yr}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all ${
@@ -157,7 +222,20 @@ export function CurrentPortfolio({
 
       {/* Expandable Filter drawer */}
       {showFilters && (
-        <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs animate-in slide-in-from-top-2">
+        <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs animate-in slide-in-from-top-2">
+          <div>
+            <label className="block text-slate-400 font-semibold mb-1">Filtrar por Año de compra:</label>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
+            >
+              <option value="TODOS">Todos los años</option>
+              {availableYears.map(yr => (
+                <option key={yr} value={String(yr)}>Año {yr}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-slate-400 font-semibold mb-1">Filtrar por País:</label>
             <select
@@ -269,7 +347,27 @@ export function CurrentPortfolio({
 
                   {/* Empresa */}
                   <td className="py-3.5 px-4 text-slate-200 font-medium">
-                    {pos.company}
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="font-semibold text-white">{pos.company}</span>
+                      {(() => {
+                        const info = getPositionYearsInfo(pos.symbol);
+                        if (info.years.length === 0) return null;
+                        const has2025 = info.years.includes(2025);
+                        return (
+                          <span
+                            className={`text-[10px] inline-flex items-center gap-1 font-mono rounded px-1.5 py-0.5 font-semibold ${
+                              has2025
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                : 'bg-slate-800 text-slate-300 border border-slate-700'
+                            }`}
+                            title={`Compras registradas en el ejercicio: ${info.years.join(', ')}`}
+                          >
+                            <Calendar className="w-2.5 h-2.5 shrink-0" />
+                            <span>Compra {info.years.join(', ')}</span>
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </td>
 
                   {/* País */}
@@ -376,6 +474,20 @@ export function CurrentPortfolio({
                   </td>
                 </tr>
               ))}
+
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="py-12 text-center text-slate-400">
+                    <p className="text-sm font-semibold text-slate-300">
+                      No hay posiciones abiertas para los filtros seleccionados
+                      {selectedYear !== 'TODOS' ? ` (Año de compra ${selectedYear})` : ''}.
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Selecciona "Todos los años" en el filtro de arriba para ver toda tu cartera abierta.
+                    </p>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -385,9 +497,14 @@ export function CurrentPortfolio({
           <div className="text-slate-400">
             Mostrando <span className="text-white font-bold">{sorted.length}</span> de{' '}
             <span className="text-white font-bold">{positions.length}</span> posiciones abiertas
+            {selectedYear !== 'TODOS' && (
+              <span className="ml-1.5 text-cyan-400 font-semibold">(Filtrado por compras de {selectedYear})</span>
+            )}
           </div>
           <div className="flex items-center gap-4 text-sm">
-            <span className="text-slate-400 font-semibold">Total cartera:</span>
+            <span className="text-slate-400 font-semibold">
+              {selectedYear !== 'TODOS' ? `Total cartera (${selectedYear}):` : 'Total cartera:'}
+            </span>
             <span className="text-xl font-extrabold text-white font-mono">
               {formatEUR(totalValueEUR)}
             </span>
