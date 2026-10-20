@@ -152,3 +152,20 @@ export interface MarketQuote {
   portfolioShares?: number;
   isInWatchlist?: boolean;
 }
+
+export type AlertType = 'take_profit' | 'stop_loss' | 'target_price' | 'custom_high' | 'custom_low';
+
+export interface PortfolioAlert {
+  id: string;
+  symbol: string;
+  company: string;
+  type: AlertType;
+  targetPriceEUR: number;
+  condition: 'above' | 'below'; // 'above' para objetivos de subida / take-profit, 'below' para caídas / stop-loss
+  createdDate: string;
+  notes?: string;
+  triggered?: boolean;
+  triggeredDate?: string;
+  active: boolean;
+}
+

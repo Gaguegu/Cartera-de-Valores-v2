@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StockPosition, Operation } from '../types/portfolio';
 import { formatEUR, formatNumber, formatPercent, downloadCSV, parseYearFromDate, getAvailableFiscalYears } from '../utils/formatters';
-import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer, Calendar } from 'lucide-react';
+import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer, Calendar, RefreshCw, Scale, Globe, Bell, Sparkles } from 'lucide-react';
 
 interface CurrentPortfolioProps {
   positions: StockPosition[];
@@ -15,6 +15,12 @@ interface CurrentPortfolioProps {
     type: 'portfolio' | 'full' | 'annual' | 'tax',
     options?: { charts?: boolean; dividends?: boolean; closed?: boolean; year?: number | string }
   ) => void;
+  onRefreshQuotesOnline?: () => Promise<void>;
+  isRefreshingQuotes?: boolean;
+  lastQuotesUpdatedAt?: string;
+  onOpenRebalanceModal?: () => void;
+  onOpenAlertsModal?: (symbol?: string) => void;
+  onOpenCurrencyModal?: () => void;
 }
 
 export function CurrentPortfolio({
@@ -26,6 +32,12 @@ export function CurrentPortfolio({
   onRegisterDividendForStock,
   onSellStock,
   onOpenPrintReport,
+  onRefreshQuotesOnline,
+  isRefreshingQuotes = false,
+  lastQuotesUpdatedAt,
+  onOpenRebalanceModal,
+  onOpenAlertsModal,
+  onOpenCurrencyModal,
 }: CurrentPortfolioProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<string>('TODOS');
@@ -206,6 +218,51 @@ export function CurrentPortfolio({
             >
               <Coins className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">Registrar dividendo</span>
+            </button>
+          )}
+
+          {onRefreshQuotesOnline && (
+            <button
+              onClick={() => onRefreshQuotesOnline()}
+              disabled={isRefreshingQuotes}
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95"
+              title={lastQuotesUpdatedAt ? `Actualizar precios en vivo (Última: ${lastQuotesUpdatedAt})` : 'Actualizar todas las cotizaciones de la cartera en tiempo real'}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshingQuotes ? 'animate-spin' : ''}`} />
+              <span>{isRefreshingQuotes ? 'Actualizando...' : 'Actualizar Cotizaciones'}</span>
+            </button>
+          )}
+
+          {onOpenRebalanceModal && (
+            <button
+              onClick={onOpenRebalanceModal}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              title="Simulador de rebalanceo y cálculo de compras periódicas (DCA)"
+            >
+              <Scale className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden md:inline">Rebalanceo DCA</span>
+            </button>
+          )}
+
+          {onOpenCurrencyModal && (
+            <button
+              onClick={onOpenCurrencyModal}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              title="Análisis del efecto divisa EUR/USD y tipos de cambio"
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden lg:inline">Efecto Divisa</span>
+            </button>
+          )}
+
+          {onOpenAlertsModal && (
+            <button
+              onClick={() => onOpenAlertsModal()}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              title="Centro de alertas de precio, stop-loss y take-profit"
+            >
+              <Bell className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Alertas</span>
             </button>
           )}
         </div>
@@ -396,6 +453,20 @@ export function CurrentPortfolio({
                   {/* Precio actual (€) y dólares solo a título informativo */}
                   <td className="py-3.5 px-4 text-right text-slate-200 font-mono font-medium">
                     <div>{formatNumber(pos.currentPrice)} €</div>
+                    {pos.dayChangePercent !== undefined && pos.dayChangePercent !== 0 && (
+                      <div className="mt-0.5">
+                        <span
+                          className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            pos.dayChangePercent > 0
+                              ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-rose-950/60 text-rose-400 border border-rose-500/30'
+                          }`}
+                          title="Variación hoy de la cotización en mercado"
+                        >
+                          {pos.dayChangePercent > 0 ? `+${pos.dayChangePercent.toFixed(2)}% hoy` : `${pos.dayChangePercent.toFixed(2)}% hoy`}
+                        </span>
+                      </div>
+                    )}
                     {pos.priceUSD && Math.abs(pos.priceUSD - pos.currentPrice) > 0.05 && (
                       <div className="text-[10px] text-slate-400 font-normal" title="Cotización original en dólares (a título informativo)">
                         ({formatNumber(pos.priceUSD)} $)
@@ -437,6 +508,18 @@ export function CurrentPortfolio({
                   {/* Options */}
                   <td className="py-3.5 px-3 text-center">
                     <div className="flex items-center justify-center gap-1.5">
+                      {onOpenAlertsModal && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            onOpenAlertsModal(pos.symbol);
+                          }}
+                          className="p-1.5 rounded-lg text-amber-400 hover:text-white hover:bg-amber-500/20 transition-colors cursor-pointer"
+                          title={`Fijar alerta de precio / stop-loss para ${pos.symbol}`}
+                        >
+                          <Bell className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       {onSellStock && (
                         <button
                           onClick={e => {

@@ -3,13 +3,15 @@ import { DonutChart, CountryBarChart, PortfolioLineChart, TopPositionsHorizontal
 import { formatEUR, formatPercent, getAvailableFiscalYears, parseYearFromDate } from '../utils/formatters';
 import { StockPosition, Operation, ClosedPosition, DividendRecord } from '../types/portfolio';
 import { INITIAL_POSITIONS } from '../data/initialData';
-import { BarChart3, PieChart, TrendingUp, Globe, Filter } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, Globe, Filter, Scale } from 'lucide-react';
 
 interface AnalyticsViewProps {
   positions?: StockPosition[];
   operations?: Operation[];
   closedPositions?: ClosedPosition[];
   dividends?: DividendRecord[];
+  onOpenRebalanceModal?: () => void;
+  onOpenCurrencyModal?: () => void;
 }
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -46,6 +48,8 @@ export function AnalyticsView({
   operations = [],
   closedPositions = [],
   dividends = [],
+  onOpenRebalanceModal,
+  onOpenCurrencyModal,
 }: AnalyticsViewProps) {
   const [filterView, setFilterView] = useState<'sectores' | 'paises' | 'rentabilidad'>('sectores');
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -220,9 +224,33 @@ export function AnalyticsView({
           </div>
         </div>
 
-        <div className="text-xs text-slate-300 flex items-center gap-2">
-          <span>Valoración Cartera {selectedYear !== 'all' ? `(${selectedYear})` : ''}:</span>
-          <span className="text-emerald-400 font-bold font-mono text-sm">{formatEUR(totalValueEUR)}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {onOpenRebalanceModal && (
+            <button
+              onClick={onOpenRebalanceModal}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              title="Simulador de rebalanceo y asignación ideal de cartera"
+            >
+              <Scale className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Simulador Rebalanceo DCA</span>
+            </button>
+          )}
+
+          {onOpenCurrencyModal && (
+            <button
+              onClick={onOpenCurrencyModal}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              title="Desglose del efecto divisa EUR/USD en la cartera"
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Efecto Divisa FX</span>
+            </button>
+          )}
+
+          <div className="text-xs text-slate-300 flex items-center gap-2 pl-2 border-l border-slate-700/80">
+            <span>Valoración Cartera {selectedYear !== 'all' ? `(${selectedYear})` : ''}:</span>
+            <span className="text-emerald-400 font-bold font-mono text-sm">{formatEUR(totalValueEUR)}</span>
+          </div>
         </div>
       </div>
 

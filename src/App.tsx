@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ActiveTab, StockPosition, Operation, ClosedPosition, DividendRecord, UpcomingDividend, Broker, WatchlistItem } from './types/portfolio';
+import { ActiveTab, StockPosition, Operation, ClosedPosition, DividendRecord, UpcomingDividend, Broker, WatchlistItem, PortfolioAlert } from './types/portfolio';
 import {
   INITIAL_POSITIONS,
   INITIAL_OPERATIONS,
@@ -38,12 +38,16 @@ import { GitHubMobileGuideModal } from './components/modals/GitHubMobileGuideMod
 import { PrintReportModal } from './components/modals/PrintReportModal';
 import { VersionsModal } from './components/modals/VersionsModal';
 import { SecurityAndBackupModal } from './components/modals/SecurityAndBackupModal';
+import { PortfolioAlertsModal } from './components/modals/PortfolioAlertsModal';
+import { RebalanceSimulatorModal } from './components/modals/RebalanceSimulatorModal';
+import { CurrencyImpactModal } from './components/modals/CurrencyImpactModal';
 import { LockScreen } from './components/security/LockScreen';
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import { useAppSecurity } from './hooks/useAppSecurity';
 import { AppPortfolioBackupData } from './utils/cryptoService';
 import { parseYearFromDate } from './utils/formatters';
+import { fetchBatchQuotes } from './services/quotesService';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<ActiveTab>('dashboard');
@@ -292,6 +296,51 @@ export default function App() {
     closed: true,
   });
   const [printYear, setPrintYear] = useState<number | string | undefined>(undefined);
+
+  // Phase 3 States: Alertas de Precio, Rebalanceo DCA, Multidivisa y Cotizaciones
+  const [alerts, setAlerts] = useState<PortfolioAlert[]>(() => {
+    try {
+      const saved = localStorage.getItem('portfolio_alerts_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn(e);
+    }
+    return [
+      {
+        id: 'alt-1',
+        symbol: 'MSFT',
+        company: 'Microsoft',
+        type: 'take_profit',
+        targetPriceEUR: 480.0,
+        condition: 'above',
+        createdDate: '20/10/2026',
+        active: true,
+        triggered: false,
+        notes: 'Toma parcial de beneficios',
+      },
+      {
+        id: 'alt-2',
+        symbol: 'AAPL',
+        company: 'Apple',
+        type: 'stop_loss',
+        targetPriceEUR: 190.0,
+        condition: 'below',
+        createdDate: '20/10/2026',
+        active: true,
+        triggered: false,
+        notes: 'Stop-loss preventivo',
+      },
+    ];
+  });
+
+  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
+  const [preselectedAlertSymbol, setPreselectedAlertSymbol] = useState<string | undefined>(undefined);
+  const [isRebalanceModalOpen, setIsRebalanceModalOpen] = useState(false);
+  const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
+  const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
+  const [lastQuotesUpdatedAt, setLastQuotesUpdatedAt] = useState<string>(() => {
+    return localStorage.getItem('last_quotes_updated_at') || '';
+  });
 
   // Versions Modal & Automatic App Updater (GitHub sync)
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
@@ -918,6 +967,141 @@ export default function App() {
     });
   };
 
+  const handleAddAlert = (alertData: Omit<PortfolioAlert, 'id' | 'createdDate'>) => {
+    const newAlert: PortfolioAlert = {
+      id: `alt-${Date.now()}`,
+      createdDate: new Date().toLocaleDateString('es-ES'),
+      ...alertData,
+    };
+    setAlerts(prev => {
+      const next = [newAlert, ...prev];
+      localStorage.setItem('portfolio_alerts_v1', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleDeleteAlert = (id: string) => {
+    setAlerts(prev => {
+      const next = prev.filter(a => a.id !== id);
+      localStorage.setItem('portfolio_alerts_v1', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleToggleAlert = (id: string) => {
+    setAlerts(prev => {
+      const next = prev.map(a => (a.id === id ? { ...a, active: !a.active } : a));
+      localStorage.setItem('portfolio_alerts_v1', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleRefreshAllQuotesOnline = async () => {
+    setIsRefreshingQuotes(true);
+    try {
+      const allSymbols = Array.from(
+        new Set([
+          ...positions.map(p => p.symbol.toUpperCase()),
+          ...watchlist.map(w => w.symbol.toUpperCase()),
+        ])
+      );
+      if (allSymbols.length === 0) return;
+
+      const batchData = await fetchBatchQuotes(allSymbols);
+      if (batchData && Object.keys(batchData).length > 0) {
+        const portMap: Record<string, { currentPriceEUR: number; priceUSD?: number; dayChangePercent?: number }> = {};
+        for (const [sym, data] of Object.entries(batchData)) {
+          if (data.priceEUR > 0) {
+            portMap[sym] = {
+              currentPriceEUR: data.priceEUR,
+              priceUSD: data.currency === 'USD' ? data.price : undefined,
+              dayChangePercent: data.changePercent,
+            };
+          }
+        }
+        handleUpdatePortfolioPrices(portMap);
+
+        const watchMap: Record<string, { currentPrice: number }> = {};
+        for (const [sym, data] of Object.entries(batchData)) {
+          if (data.priceEUR > 0) {
+            watchMap[sym] = { currentPrice: data.priceEUR };
+          }
+        }
+        handleUpdateWatchlistPrices(watchMap);
+
+        // Check alerts against updated quotes
+        setAlerts(prevAlerts => {
+          let hasChanges = false;
+          const nowStr = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+          const updated = prevAlerts.map(alert => {
+            const quote = portMap[alert.symbol.toUpperCase()] || watchMap[alert.symbol.toUpperCase()];
+            if (!quote) return alert;
+            const price = 'currentPriceEUR' in quote ? (quote as { currentPriceEUR: number }).currentPriceEUR : (quote as { currentPrice: number }).currentPrice;
+            const isTriggered = alert.condition === 'above' ? price >= alert.targetPriceEUR : price <= alert.targetPriceEUR;
+            if (isTriggered && !alert.triggered) {
+              hasChanges = true;
+              return { ...alert, triggered: true, triggeredDate: nowStr };
+            }
+            return alert;
+          });
+          if (hasChanges) {
+            localStorage.setItem('portfolio_alerts_v1', JSON.stringify(updated));
+          }
+          return hasChanges ? updated : prevAlerts;
+        });
+
+        const timeStr = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        setLastQuotesUpdatedAt(timeStr);
+        localStorage.setItem('last_quotes_updated_at', timeStr);
+      }
+    } catch (err) {
+      console.warn('Error refreshing live quotes:', err);
+    } finally {
+      setIsRefreshingQuotes(false);
+    }
+  };
+
+  const handleExecuteRebalancePurchases = (
+    orders: { symbol: string; company: string; shares: number; price: number; totalEUR: number }[]
+  ) => {
+    const todayStr = new Intl.DateTimeFormat('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date());
+
+    const newOperations: Operation[] = orders.map(o => ({
+      id: `op-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      date: todayStr,
+      type: 'Compra',
+      symbol: o.symbol.toUpperCase(),
+      company: o.company,
+      shares: o.shares,
+      price: o.price,
+      totalEUR: o.totalEUR,
+      commissionEUR: 1.0,
+      currency: 'EUR',
+      broker: 'Rebalanceo DCA',
+    }));
+
+    const nextOps = [...newOperations, ...operations];
+    setOperations(nextOps);
+    localStorage.setItem('cartera_operations', JSON.stringify(nextOps));
+
+    let currentPositions = [...positions];
+    for (const ord of orders) {
+      currentPositions = syncPositionForSymbol(
+        ord.symbol.toUpperCase(),
+        nextOps,
+        currentPositions,
+        ord.company,
+        ord.price
+      );
+    }
+    setPositions(currentPositions);
+    localStorage.setItem('cartera_positions', JSON.stringify(currentPositions));
+  };
+
   const totalPortfolioValue = positions.reduce((acc, p) => acc + p.currentValueEUR, 0);
 
   // If application is locked with password protection
@@ -999,6 +1183,14 @@ export default function App() {
           setSecurityModalTab(tab || 'backup');
           setIsSecurityModalOpen(true);
         }}
+        onOpenAlertsModal={() => {
+          setPreselectedAlertSymbol(undefined);
+          setIsAlertsModalOpen(true);
+        }}
+        triggeredAlertsCount={alerts.filter(a => a.triggered && a.active).length}
+        onRefreshQuotesOnline={handleRefreshAllQuotesOnline}
+        isRefreshingQuotes={isRefreshingQuotes}
+        lastQuotesUpdatedAt={lastQuotesUpdatedAt}
       />
 
       {/* Main layout container with sidebar and content */}
@@ -1052,6 +1244,15 @@ export default function App() {
                 onRegisterDividendForStock={handleRegisterDividendForStock}
                 onSellStock={handleSellStock}
                 onOpenPrintReport={handleOpenPrintReport}
+                onRefreshQuotesOnline={handleRefreshAllQuotesOnline}
+                isRefreshingQuotes={isRefreshingQuotes}
+                lastQuotesUpdatedAt={lastQuotesUpdatedAt}
+                onOpenRebalanceModal={() => setIsRebalanceModalOpen(true)}
+                onOpenAlertsModal={symbol => {
+                  setPreselectedAlertSymbol(symbol);
+                  setIsAlertsModalOpen(true);
+                }}
+                onOpenCurrencyModal={() => setIsCurrencyModalOpen(true)}
               />
             )}
 
@@ -1096,6 +1297,8 @@ export default function App() {
                 operations={operations}
                 closedPositions={closedPositions}
                 dividends={dividends}
+                onOpenRebalanceModal={() => setIsRebalanceModalOpen(true)}
+                onOpenCurrencyModal={() => setIsCurrencyModalOpen(true)}
               />
             )}
 
@@ -1278,6 +1481,39 @@ export default function App() {
         onRestoreData={handleRestorePortfolioData}
         currentVersion={currentVersion}
         initialTab={securityModalTab}
+      />
+
+      {/* MODAL 8: Centro de Alertas de Precios y Stop-Loss (Fase 3) */}
+      <PortfolioAlertsModal
+        isOpen={isAlertsModalOpen}
+        onClose={() => {
+          setIsAlertsModalOpen(false);
+          setPreselectedAlertSymbol(undefined);
+        }}
+        positions={positions}
+        watchlist={watchlist}
+        alerts={alerts}
+        onAddAlert={handleAddAlert}
+        onDeleteAlert={handleDeleteAlert}
+        onToggleAlert={handleToggleAlert}
+        onTriggerCheck={handleRefreshAllQuotesOnline}
+        preselectedSymbol={preselectedAlertSymbol}
+      />
+
+      {/* MODAL 9: Simulador de Rebalanceo DCA y Asignación de Cartera (Fase 3) */}
+      <RebalanceSimulatorModal
+        isOpen={isRebalanceModalOpen}
+        onClose={() => setIsRebalanceModalOpen(false)}
+        positions={positions}
+        onExecutePurchases={handleExecuteRebalancePurchases}
+      />
+
+      {/* MODAL 10: Desglose Efecto Divisa y Análisis FX (Fase 3) */}
+      <CurrencyImpactModal
+        isOpen={isCurrencyModalOpen}
+        onClose={() => setIsCurrencyModalOpen(false)}
+        positions={positions}
+        onRefreshRates={handleRefreshAllQuotesOnline}
       />
     </div>
     </div>

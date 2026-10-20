@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Menu, RefreshCw, TrendingUp, Calendar, Sparkles, Lock, Shield } from 'lucide-react';
+import { Menu, RefreshCw, TrendingUp, Calendar, Sparkles, Lock, Shield, Bell, Globe } from 'lucide-react';
 import { ActiveTab } from '../types/portfolio';
 
 interface HeaderProps {
@@ -18,6 +18,11 @@ interface HeaderProps {
   hasPassword?: boolean;
   onLockApp?: () => void;
   onOpenSecurityModal?: (tab?: 'backup' | 'import' | 'password' | 'inspect') => void;
+  onOpenAlertsModal?: () => void;
+  triggeredAlertsCount?: number;
+  onRefreshQuotesOnline?: () => Promise<void>;
+  isRefreshingQuotes?: boolean;
+  lastQuotesUpdatedAt?: string;
 }
 
 export function Header({
@@ -34,6 +39,11 @@ export function Header({
   hasPassword = false,
   onLockApp,
   onOpenSecurityModal,
+  onOpenAlertsModal,
+  triggeredAlertsCount = 0,
+  onRefreshQuotesOnline,
+  isRefreshingQuotes = false,
+  lastQuotesUpdatedAt,
 }: HeaderProps) {
   const todayFormatted = useMemo(() => {
     return new Intl.DateTimeFormat('es-ES', {
@@ -121,6 +131,45 @@ export function Header({
 
       {/* Right: Óvalo de versiones modificadas, Fecha, Acciones */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* BOTÓN / INDICADOR DE ALERTAS DE PRECIO (CAMPANA) */}
+        {onOpenAlertsModal && (
+          <button
+            onClick={onOpenAlertsModal}
+            className="relative p-2 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700/80 transition-all cursor-pointer shadow-sm active:scale-90"
+            title="Centro de Alertas de Precios y Stop-Loss"
+            aria-label="Alertas de precios"
+          >
+            <Bell className="w-4 h-4" />
+            {triggeredAlertsCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-rose-600 text-[9px] font-black text-white border-2 border-slate-900">
+                  {triggeredAlertsCount}
+                </span>
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* INDICADOR DE MERCADO EN VIVO */}
+        {onRefreshQuotesOnline && (
+          <button
+            onClick={() => onRefreshQuotesOnline()}
+            disabled={isRefreshingQuotes}
+            className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+            title={lastQuotesUpdatedAt ? `Cotizaciones actualizadas: ${lastQuotesUpdatedAt}` : 'Actualizar cotizaciones en vivo'}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[11px] font-bold text-slate-300">
+              {isRefreshingQuotes ? 'Actualizando...' : lastQuotesUpdatedAt ? `Mercado ${lastQuotesUpdatedAt}` : 'Mercado en vivo'}
+            </span>
+            <RefreshCw className={`w-3 h-3 text-cyan-400 ${isRefreshingQuotes ? 'animate-spin' : ''}`} />
+          </button>
+        )}
+
         {/* ÓVALO DE VERSIÓN (Estilo de la captura con colores de la aplicación) */}
         {onOpenVersionsModal && (
           <button

@@ -602,8 +602,33 @@ export function BrokersConfigView({
       {/* TAB 5: DIVISAS */}
       {activeTab === 'divisas' && (
         <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl p-6 shadow-xl space-y-4">
-          <h3 className="text-sm font-bold text-white">Tipos de Cambio Oficiales respecto al Euro (€)</h3>
-          <p className="text-xs text-slate-400">Conversión de activos en dólares estadounidenses o libras esterlinas a la moneda base (EUR).</p>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-white">Tipos de Cambio Oficiales respecto al Euro (€)</h3>
+              <p className="text-xs text-slate-400">Conversión de activos en dólares estadounidenses o libras esterlinas a la moneda base (EUR).</p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/quotes/indices');
+                  if (res.ok) {
+                    const data = await res.json();
+                    const fx = data.indices?.find((i: any) => i.symbol === 'EURUSD=X');
+                    if (fx && fx.price > 0) {
+                      setUsdEurRate(Number(fx.price.toFixed(4)));
+                    }
+                  }
+                } catch (e) {
+                  console.warn(e);
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Actualizar con mercado en vivo</span>
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-2">
             <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
               <label className="font-semibold text-slate-300 block">Dólar Estadounidense (EUR / USD):</label>

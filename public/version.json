@@ -1,8 +1,8 @@
 {
-  "version": "1.0.3",
-  "commitSha": "v1.0.3",
-  "buildTime": "2026-10-20T17:48:00.000Z",
-  "message": "Fase 2: Calendario interactivo de dividendos, métricas en tiempo real en Análisis y ordenación en tablas",
+  "version": "1.0.4",
+  "commitSha": "v1.0.4",
+  "buildTime": "2026-10-20T18:10:00.000Z",
+  "message": "Fase 3: Cotizaciones en 1 clic en cartera, Simulador de Rebalanceo DCA, Centro de Alertas de Precios y Análisis Multidivisa FX",
   "author": "Gaguegu",
   "branch": "main",
   "repo": "Gaguegu/Cartera-de-Valores-v2"

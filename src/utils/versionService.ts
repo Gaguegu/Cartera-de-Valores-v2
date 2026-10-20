@@ -2,7 +2,7 @@ import { AppVersionInfo, JustUpdatedNotification } from '../types/version';
 
 export const GITHUB_REPO = 'Gaguegu/Cartera-de-Valores-v2';
 export const GITHUB_COMMITS_API = `https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=15`;
-export const APP_SEMANTIC_VERSION = 'v1.0.3';
+export const APP_SEMANTIC_VERSION = 'v1.0.4';
 
 const KEY_CURRENT_VERSION = 'cartera_current_version_sha';
 const KEY_JUST_UPDATED = 'cartera_just_updated_notification';
