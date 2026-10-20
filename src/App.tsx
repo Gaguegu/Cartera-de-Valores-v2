@@ -1090,7 +1090,14 @@ export default function App() {
               />
             )}
 
-            {currentTab === 'analytics' && <AnalyticsView positions={positions} />}
+            {currentTab === 'analytics' && (
+              <AnalyticsView
+                positions={positions}
+                operations={operations}
+                closedPositions={closedPositions}
+                dividends={dividends}
+              />
+            )}
 
             {currentTab === 'tax' && (
               <TaxReportView
@@ -1111,7 +1118,11 @@ export default function App() {
             )}
 
             {currentTab === 'calendar' && (
-              <DividendCalendarView upcomingDividends={upcomingDividends} />
+              <DividendCalendarView
+                upcomingDividends={upcomingDividends}
+                dividends={dividends}
+                positions={positions}
+              />
             )}
 
             {currentTab === 'quotes' && (

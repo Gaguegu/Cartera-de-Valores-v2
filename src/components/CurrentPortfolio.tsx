@@ -95,6 +95,9 @@ export function CurrentPortfolio({
     if (typeof aVal === 'number' && typeof bVal === 'number') {
       return sortAsc ? aVal - bVal : bVal - aVal;
     }
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
     return 0;
   });
 

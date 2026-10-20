@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { DividendRecord } from '../types/portfolio';
-import { formatEUR, formatNumber, downloadCSV, getAvailableFiscalYears } from '../utils/formatters';
-import { Download, Plus, DollarSign, Calendar, Printer } from 'lucide-react';
+import { formatEUR, formatNumber, downloadCSV, getAvailableFiscalYears, parseDateToTimestamp } from '../utils/formatters';
+import { Download, Plus, DollarSign, Calendar, Printer, ArrowUpDown } from 'lucide-react';
 
 interface DividendsViewProps {
   dividends: DividendRecord[];
@@ -15,6 +15,8 @@ interface DividendsViewProps {
 export function DividendsView({ dividends, onOpenNewDividend, onOpenPrintReport }: DividendsViewProps) {
   const [selectedYear, setSelectedYear] = useState<string>('Todos los años');
 
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
+
   // Años dinámicos que se expanden automáticamente para 2027 y futuros
   const availableYears = useMemo(
     () => getAvailableFiscalYears(dividends.map(d => d.year)),
@@ -26,13 +28,24 @@ export function DividendsView({ dividends, onOpenNewDividend, onOpenPrintReport 
     return d.year === parseInt(selectedYear, 10);
   });
 
-  const totalGross = filtered.reduce((acc, d) => acc + d.grossEUR, 0);
-  const totalWithholding = filtered.reduce((acc, d) => acc + d.withholdingEUR, 0);
-  const totalNet = filtered.reduce((acc, d) => acc + d.netEUR, 0);
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const timeA = parseDateToTimestamp(a.date);
+      const timeB = parseDateToTimestamp(b.date);
+      if (timeA !== timeB) {
+        return sortDirection === 'desc' ? timeB - timeA : timeA - timeB;
+      }
+      return (a.symbol || '').localeCompare(b.symbol || '');
+    });
+  }, [filtered, sortDirection]);
+
+  const totalGross = sorted.reduce((acc, d) => acc + d.grossEUR, 0);
+  const totalWithholding = sorted.reduce((acc, d) => acc + d.withholdingEUR, 0);
+  const totalNet = sorted.reduce((acc, d) => acc + d.netEUR, 0);
 
   const handleExportCSV = () => {
     const headers = ['Fecha', 'Empresa', 'Símbolo', 'Bruto (€)', 'Retención (€)', 'Neto (€)', 'Año'];
-    const rows = filtered.map(d => [
+    const rows = sorted.map(d => [
       d.date,
       d.company,
       d.symbol,
@@ -48,7 +61,7 @@ export function DividendsView({ dividends, onOpenNewDividend, onOpenPrintReport 
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Controls - Screen 6 Header */}
       <div className="bg-[#12233f] border border-slate-700/70 p-4 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={selectedYear}
             onChange={e => setSelectedYear(e.target.value)}
@@ -61,6 +74,20 @@ export function DividendsView({ dividends, onOpenNewDividend, onOpenPrintReport 
               </option>
             ))}
           </select>
+
+          {/* Selector de orden cronológico */}
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs font-medium text-slate-300">
+            <ArrowUpDown className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <select
+              value={sortDirection}
+              onChange={e => setSortDirection(e.target.value as 'desc' | 'asc')}
+              className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
+              title="Selecciona el orden de los dividendos por fecha"
+            >
+              <option value="desc" className="bg-slate-900 text-white">📅 Más recientes primero</option>
+              <option value="asc" className="bg-slate-900 text-white">📅 Cronológico (antiguos primero)</option>
+            </select>
+          </div>
 
           <button
             onClick={() => {
@@ -81,11 +108,20 @@ export function DividendsView({ dividends, onOpenNewDividend, onOpenPrintReport 
             <Printer className="w-3.5 h-3.5 text-blue-400" />
             <span>Generar PDF/Imprimir</span>
           </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Exportar dividendos a CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Exportar CSV</span>
+          </button>
         </div>
 
         <button
           onClick={onOpenNewDividend}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5"
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Registrar dividendo</span>
@@ -98,7 +134,19 @@ export function DividendsView({ dividends, onOpenNewDividend, onOpenPrintReport 
           <table className="w-full text-xs text-left">
             <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80">
               <tr>
-                <th className="py-3.5 px-4">Fecha</th>
+                <th
+                  onClick={() => setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white select-none transition-colors group"
+                  title="Haz clic para alternar orden de fechas"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Fecha</span>
+                    <ArrowUpDown className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
+                    <span className="text-[10px] text-blue-400/90 font-mono font-normal">
+                      {sortDirection === 'desc' ? '▼' : '▲'}
+                    </span>
+                  </div>
+                </th>
                 <th className="py-3.5 px-4">Empresa</th>
                 <th className="py-3.5 px-4">Símbolo</th>
                 <th className="py-3.5 px-4 text-right">Bruto (€)</th>
@@ -107,14 +155,14 @@ export function DividendsView({ dividends, onOpenNewDividend, onOpenPrintReport 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {filtered.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-500">
                     No hay dividendos registrados para el periodo seleccionado.
                   </td>
                 </tr>
               ) : (
-                filtered.map(div => (
+                sorted.map(div => (
                   <tr key={div.id} className="hover:bg-slate-800/50 transition-colors">
                     <td className="py-3.5 px-4 text-slate-300 font-mono">{div.date}</td>
                     <td className="py-3.5 px-4 text-white font-medium">{div.company}</td>

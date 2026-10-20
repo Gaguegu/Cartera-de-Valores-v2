@@ -35,21 +35,9 @@ export function TaxReportView({ onOpenPrintReport, closedPositions = [], dividen
     ? dividends
     : dividends.filter(d => d.year === yearNum);
 
-  // If there are records in the portfolio for this year, calculate real values
-  const hasRealData = yearClosed.length > 0 || yearDividends.length > 0;
-
-  const capitalGains = hasRealData
-    ? yearClosed.reduce((acc, c) => acc + c.resultEUR, 0)
-    : (!isAll && yearNum === 2024 ? 7122.50 : 0);
-
-  const grossDividends = hasRealData
-    ? yearDividends.reduce((acc, d) => acc + d.grossEUR, 0)
-    : (!isAll && yearNum === 2024 ? 4892.30 : 0);
-
-  const totalWithholdings = hasRealData
-    ? yearDividends.reduce((acc, d) => acc + d.withholdingEUR, 0)
-    : (!isAll && yearNum === 2024 ? 1245.80 : 0);
-
+  const capitalGains = yearClosed.reduce((acc, c) => acc + (c.resultEUR || 0), 0);
+  const grossDividends = yearDividends.reduce((acc, d) => acc + (d.grossEUR || 0), 0);
+  const totalWithholdings = yearDividends.reduce((acc, d) => acc + (d.withholdingEUR || 0), 0);
   const netResult = capitalGains + (grossDividends - totalWithholdings);
 
   // Breakdown matching Screen 8
@@ -61,7 +49,7 @@ export function TaxReportView({ onOpenPrintReport, closedPositions = [], dividen
 
   const salesDetails = {
     gross: capitalGains,
-    withholdings: yearNum === 2024 ? 620.30 : 0,
+    withholdings: 0,
     net: capitalGains,
   };
 

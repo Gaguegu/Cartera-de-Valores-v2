@@ -1,8 +1,8 @@
 {
-  "version": "1.0.2",
-  "commitSha": "v1.0.2",
-  "buildTime": "2026-10-20T17:35:00.000Z",
-  "message": "Orden cronológico por fecha en Operaciones y eliminación del botón de sincronización",
+  "version": "1.0.3",
+  "commitSha": "v1.0.3",
+  "buildTime": "2026-10-20T17:48:00.000Z",
+  "message": "Fase 2: Calendario interactivo de dividendos, métricas en tiempo real en Análisis y ordenación en tablas",
   "author": "Gaguegu",
   "branch": "main",
   "repo": "Gaguegu/Cartera-de-Valores-v2"
