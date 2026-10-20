@@ -800,80 +800,6 @@ export default function App() {
     );
   };
 
-  const handleReconstructOperationsFromClosed = () => {
-    let countAdded = 0;
-    const currentOps = [...operations];
-
-    closedPositions.forEach((cp, idx) => {
-      const sym = cp.symbol.toUpperCase();
-
-      // Verificar si ya existe apunte de Venta para esta posición cerrada
-      const saleExists = currentOps.some(
-        o =>
-          o.type === 'Venta' &&
-          o.symbol.toUpperCase() === sym &&
-          (o.id === cp.operationId || o.date === cp.saleDate)
-      );
-
-      // Verificar si ya existe apunte de Compra para este símbolo
-      const buyExists = currentOps.some(
-        o => o.type === 'Compra' && o.symbol.toUpperCase() === sym
-      );
-
-      // Calcular precio de compra derivado si no está explícito
-      const derivedBuyPrice =
-        cp.buyPrice && cp.buyPrice > 0
-          ? cp.buyPrice
-          : cp.shares > 0
-          ? Number(((cp.shares * cp.salePrice - cp.resultEUR) / cp.shares).toFixed(2))
-          : 100;
-
-      // 1. Si no existe compra previa, registrar compra en 2025
-      if (!buyExists) {
-        const buyOp: Operation = {
-          id: `op-recon-buy-${sym}-${idx}-${Date.now()}`,
-          date: '15/10/2025',
-          type: 'Compra',
-          symbol: sym,
-          company: cp.company,
-          shares: cp.shares,
-          price: derivedBuyPrice,
-          totalEUR: Number((cp.shares * derivedBuyPrice).toFixed(2)),
-          commissionEUR: 0,
-          broker: 'Broker Principal',
-        };
-        currentOps.unshift(buyOp);
-        countAdded++;
-      }
-
-      // 2. Si no existe venta, registrar venta en 2026
-      if (!saleExists) {
-        const saleOp: Operation = {
-          id: cp.operationId || `op-recon-sale-${sym}-${idx}-${Date.now()}`,
-          date: cp.saleDate || '19/03/2026',
-          type: 'Venta',
-          symbol: sym,
-          company: cp.company,
-          shares: cp.shares,
-          price: cp.salePrice,
-          totalEUR: Number((cp.shares * cp.salePrice).toFixed(2)),
-          commissionEUR: 0,
-          broker: 'Broker Principal',
-        };
-        currentOps.unshift(saleOp);
-        countAdded++;
-      }
-    });
-
-    if (countAdded > 0) {
-      setOperations(currentOps);
-      localStorage.setItem('cartera_operations', JSON.stringify(currentOps));
-      alert(`¡Sincronización completada! Se han generado ${countAdded} operaciones (compras y ventas) que ahora puedes consultar y editar en la pestaña "Operaciones".`);
-    } else {
-      alert('Todas las compras y ventas de tus posiciones cerradas ya están registradas en la pestaña "Operaciones".');
-    }
-  };
-
   const handleClearAllDataToZero = () => {
     setPositions([]);
     setOperations([]);
@@ -1150,7 +1076,6 @@ export default function App() {
                 onUpdateClosedPosition={handleUpdateClosedPosition}
                 onDeleteClosedPosition={handleDeleteClosedPosition}
                 onOpenPrintReport={handleOpenPrintReport}
-                onReconstructOperations={handleReconstructOperationsFromClosed}
               />
             )}
 

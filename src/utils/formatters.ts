@@ -115,3 +115,32 @@ export function parseYearFromDate(dateStr?: string): number {
   const parsed = d.getFullYear();
   return isNaN(parsed) || parsed < 1900 ? new Date().getFullYear() : parsed;
 }
+
+/**
+ * Convierte cualquier fecha en formato DD/MM/YYYY, YYYY-MM-DD, o timestamp en un valor numérico milisegundos
+ * para ordenar operaciones cronológicamente de forma exacta.
+ */
+export function parseDateToTimestamp(dateStr?: string): number {
+  if (!dateStr) return 0;
+  const parts = String(dateStr).trim().split(/[/-]/);
+  if (parts.length === 3) {
+    // DD/MM/YYYY o DD-MM-YYYY
+    if (parts[2].length === 4) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      return new Date(year, month, day).getTime();
+    }
+    // YYYY-MM-DD
+    if (parts[0].length === 4) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      return new Date(year, month, day).getTime();
+    }
+  }
+  const d = new Date(dateStr);
+  const t = d.getTime();
+  return isNaN(t) ? 0 : t;
+}
+

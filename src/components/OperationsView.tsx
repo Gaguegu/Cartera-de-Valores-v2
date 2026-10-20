@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Operation } from '../types/portfolio';
-import { formatEUR, formatNumber, downloadCSV, getAvailableFiscalYears, parseYearFromDate } from '../utils/formatters';
-import { Plus, Search, Filter, Download, Trash2, ArrowUpDown, Pencil, Coins, Printer } from 'lucide-react';
+import { formatEUR, formatNumber, downloadCSV, getAvailableFiscalYears, parseYearFromDate, parseDateToTimestamp } from '../utils/formatters';
+import { Plus, Search, Filter, Download, Trash2, ArrowUpDown, Pencil, Coins, Printer, ArrowDownUp } from 'lucide-react';
 
 interface OperationsViewProps {
   operations: Operation[];
@@ -28,6 +28,16 @@ export function OperationsView({
   const [filterType, setFilterType] = useState<string>('Todos');
   const [filterYear, setFilterYear] = useState<string>('Todos los años');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => {
+    const saved = localStorage.getItem('cartera_operations_sort_dir');
+    return saved === 'desc' ? 'desc' : 'asc';
+  });
+
+  const handleToggleSortDirection = (newDir?: 'asc' | 'desc') => {
+    const next = newDir || (sortDirection === 'asc' ? 'desc' : 'asc');
+    setSortDirection(next);
+    localStorage.setItem('cartera_operations_sort_dir', next);
+  };
 
   // Años dinámicos que se expanden automáticamente para 2027 y futuros
   const availableYears = useMemo(() => {
@@ -46,12 +56,24 @@ export function OperationsView({
     return matchesType && matchesYear && matchesSearch;
   });
 
-  const totalCommissions = filtered.reduce((acc, op) => acc + (op.commissionEUR || 0), 0);
-  const totalVolume = filtered.reduce((acc, op) => acc + op.totalEUR, 0);
+  // Ordenar cronológicamente por fecha exacta (asc: 2025 -> 2026, desc: 2026 -> 2025)
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const timeA = parseDateToTimestamp(a.date);
+      const timeB = parseDateToTimestamp(b.date);
+      if (timeA !== timeB) {
+        return sortDirection === 'asc' ? timeA - timeB : timeB - timeA;
+      }
+      return (a.symbol || '').localeCompare(b.symbol || '');
+    });
+  }, [filtered, sortDirection]);
+
+  const totalCommissions = sorted.reduce((acc, op) => acc + (op.commissionEUR || 0), 0);
+  const totalVolume = sorted.reduce((acc, op) => acc + op.totalEUR, 0);
 
   const handleExportCSV = () => {
     const headers = ['Fecha', 'Tipo', 'Símbolo', 'Empresa', 'Cantidad', 'Precio (€)', 'Total (€)', 'Comisión (€)', 'Broker'];
-    const rows = filtered.map(op => [
+    const rows = sorted.map(op => [
       op.date,
       op.type,
       op.symbol,
@@ -94,6 +116,25 @@ export function OperationsView({
             ))}
           </select>
 
+          {/* Selector de orden cronológico */}
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs font-medium text-slate-300">
+            <ArrowUpDown className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="text-slate-400 hidden sm:inline">Orden:</span>
+            <select
+              value={sortDirection}
+              onChange={e => handleToggleSortDirection(e.target.value as 'asc' | 'desc')}
+              className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
+              title="Selecciona el orden de las operaciones por fecha"
+            >
+              <option value="asc" className="bg-slate-900 text-white">
+                📅 Cronológico (2025 → 2026)
+              </option>
+              <option value="desc" className="bg-slate-900 text-white">
+                📅 Más recientes primero (2026 → 2025)
+              </option>
+            </select>
+          </div>
+
           <button
             onClick={() => {
               if (onOpenPrintReport) {
@@ -111,7 +152,14 @@ export function OperationsView({
             <span>Generar PDF/Imprimir</span>
           </button>
 
-
+          <button
+            onClick={handleExportCSV}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Exportar operaciones filtradas a CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline">Exportar CSV</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -157,7 +205,19 @@ export function OperationsView({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80">
               <tr>
-                <th className="py-3.5 px-4">Fecha</th>
+                <th
+                  onClick={() => handleToggleSortDirection()}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white select-none transition-colors group"
+                  title="Haz clic para alternar orden: Cronológico (2025 → 2026) o Más recientes primero"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Fecha</span>
+                    <ArrowUpDown className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
+                    <span className="text-[10px] text-blue-400/90 font-mono font-normal">
+                      {sortDirection === 'asc' ? '▲ (2025 → 2026)' : '▼ (2026 → 2025)'}
+                    </span>
+                  </div>
+                </th>
                 <th className="py-3.5 px-4">Tipo</th>
                 <th className="py-3.5 px-4">Símbolo</th>
                 <th className="py-3.5 px-4">Empresa</th>
@@ -169,7 +229,7 @@ export function OperationsView({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {filtered.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-slate-400">
                     <p className="font-semibold text-sm text-slate-300 mb-1">No hay operaciones registradas</p>
@@ -181,7 +241,7 @@ export function OperationsView({
                   </td>
                 </tr>
               ) : (
-                filtered.map(op => (
+                sorted.map(op => (
                   <tr key={op.id} className="hover:bg-slate-800/50 transition-colors">
                     <td className="py-3.5 px-4 text-slate-300 font-mono">{op.date}</td>
                     <td className="py-3.5 px-4">

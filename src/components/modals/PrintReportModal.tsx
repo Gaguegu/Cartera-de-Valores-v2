@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Printer, Calendar, Filter, Info } from 'lucide-react';
 import { StockPosition, Operation, ClosedPosition, DividendRecord } from '../../types/portfolio';
-import { formatEUR, formatNumber, formatPercent, getAvailableFiscalYears } from '../../utils/formatters';
+import { formatEUR, formatNumber, formatPercent, getAvailableFiscalYears, parseDateToTimestamp } from '../../utils/formatters';
 
 interface PrintReportModalProps {
   isOpen: boolean;
@@ -84,12 +84,14 @@ export function PrintReportModal({
   const totalValue = positions.reduce((acc, p) => acc + (p.currentValueEUR || 0), 0);
   const totalGain = positions.reduce((acc, p) => acc + (p.gainLossEUR || 0), 0);
 
-  // Filtrado robusto de operaciones, posiciones cerradas y dividendos por el año seleccionado
-  const filteredOperations = operations.filter(op => {
-    const y = getRecordYear(op);
-    if (isAllYears) return true;
-    return y === yearNum;
-  });
+  // Filtrado robusto de operaciones, posiciones cerradas y dividendos por el año seleccionado (ordenadas por fecha cronológica)
+  const filteredOperations = operations
+    .filter(op => {
+      const y = getRecordYear(op);
+      if (isAllYears) return true;
+      return y === yearNum;
+    })
+    .sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
 
   const totalBuysEUR = filteredOperations
     .filter(op => op.type === 'Compra')

@@ -1,9 +1,9 @@
 {
-  "version": "1.0.0",
-  "commitSha": "0e15465",
-  "buildTime": "2026-10-11T16:24:29.442Z",
-  "message": "Actualización y mejoras en la cartera de valores",
+  "version": "1.0.2",
+  "commitSha": "v1.0.2",
+  "buildTime": "2026-10-20T17:35:00.000Z",
+  "message": "Orden cronológico por fecha en Operaciones y eliminación del botón de sincronización",
   "author": "Gaguegu",
-  "branch": "principal",
-  "repo": "Gaguegu/Cartera-de-Valores"
+  "branch": "main",
+  "repo": "Gaguegu/Cartera-de-Valores-v2"
 }
