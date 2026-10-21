@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ClosedPosition } from '../types/portfolio';
-import { formatEUR, formatNumber, downloadCSV, getAvailableFiscalYears } from '../utils/formatters';
-import { Download, TrendingUp, Calendar, Pencil, Trash2, X, Check, Calculator, Printer } from 'lucide-react';
+import { formatEUR, formatNumber, downloadCSV, getAvailableFiscalYears, parseDateToTimestamp } from '../utils/formatters';
+import { Download, TrendingUp, Calendar, Pencil, Trash2, X, Check, Calculator, Printer, Search, ArrowUpDown } from 'lucide-react';
 
 interface ClosedPortfolioViewProps {
   closedPositions: ClosedPosition[];
@@ -19,12 +19,25 @@ export function ClosedPortfolioView({
   onDeleteClosedPosition,
   onOpenPrintReport,
 }: ClosedPortfolioViewProps) {
-  // Años dinámicos: incluye automáticamente 2026, 2025, el año actual (2027, 2028...) y cualquier operación futura
+  // Años dinámicos: incluye automáticamente 2026, 2025, el año actual y cualquier operación futura
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
   const availableYears = useMemo(
     () => getAvailableFiscalYears(closedPositions.map(p => p.year)),
     [closedPositions]
   );
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<keyof ClosedPosition | 'saleDateTimestamp'>('saleDateTimestamp');
+  const [sortAsc, setSortAsc] = useState(false);
+
+  const handleToggleSort = (field: keyof ClosedPosition | 'saleDateTimestamp') => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(field === 'symbol' || field === 'company');
+    }
+  };
 
   const [editingItem, setEditingItem] = useState<ClosedPosition | null>(null);
   const [editSymbol, setEditSymbol] = useState('');
@@ -34,8 +47,6 @@ export function ClosedPortfolioView({
   const [editSalePrice, setEditSalePrice] = useState(0);
   const [editBuyPrice, setEditBuyPrice] = useState(0);
   const [editResultEUR, setEditResultEUR] = useState(0);
-
-
 
   const handleOpenEdit = (item: ClosedPosition) => {
     setEditingItem(item);
@@ -87,30 +98,55 @@ export function ClosedPortfolioView({
     setEditingItem(null);
   };
 
-  const positionsInYear = closedPositions
-    .map(p => {
-      // If displayed with near 576.35, ensure it renders as -577.90
-      if (
-        (Math.abs(Math.abs(p.resultEUR) - 576.35) < 1.5 ||
-          Math.abs(p.resultEUR - (-576.35)) < 1.5 ||
-          Math.abs(Math.abs(p.resultEUR) - 576.00) < 1.0 ||
-          p.symbol.toUpperCase() === 'ORLY') &&
-        p.resultEUR !== -577.90
-      ) {
-        return { ...p, resultEUR: -577.90 };
+  const positionsInYear = useMemo(() => {
+    return closedPositions
+      .map(p => {
+        // If displayed with near 576.35, ensure it renders as -577.90
+        if (
+          (Math.abs(Math.abs(p.resultEUR) - 576.35) < 1.5 ||
+            Math.abs(p.resultEUR - (-576.35)) < 1.5 ||
+            Math.abs(Math.abs(p.resultEUR) - 576.00) < 1.0 ||
+            p.symbol.toUpperCase() === 'ORLY') &&
+          p.resultEUR !== -577.90
+        ) {
+          return { ...p, resultEUR: -577.90 };
+        }
+        return p;
+      })
+      .filter(p => {
+        const matchesYear = selectedYear === 'all' || p.year === selectedYear;
+        const matchesSearch =
+          !searchTerm.trim() ||
+          p.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.company.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesYear && matchesSearch;
+      });
+  }, [closedPositions, selectedYear, searchTerm]);
+
+  const sortedPositions = useMemo(() => {
+    return [...positionsInYear].sort((a, b) => {
+      if (sortField === 'saleDateTimestamp') {
+        const tA = parseDateToTimestamp(a.saleDate);
+        const tB = parseDateToTimestamp(b.saleDate);
+        return sortAsc ? tA - tB : tB - tA;
       }
-      return p;
-    })
-    .filter(p => {
-      if (selectedYear === 'all') return true;
-      return p.year === selectedYear;
+      const aVal = a[sortField as keyof ClosedPosition];
+      const bVal = b[sortField as keyof ClosedPosition];
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortAsc ? aVal - bVal : bVal - aVal;
+      }
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return 0;
     });
+  }, [positionsInYear, sortField, sortAsc]);
 
   const totalResultInYear = positionsInYear.reduce((acc, p) => acc + p.resultEUR, 0);
 
   const handleExportCSV = () => {
     const headers = ['Símbolo', 'Empresa', 'Fecha Venta', 'Cantidad', 'Precio Venta (€)', 'Resultado (€)', 'Año'];
-    const rows = positionsInYear.map(p => [
+    const rows = sortedPositions.map(p => [
       p.symbol,
       p.company,
       p.saleDate,
@@ -125,39 +161,27 @@ export function ClosedPortfolioView({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      {/* Header and Year Tabs - Selector con 'Todos los años' y eliminación/ocultación opcional de 2025 hacia atrás */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        {/* Year Pills Navigation */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 flex-wrap">
-          {/* Opción Todos los Años */}
-          <button
-            onClick={() => setSelectedYear('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              selectedYear === 'all'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-2 ring-blue-400/50'
-                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            Todos los años
-          </button>
-
-          {/* Años dinámicos (2026, 2025, 2027 y futuros según fecha/datos) */}
-          {availableYears.map(yr => (
-            <button
-              key={yr}
-              onClick={() => setSelectedYear(yr)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                selectedYear === yr
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-2 ring-blue-400/50'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              {yr}
-            </button>
-          ))}
-        </div>
-
+      {/* Action and Filter Bar - Idéntico diseño al de la Cartera Actual */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/70 shadow-md">
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Selector desplegable de ejercicio / año de venta */}
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner">
+            <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="text-slate-400 font-medium hidden sm:inline">Año venta:</span>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
+              title="Filtrar cartera cerrada por año de venta de las acciones"
+            >
+              <option value="all" className="bg-slate-900 text-white">Todos los años</option>
+              {availableYears.map(yr => (
+                <option key={yr} value={yr} className="bg-slate-900 text-white">
+                  Año {yr}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <button
             onClick={() => {
@@ -172,12 +196,33 @@ export function ClosedPortfolioView({
                 window.print();
               }
             }}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer"
-            title="Generar PDF o imprimir las operaciones cerradas"
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            title="Generar informe en PDF o imprimir las operaciones cerradas"
           >
             <Printer className="w-3.5 h-3.5 text-blue-400" />
             <span>Generar PDF/Imprimir</span>
           </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            title="Exportar a archivo CSV / Excel"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Exportar CSV</span>
+          </button>
+        </div>
+
+        {/* Buscador de valor cerrado */}
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Buscar valor cerrado..."
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+          />
         </div>
       </div>
 
@@ -185,28 +230,78 @@ export function ClosedPortfolioView({
       <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80">
+            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none">
               <tr>
-                <th className="py-3.5 px-4">Símbolo</th>
-                <th className="py-3.5 px-4">Empresa</th>
-                <th className="py-3.5 px-4">Fecha venta</th>
-                <th className="py-3.5 px-4 text-right">Cantidad</th>
-                <th className="py-3.5 px-4 text-right">Precio venta</th>
-                <th className="py-3.5 px-4 text-right">Resultado €</th>
+                <th
+                  onClick={() => handleToggleSort('symbol')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Símbolo</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('company')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Empresa</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('saleDateTimestamp')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Fecha venta</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('shares')}
+                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Cantidad</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('salePrice')}
+                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Precio venta</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('resultEUR')}
+                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Resultado €</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                </th>
                 <th className="py-3.5 px-3 text-center">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {positionsInYear.length === 0 ? (
+              {sortedPositions.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-slate-500">
-                    {selectedYear === 'all'
+                    {searchTerm.trim()
+                      ? `No se encontraron operaciones cerradas que coincidan con "${searchTerm}".`
+                      : selectedYear === 'all'
                       ? 'No hay operaciones cerradas registradas en la cartera.'
                       : `No hay operaciones cerradas registradas en el año ${selectedYear}.`}
                   </td>
                 </tr>
               ) : (
-                positionsInYear.map(item => (
+                sortedPositions.map(item => (
                   <tr key={item.id} className="hover:bg-slate-800/50 transition-colors">
                     <td className="py-3.5 px-4 font-bold text-white font-mono flex items-center gap-2">
                       <span
