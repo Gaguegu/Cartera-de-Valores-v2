@@ -92,9 +92,9 @@ export function NewDividendModal({
   const [fxDestRate, setFxDestRate] = useState<number>(19);
   const [fxDestEUR, setFxDestEUR] = useState<number>(6.88);
   // Storage preference in Tab 1:
+  // 'subtotal' = 36.20 € gross, 6.88 € withholding, 29.32 € net (matches Trade Republic invoice 1:1, with 6.39 € noted as foreign tax)
   // 'integral' = 42.59 € gross, 13.27 € total withholding (6.39 USA + 6.88 ESP), 29.32 € net
-  // 'subtotal' = 36.20 € gross, 6.88 € withholding, 29.32 € net (with 6.39 € noted as foreign tax)
-  const [fxAccountingMethod, setFxAccountingMethod] = useState<'integral' | 'subtotal'>('integral');
+  const [fxAccountingMethod, setFxAccountingMethod] = useState<'integral' | 'subtotal'>('subtotal');
 
   // ==========================================
   // TAB 2: EXTRACTO DIRECTO EN EUROS (€)
@@ -746,11 +746,11 @@ export function NewDividendModal({
                 </div>
               </div>
 
-              {/* Fila C: Conversión a Euros y Retención en España (IRPF) */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Fila C: Conversión a Euros, Retención en España (IRPF) y TOTAL NETO */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div>
                   <label className="block text-[11px] font-semibold text-indigo-300 mb-1">
-                    4. Tipo de cambio aplicado
+                    4. Tipo de cambio
                   </label>
                   <div className="relative">
                     <input
@@ -758,33 +758,33 @@ export function NewDividendModal({
                       step="0.0001"
                       value={fxRate || ''}
                       onChange={e => handleFxRateChange(parseFloat(e.target.value) || 1.1539)}
-                      className="w-full bg-slate-950 border border-indigo-500/50 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-indigo-400"
+                      className="w-full bg-slate-950 border border-indigo-500/50 rounded-xl px-2.5 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-indigo-400"
                       placeholder="1.1539"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 pointer-events-none">
-                      USD/EUR
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">
+                      $/€
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
                     Extracto: <strong className="text-white">1.1539</strong>
                   </span>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Subtotal en EUR (41,77 $ / 1,1539)
+                    Subtotal en EUR
                   </label>
-                  <div className="h-10 px-3 flex items-center bg-slate-950 border border-slate-800 rounded-xl text-sm text-cyan-300 font-mono font-extrabold">
+                  <div className="h-9 px-2.5 flex items-center bg-slate-950 border border-slate-800 rounded-xl text-xs text-cyan-300 font-mono font-extrabold">
                     {formatNumber(tab1SubtotalEUR)} €
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">
-                    Base liquidable en España: <strong className="text-cyan-300">36.20 EUR</strong>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    Base España: <strong className="text-cyan-300">36.20 €</strong>
                   </span>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-rose-300 mb-1">
-                    5. IRPF España (19% sobre 36,20 €)
+                    5. IRPF España (19%)
                   </label>
                   <div className="relative">
                     <input
@@ -792,52 +792,131 @@ export function NewDividendModal({
                       step="0.01"
                       value={fxDestEUR || ''}
                       onChange={e => setFxDestEUR(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-950 border border-rose-500/50 rounded-xl px-3 py-2 text-sm text-rose-400 font-mono font-bold focus:outline-none focus:border-rose-400"
+                      className="w-full bg-slate-950 border border-rose-500/50 rounded-xl px-2.5 py-2 text-xs text-rose-400 font-mono font-bold focus:outline-none focus:border-rose-400"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-rose-400 pointer-events-none">
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-rose-400 pointer-events-none">
                       €
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">
-                    Extracto: <strong className="text-rose-400">-6.88 EUR</strong>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    Extracto: <strong className="text-rose-400">-6.88 €</strong>
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-emerald-300 mb-1">
+                    6. TOTAL NETO (Arriba)
+                  </label>
+                  <div className="h-9 px-2.5 flex items-center bg-emerald-950/40 border border-emerald-500/60 rounded-xl text-sm text-emerald-400 font-mono font-black shadow-inner">
+                    {formatEUR(tab1NetEUR)}
+                  </div>
+                  <span className="text-[10px] text-emerald-400 block mt-0.5 font-mono">
+                    36,20 - 6,88 = <strong>29,32 €</strong>
                   </span>
                 </div>
               </div>
 
-              {/* RESUMEN LIQUIDACIÓN EXACTA */}
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
-                <div className="flex justify-between text-slate-300">
-                  <span>Rendimiento Bruto Íntegro ({sharesCount} accs × {fxPerShareUSD} $ / {fxRate}):</span>
-                  <span className="font-bold text-white font-mono">{formatNumber(tab1FullGrossEUR)} €</span>
-                </div>
-                <div className="flex justify-between text-amber-300/90 pl-3">
-                  <span>↳ Retención en Origen USA (15% · {formatNumber(fxOriginUSD)} USD):</span>
-                  <span className="font-mono font-semibold">-{formatNumber(tab1OriginEUR)} €</span>
-                </div>
-                <div className="flex justify-between text-slate-300 pl-3">
-                  <span>↳ Subtotal recibido en España antes de IRPF:</span>
-                  <span className="font-mono text-cyan-300 font-semibold">{formatNumber(tab1SubtotalEUR)} €</span>
-                </div>
-                <div className="flex justify-between text-rose-400 pl-3">
-                  <span>↳ Retención en Destino España (19% IRPF AEAT):</span>
-                  <span className="font-mono font-semibold">-{formatNumber(tab1DestEUR)} €</span>
-                </div>
-                <div className="flex justify-between text-rose-400 font-bold border-t border-slate-800/80 pt-1">
-                  <span>Total Retenciones Soportadas (USA + España):</span>
-                  <span className="font-mono">-{formatNumber(tab1TotalWithholdingEUR)} €</span>
-                </div>
-                <div className="flex justify-between items-center text-emerald-400 font-bold text-sm border-t border-slate-800 pt-2">
-                  <div>
-                    <span className="text-white">TOTAL NETO INGRESADO EN CUENTA:</span>
-                    <span className="block text-[10px] text-emerald-300 font-normal">
-                      36,20 € subtotal - 6,88 € IRPF = 29,32 € (¡Cuadra al céntimo!)
-                    </span>
-                  </div>
-                  <span className="font-mono text-xl font-black text-emerald-400">
-                    {formatEUR(tab1NetEUR)}
+              {/* Selector de modo de presentación del Bruto */}
+              <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div>
+                  <span className="font-bold text-white block">
+                    Modo de contabilización del dividendo en cartera:
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Elige cómo quieres ver el bruto en la tabla de tu cartera (ambos dan exactamente 29,32 € netos):
                   </span>
                 </div>
+
+                <div className="flex bg-slate-900 border border-slate-700 rounded-xl p-0.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setFxAccountingMethod('subtotal')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      fxAccountingMethod === 'subtotal'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Exacto Trade Republic (36,20 €)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFxAccountingMethod('integral')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      fxAccountingMethod === 'integral'
+                        ? 'bg-blue-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Bruto Íntegro AEAT (42,59 €)
+                  </button>
+                </div>
               </div>
+
+              {/* RESUMEN LIQUIDACIÓN: CUADRE 100% ENTRE ARRIBA Y ABAJO */}
+              {fxAccountingMethod === 'subtotal' ? (
+                /* MODO 1: EXACTO TRADE REPUBLIC (SUBTOTAL 36,20 € - IRPF 6,88 € = NETO 29,32 €) */
+                <div className="bg-slate-950 border border-emerald-500/40 rounded-xl p-3.5 space-y-2 shadow-inner">
+                  <div className="flex justify-between text-slate-300">
+                    <span>Dividendo Bruto Liquidado en España (Subtotal extracto):</span>
+                    <span className="font-extrabold text-white font-mono text-sm">{formatNumber(tab1SubtotalEUR)} €</span>
+                  </div>
+                  <div className="flex justify-between text-rose-400 pl-3">
+                    <span>↳ Retención IRPF España (19% sobre 36,20 €):</span>
+                    <span className="font-mono font-bold">-{formatNumber(tab1DestEUR)} €</span>
+                  </div>
+                  <div className="flex justify-between text-amber-300/80 pl-3 text-[11px] border-t border-slate-800/60 pt-1">
+                    <span>↳ Retención soportada en origen USA (15% · {formatNumber(fxOriginUSD)} $):</span>
+                    <span className="font-mono">-{formatNumber(tab1OriginEUR)} € (guardada para la deducción en la Renta)</span>
+                  </div>
+                  <div className="flex justify-between items-center text-emerald-400 font-bold text-sm border-t border-slate-800 pt-2">
+                    <div>
+                      <span className="text-white">TOTAL NETO INGRESADO EN CUENTA (Abajo):</span>
+                      <span className="block text-[10px] text-emerald-300 font-normal">
+                        36,20 € - 6,88 € = 29,32 € (¡Coincide 100% arriba y abajo con tu justificante!)
+                      </span>
+                    </div>
+                    <span className="font-mono text-xl font-black text-emerald-400">
+                      {formatEUR(tab1NetEUR)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* MODO 2: BRUTO ÍNTEGRO (42,59 € - 13,27 € = 29,32 €) */
+                <div className="bg-slate-950 border border-blue-500/40 rounded-xl p-3.5 space-y-2 shadow-inner">
+                  <div className="flex justify-between text-slate-300">
+                    <span>Rendimiento Bruto Íntegro ({sharesCount} accs × {fxPerShareUSD} $ / {fxRate}):</span>
+                    <span className="font-extrabold text-white font-mono text-sm">{formatNumber(tab1FullGrossEUR)} €</span>
+                  </div>
+                  <div className="flex justify-between text-amber-300/90 pl-3">
+                    <span>↳ Retención en Origen USA (15% · {formatNumber(fxOriginUSD)} USD):</span>
+                    <span className="font-mono font-semibold">-{formatNumber(tab1OriginEUR)} €</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300 pl-3">
+                    <span>↳ Subtotal en España antes de IRPF:</span>
+                    <span className="font-mono text-cyan-300 font-semibold">{formatNumber(tab1SubtotalEUR)} €</span>
+                  </div>
+                  <div className="flex justify-between text-rose-400 pl-3">
+                    <span>↳ Retención en Destino España (19% IRPF AEAT):</span>
+                    <span className="font-mono font-semibold">-{formatNumber(tab1DestEUR)} €</span>
+                  </div>
+                  <div className="flex justify-between text-rose-400 font-bold border-t border-slate-800/80 pt-1">
+                    <span>Total Retenciones Soportadas (USA + España):</span>
+                    <span className="font-mono">-{formatNumber(tab1TotalWithholdingEUR)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center text-emerald-400 font-bold text-sm border-t border-slate-800 pt-2">
+                    <div>
+                      <span className="text-white">TOTAL NETO INGRESADO EN CUENTA (Abajo):</span>
+                      <span className="block text-[10px] text-emerald-300 font-normal">
+                        42,59 € bruto - 13,27 € retenciones = 29,32 €
+                      </span>
+                    </div>
+                    <span className="font-mono text-xl font-black text-emerald-400">
+                      {formatEUR(tab1NetEUR)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* ======================================================== */
