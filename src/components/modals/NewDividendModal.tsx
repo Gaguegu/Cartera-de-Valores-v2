@@ -8,12 +8,7 @@ import {
   Coins,
   Layers,
   Globe,
-  FileText,
-  Building2,
-  DollarSign,
-  ArrowRight,
-  Info,
-  HelpCircle
+  DollarSign
 } from 'lucide-react';
 
 export interface PrefilledDividendInfo {
@@ -77,44 +72,41 @@ export function NewDividendModal({
   const [date, setDate] = useState<string>(new Date().toLocaleDateString('es-ES'));
 
   // Shares management
-  const [sharesCount, setSharesCount] = useState<number>(54);
+  const [sharesCount, setSharesCount] = useState<number>(0);
   const [sharesSource, setSharesSource] = useState<'portfolio' | 'single' | 'custom'>('portfolio');
 
   // ==========================================
   // TAB 1: EXTRACTO EN DIVISA EXTRANJERA (TRADE REPUBLIC / DEGIRO / IBKR)
   // ==========================================
   const [fxCurrency, setFxCurrency] = useState<string>('USD');
-  const [fxPerShareUSD, setFxPerShareUSD] = useState<string>('0.91');
-  const [fxGrossUSD, setFxGrossUSD] = useState<number>(49.14);
+  const [fxPerShareUSD, setFxPerShareUSD] = useState<string>('');
+  const [fxGrossUSD, setFxGrossUSD] = useState<number>(0);
   const [fxOriginRateUSD, setFxOriginRateUSD] = useState<number>(15);
-  const [fxOriginUSD, setFxOriginUSD] = useState<number>(7.37);
-  const [fxRate, setFxRate] = useState<number>(1.1539);
+  const [fxOriginUSD, setFxOriginUSD] = useState<number>(0);
+  const [fxRate, setFxRate] = useState<number>(0);
   const [fxDestRate, setFxDestRate] = useState<number>(19);
-  const [fxDestEUR, setFxDestEUR] = useState<number>(6.88);
-  // Storage preference in Tab 1:
-  // 'subtotal' = 36.20 € gross, 6.88 € withholding, 29.32 € net (matches Trade Republic invoice 1:1, with 6.39 € noted as foreign tax)
-  // 'integral' = 42.59 € gross, 13.27 € total withholding (6.39 USA + 6.88 ESP), 29.32 € net
+  const [fxDestEUR, setFxDestEUR] = useState<number>(0);
   const [fxAccountingMethod, setFxAccountingMethod] = useState<'integral' | 'subtotal'>('subtotal');
 
   // ==========================================
   // TAB 2: EXTRACTO DIRECTO EN EUROS (€)
   // ==========================================
   const [calcMode, setCalcMode] = useState<'perShare' | 'total'>('perShare');
-  const [perShareEUR, setPerShareEUR] = useState<string>('0.50');
-  const [directGrossEUR, setDirectGrossEUR] = useState<number>(27.0);
+  const [perShareEUR, setPerShareEUR] = useState<string>('');
+  const [directGrossEUR, setDirectGrossEUR] = useState<number>(0);
 
   // Direct EUR Withholding configuration
   const [hasDoubleWithholding, setHasDoubleWithholding] = useState<boolean>(false);
   const [singleWithholdingPercent, setSingleWithholdingPercent] = useState<number>(19);
-  const [singleWithholdingEUR, setSingleWithholdingEUR] = useState<number>(5.13);
+  const [singleWithholdingEUR, setSingleWithholdingEUR] = useState<number>(0);
 
   const [originCountry, setOriginCountry] = useState<string>('Estados Unidos (USA)');
   const [originPercent, setOriginPercent] = useState<number>(15);
-  const [originEUR, setOriginEUR] = useState<number>(4.05);
+  const [originEUR, setOriginEUR] = useState<number>(0);
 
   const [destCountry, setDestCountry] = useState<string>('España (IRPF)');
   const [destPercent, setDestPercent] = useState<number>(19);
-  const [destEUR, setDestEUR] = useState<number>(4.36);
+  const [destEUR, setDestEUR] = useState<number>(0);
 
   const isLocked = Boolean(prefilledData?.isLocked) && !isEditing;
 
@@ -139,11 +131,12 @@ export function NewDividendModal({
     };
   };
 
-  // Sync state on modal open or editing change
+  // Reset or populate state when modal opens
   useEffect(() => {
     if (!isOpen) return;
 
     if (dividendToEdit) {
+      // MODE EDIT: load the saved data of this specific dividend
       setSymbol(dividendToEdit.symbol);
       setCompany(dividendToEdit.company);
       setDate(dividendToEdit.date);
@@ -160,14 +153,14 @@ export function NewDividendModal({
       if (isForeign) {
         setActiveTab('foreign');
         setFxCurrency(dividendToEdit.foreignCurrency || 'USD');
-        const gUSD = dividendToEdit.grossForeign || 49.14;
+        const gUSD = dividendToEdit.grossForeign || 0;
         setFxGrossUSD(gUSD);
-        setFxPerShareUSD((gUSD / (shares || 1)).toFixed(2));
-        setFxOriginUSD(dividendToEdit.withholdingOriginForeign || 7.37);
+        setFxPerShareUSD(gUSD > 0 ? (gUSD / (shares || 1)).toFixed(2) : '');
+        setFxOriginUSD(dividendToEdit.withholdingOriginForeign || 0);
         setFxOriginRateUSD(dividendToEdit.withholdingOriginPercent ?? 15);
         setFxRate(dividendToEdit.fxRate || 1.1539);
         setFxDestRate(dividendToEdit.withholdingDestinationPercent ?? 19);
-        setFxDestEUR(dividendToEdit.withholdingDestinationEUR ?? 6.88);
+        setFxDestEUR(dividendToEdit.withholdingDestinationEUR ?? 0);
       } else {
         setActiveTab('directEUR');
         setDirectGrossEUR(dividendToEdit.grossEUR);
@@ -179,7 +172,7 @@ export function NewDividendModal({
       return;
     }
 
-    // New Dividend Mode
+    // MODE NEW DIVIDEND: START COMPLETELY CLEAN / SIN DATOS
     const targetSymbol = prefilledData?.symbol || availablePositions[0]?.symbol || 'MSFT';
     const targetCompany = prefilledData?.company || availablePositions[0]?.company || 'Microsoft';
     setSymbol(targetSymbol);
@@ -194,7 +187,7 @@ export function NewDividendModal({
     const singleOpShares = prefilledData?.shares ?? 0;
     const purchasesCount = prefilledData?.purchasesCount ?? meta.purchasesCount;
 
-    let initialShares = 54;
+    let initialShares = totalPortfolioShares > 0 ? totalPortfolioShares : (meta.matchPos?.shares || 0);
     let initialSource: 'portfolio' | 'single' | 'custom' = 'portfolio';
 
     if (totalPortfolioShares > 0) {
@@ -214,24 +207,30 @@ export function NewDividendModal({
     setSharesSource(initialSource);
     setDate(new Date().toLocaleDateString('es-ES'));
 
+    // CLEAN ALL FINANCIAL INPUTS FOR NEW DIVIDEND
+    setFxCurrency('USD');
+    setFxPerShareUSD('');
+    setFxGrossUSD(0);
+    setFxOriginRateUSD(15);
+    setFxOriginUSD(0);
+    setFxRate(0);
+    setFxDestRate(19);
+    setFxDestEUR(0);
+    setFxAccountingMethod('subtotal');
+
+    setCalcMode('perShare');
+    setPerShareEUR('');
+    setDirectGrossEUR(0);
+    setSingleWithholdingPercent(19);
+    setSingleWithholdingEUR(0);
+    setOriginEUR(0);
+    setDestEUR(0);
+
     if (isForeignStock) {
       setActiveTab('foreign');
-      setFxCurrency('USD');
-      setFxPerShareUSD('0.91');
-      const gUSD = Number((initialShares * 0.91).toFixed(2));
-      setFxGrossUSD(gUSD);
-      const origU = Number(((gUSD * 15) / 100).toFixed(2));
-      setFxOriginUSD(origU);
-      setFxRate(1.1539);
-      const subEUR = Number(((gUSD - origU) / 1.1539).toFixed(2));
-      setFxDestEUR(Number(((subEUR * 19) / 100).toFixed(2)));
     } else {
       setActiveTab('directEUR');
       setHasDoubleWithholding(false);
-      const gE = Number((initialShares * 0.50).toFixed(2));
-      setDirectGrossEUR(gE);
-      setSingleWithholdingPercent(19);
-      setSingleWithholdingEUR(Number(((gE * 19) / 100).toFixed(2)));
     }
   }, [isOpen, prefilledData, dividendToEdit]);
 
@@ -248,6 +247,12 @@ export function NewDividendModal({
   // ==========================================
   const handleFxPerShareChange = (valStr: string) => {
     setFxPerShareUSD(valStr);
+    if (!valStr.trim()) {
+      setFxGrossUSD(0);
+      setFxOriginUSD(0);
+      setFxDestEUR(0);
+      return;
+    }
     const val = parseFloat(valStr.replace(',', '.'));
     if (!isNaN(val) && sharesCount > 0) {
       const gUSD = Number((val * sharesCount).toFixed(2));
@@ -263,7 +268,7 @@ export function NewDividendModal({
 
   const handleFxGrossChange = (valUSD: number) => {
     setFxGrossUSD(valUSD);
-    if (sharesCount > 0) {
+    if (sharesCount > 0 && valUSD > 0) {
       setFxPerShareUSD((valUSD / sharesCount).toFixed(4));
     }
     const oUSD = Number(((valUSD * fxOriginRateUSD) / 100).toFixed(2));
@@ -278,7 +283,7 @@ export function NewDividendModal({
     setFxOriginRateUSD(pct);
     const oUSD = Number(((fxGrossUSD * pct) / 100).toFixed(2));
     setFxOriginUSD(oUSD);
-    if (fxRate > 0) {
+    if (fxRate > 0 && fxGrossUSD > 0) {
       const subEUR = Number(((fxGrossUSD - oUSD) / fxRate).toFixed(2));
       setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
     }
@@ -289,7 +294,7 @@ export function NewDividendModal({
     if (fxGrossUSD > 0) {
       setFxOriginRateUSD(Number(((valUSD / fxGrossUSD) * 100).toFixed(2)));
     }
-    if (fxRate > 0) {
+    if (fxRate > 0 && fxGrossUSD > 0) {
       const subEUR = Number(((fxGrossUSD - valUSD) / fxRate).toFixed(2));
       setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
     }
@@ -297,7 +302,7 @@ export function NewDividendModal({
 
   const handleFxRateChange = (r: number) => {
     setFxRate(r);
-    if (r > 0) {
+    if (r > 0 && fxGrossUSD > 0) {
       const subEUR = Number(((fxGrossUSD - fxOriginUSD) / r).toFixed(2));
       setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
     }
@@ -305,26 +310,19 @@ export function NewDividendModal({
 
   const handleFxDestRateChange = (pct: number) => {
     setFxDestRate(pct);
-    if (fxRate > 0) {
+    if (fxRate > 0 && fxGrossUSD > 0) {
       const subEUR = Number(((fxGrossUSD - fxOriginUSD) / fxRate).toFixed(2));
       setFxDestEUR(Number(((subEUR * pct) / 100).toFixed(2)));
     }
   };
 
   // Derived calculations for Tab 1 (Foreign):
-  // 1) Subtotal USD after USA withholding
-  const tab1SubtotalUSD = Number((fxGrossUSD - fxOriginUSD).toFixed(2));
-  // 2) Subtotal in EUR converted by broker
-  const tab1SubtotalEUR = fxRate > 0 ? Number((tab1SubtotalUSD / fxRate).toFixed(2)) : 0;
-  // 3) Spanish withholding in EUR
+  const tab1SubtotalUSD = fxGrossUSD > 0 ? Number((fxGrossUSD - fxOriginUSD).toFixed(2)) : 0;
+  const tab1SubtotalEUR = fxRate > 0 && tab1SubtotalUSD > 0 ? Number((tab1SubtotalUSD / fxRate).toFixed(2)) : 0;
   const tab1DestEUR = fxDestEUR;
-  // 4) Net paid into bank account
-  const tab1NetEUR = Number((tab1SubtotalEUR - tab1DestEUR).toFixed(2));
-  // 5) Origin withholding in EUR
-  const tab1OriginEUR = fxRate > 0 ? Number((fxOriginUSD / fxRate).toFixed(2)) : 0;
-  // 6) Total Gross in EUR (full amount before foreign withholding)
-  const tab1FullGrossEUR = fxRate > 0 ? Number((fxGrossUSD / fxRate).toFixed(2)) : 0;
-  // 7) Total withholdings in EUR
+  const tab1NetEUR = tab1SubtotalEUR > 0 ? Number((tab1SubtotalEUR - tab1DestEUR).toFixed(2)) : 0;
+  const tab1OriginEUR = fxRate > 0 && fxOriginUSD > 0 ? Number((fxOriginUSD / fxRate).toFixed(2)) : 0;
+  const tab1FullGrossEUR = fxRate > 0 && fxGrossUSD > 0 ? Number((fxGrossUSD / fxRate).toFixed(2)) : 0;
   const tab1TotalWithholdingEUR = Number((tab1OriginEUR + tab1DestEUR).toFixed(2));
 
   // ==========================================
@@ -332,6 +330,13 @@ export function NewDividendModal({
   // ==========================================
   const handleDirectPerShareChange = (valStr: string) => {
     setPerShareEUR(valStr);
+    if (!valStr.trim()) {
+      setDirectGrossEUR(0);
+      setSingleWithholdingEUR(0);
+      setOriginEUR(0);
+      setDestEUR(0);
+      return;
+    }
     const val = parseFloat(valStr.replace(',', '.'));
     if (!isNaN(val) && sharesCount > 0) {
       const g = Number((val * sharesCount).toFixed(2));
@@ -342,7 +347,7 @@ export function NewDividendModal({
 
   const handleDirectGrossChange = (newG: number) => {
     setDirectGrossEUR(newG);
-    if (sharesCount > 0) {
+    if (sharesCount > 0 && newG > 0) {
       setPerShareEUR((newG / sharesCount).toFixed(4));
     }
     recalcDirectWithholdings(newG, hasDoubleWithholding, originPercent, destPercent, singleWithholdingPercent);
@@ -369,7 +374,7 @@ export function NewDividendModal({
     ? Number((originEUR + destEUR).toFixed(2))
     : Number(singleWithholdingEUR.toFixed(2));
 
-  const tab2NetEUR = Number((directGrossEUR - tab2TotalWithholdingEUR).toFixed(2));
+  const tab2NetEUR = directGrossEUR > 0 ? Number((directGrossEUR - tab2TotalWithholdingEUR).toFixed(2)) : 0;
 
   // Handle shares count change
   const handleSharesCountChange = (newCount: number, source: 'portfolio' | 'single' | 'custom') => {
@@ -377,19 +382,21 @@ export function NewDividendModal({
     setSharesSource(source);
 
     // Sync Tab 1
-    const pU = parseFloat(fxPerShareUSD.replace(',', '.')) || 0.91;
-    const gUSD = Number((newCount * pU).toFixed(2));
-    setFxGrossUSD(gUSD);
-    const oUSD = Number(((gUSD * fxOriginRateUSD) / 100).toFixed(2));
-    setFxOriginUSD(oUSD);
-    if (fxRate > 0) {
-      const subEUR = Number(((gUSD - oUSD) / fxRate).toFixed(2));
-      setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+    if (fxPerShareUSD) {
+      const pU = parseFloat(fxPerShareUSD.replace(',', '.')) || 0;
+      const gUSD = Number((newCount * pU).toFixed(2));
+      setFxGrossUSD(gUSD);
+      const oUSD = Number(((gUSD * fxOriginRateUSD) / 100).toFixed(2));
+      setFxOriginUSD(oUSD);
+      if (fxRate > 0) {
+        const subEUR = Number(((gUSD - oUSD) / fxRate).toFixed(2));
+        setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+      }
     }
 
     // Sync Tab 2
-    if (calcMode === 'perShare') {
-      const pE = parseFloat(perShareEUR.replace(',', '.')) || 0.50;
+    if (calcMode === 'perShare' && perShareEUR) {
+      const pE = parseFloat(perShareEUR.replace(',', '.')) || 0;
       const gE = Number((newCount * pE).toFixed(2));
       setDirectGrossEUR(gE);
       recalcDirectWithholdings(gE, hasDoubleWithholding, originPercent, destPercent, singleWithholdingPercent);
@@ -408,8 +415,6 @@ export function NewDividendModal({
     const year = parseYearFromDate(date);
 
     if (activeTab === 'foreign') {
-      // Choose between integral gross (42.59 € with 13.27 € total withholding)
-      // or subtotal gross (36.20 € with 6.88 € withholding and 6.39 € foreign tax)
       const isIntegral = fxAccountingMethod === 'integral';
       const grossToSave = isIntegral ? tab1FullGrossEUR : tab1SubtotalEUR;
       const withToSave = isIntegral ? tab1TotalWithholdingEUR : tab1DestEUR;
@@ -480,7 +485,7 @@ export function NewDividendModal({
                 )}
               </h3>
               <p className="text-[11px] text-slate-400">
-                Calcula exactamente según tu justificante bancario de Trade Republic, Degiro o broker nacional
+                Introduce los datos limpios de tu justificante bancario de Trade Republic, Degiro o broker nacional
               </p>
             </div>
           </div>
@@ -554,6 +559,9 @@ export function NewDividendModal({
                       setCompany(meta.matchPos.company);
                       const isForeign = meta.matchPos.country !== 'ES';
                       setActiveTab(isForeign ? 'foreign' : 'directEUR');
+                      if (meta.totalSharesInPortfolio > 0) {
+                        setSharesCount(meta.totalSharesInPortfolio);
+                      }
                     }
                   }}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 cursor-pointer"
@@ -576,7 +584,7 @@ export function NewDividendModal({
                 value={date}
                 onChange={e => setDate(e.target.value)}
                 required
-                placeholder="DD/MM/AAAA (ej. 11/06/2026)"
+                placeholder="DD/MM/AAAA"
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
               />
             </div>
@@ -608,6 +616,7 @@ export function NewDividendModal({
                     handleSharesCountChange(count, 'custom');
                   }}
                   required
+                  placeholder="Número de acciones"
                   className="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
@@ -640,7 +649,9 @@ export function NewDividendModal({
                   </span>
                 </div>
                 <span className="text-[11px] text-emerald-400 font-mono font-bold">
-                  {sharesCount} accs × {fxPerShareUSD} $ = {formatNumber(fxGrossUSD)} USD
+                  {fxGrossUSD > 0
+                    ? `${sharesCount} accs × ${fxPerShareUSD || '0'} $ = ${formatNumber(fxGrossUSD)} USD`
+                    : 'Introduce los datos del extracto'}
                 </span>
               </div>
 
@@ -656,7 +667,7 @@ export function NewDividendModal({
                       step="0.0001"
                       value={fxPerShareUSD}
                       onChange={e => handleFxPerShareChange(e.target.value)}
-                      placeholder="0.91"
+                      placeholder="0.00 (ej. 0.91)"
                       className="w-full bg-slate-900 border border-cyan-500/60 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-cyan-400 pointer-events-none">
@@ -664,7 +675,7 @@ export function NewDividendModal({
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-1">
-                    Como figura en tu justificante: <strong className="text-white">0.91 USD</strong>
+                    Rendimiento por título según extracto
                   </span>
                 </div>
 
@@ -676,17 +687,19 @@ export function NewDividendModal({
                     <input
                       type="number"
                       step="0.01"
-                      value={fxGrossUSD || ''}
+                      value={fxGrossUSD ? fxGrossUSD : ''}
                       onChange={e => handleFxGrossChange(parseFloat(e.target.value) || 0)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-emerald-400 font-mono font-bold focus:outline-none focus:border-blue-500"
-                      placeholder="49.14"
+                      placeholder="0.00"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
                       USD ($)
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-1">
-                    {sharesCount} acc. × {fxPerShareUSD} $ = <strong className="text-emerald-400">{formatNumber(fxGrossUSD)} USD</strong>
+                    {fxGrossUSD > 0
+                      ? `${sharesCount} acc. × ${fxPerShareUSD || '0'} $ = ${formatNumber(fxGrossUSD)} USD`
+                      : 'Total bruto en divisa (se calcula solo o introdúcelo)'}
                   </span>
                 </div>
               </div>
@@ -701,9 +714,10 @@ export function NewDividendModal({
                     <input
                       type="number"
                       step="0.1"
-                      value={fxOriginRateUSD}
+                      value={fxOriginRateUSD || ''}
                       onChange={e => handleFxOriginRateChange(parseFloat(e.target.value) || 0)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-400"
+                      placeholder="15"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
                       %
@@ -720,16 +734,17 @@ export function NewDividendModal({
                     <input
                       type="number"
                       step="0.01"
-                      value={fxOriginUSD || ''}
+                      value={fxOriginUSD ? fxOriginUSD : ''}
                       onChange={e => handleFxOriginUSDChange(parseFloat(e.target.value) || 0)}
                       className="w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3 py-2 text-sm text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-400"
+                      placeholder="0.00"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-amber-400 pointer-events-none">
                       USD ($)
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-1">
-                    Justificante: <strong className="text-amber-300">-7.37 USD</strong>
+                    {fxOriginUSD > 0 ? `Retenido: -${formatNumber(fxOriginUSD)} USD` : 'Retención origen practicada'}
                   </span>
                 </div>
 
@@ -738,10 +753,10 @@ export function NewDividendModal({
                     Subtotal tras retención USA
                   </label>
                   <div className="h-10 px-3 flex items-center bg-slate-900/90 border border-slate-700 rounded-xl text-sm text-white font-mono font-bold">
-                    {formatNumber(tab1SubtotalUSD)} USD
+                    {tab1SubtotalUSD > 0 ? `${formatNumber(tab1SubtotalUSD)} USD` : '0.00 USD'}
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-1">
-                    49.14 - 7.37 = 41.77 USD
+                    Subtotal en divisa
                   </span>
                 </div>
               </div>
@@ -756,17 +771,17 @@ export function NewDividendModal({
                     <input
                       type="number"
                       step="0.0001"
-                      value={fxRate || ''}
-                      onChange={e => handleFxRateChange(parseFloat(e.target.value) || 1.1539)}
+                      value={fxRate ? fxRate : ''}
+                      onChange={e => handleFxRateChange(parseFloat(e.target.value) || 0)}
                       className="w-full bg-slate-950 border border-indigo-500/50 rounded-xl px-2.5 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-indigo-400"
-                      placeholder="1.1539"
+                      placeholder="Ej. 1.0850"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">
                       $/€
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-0.5">
-                    Extracto: <strong className="text-white">1.1539</strong>
+                    {fxRate > 0 ? `Tipo: ${fxRate}` : 'Tipo de cambio broker'}
                   </span>
                 </div>
 
@@ -778,7 +793,7 @@ export function NewDividendModal({
                     {formatNumber(tab1SubtotalEUR)} €
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-0.5">
-                    Base España: <strong className="text-cyan-300">36.20 €</strong>
+                    Base liquidable España
                   </span>
                 </div>
 
@@ -790,16 +805,17 @@ export function NewDividendModal({
                     <input
                       type="number"
                       step="0.01"
-                      value={fxDestEUR || ''}
+                      value={fxDestEUR ? fxDestEUR : ''}
                       onChange={e => setFxDestEUR(parseFloat(e.target.value) || 0)}
                       className="w-full bg-slate-950 border border-rose-500/50 rounded-xl px-2.5 py-2 text-xs text-rose-400 font-mono font-bold focus:outline-none focus:border-rose-400"
+                      placeholder="0.00"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-rose-400 pointer-events-none">
                       €
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-0.5">
-                    Extracto: <strong className="text-rose-400">-6.88 €</strong>
+                    {fxDestEUR > 0 ? `-${formatNumber(fxDestEUR)} €` : '19% IRPF'}
                   </span>
                 </div>
 
@@ -811,7 +827,7 @@ export function NewDividendModal({
                     {formatEUR(tab1NetEUR)}
                   </div>
                   <span className="text-[10px] text-emerald-400 block mt-0.5 font-mono">
-                    36,20 - 6,88 = <strong>29,32 €</strong>
+                    {tab1SubtotalEUR > 0 ? `${formatNumber(tab1SubtotalEUR)} - ${formatNumber(tab1DestEUR)} = ${formatNumber(tab1NetEUR)} €` : 'Neto a cobrar'}
                   </span>
                 </div>
               </div>
@@ -823,7 +839,7 @@ export function NewDividendModal({
                     Modo de contabilización del dividendo en cartera:
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    Elige cómo quieres ver el bruto en la tabla de tu cartera (ambos dan exactamente 29,32 € netos):
+                    Elige cómo quieres ver el bruto en la tabla de tu cartera:
                   </span>
                 </div>
 
@@ -837,7 +853,7 @@ export function NewDividendModal({
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Exacto Trade Republic (36,20 €)
+                    Exacto Trade Republic {tab1SubtotalEUR > 0 ? `(${formatNumber(tab1SubtotalEUR)} €)` : ''}
                   </button>
                   <button
                     type="button"
@@ -848,21 +864,28 @@ export function NewDividendModal({
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Bruto Íntegro AEAT (42,59 €)
+                    Bruto Íntegro AEAT {tab1FullGrossEUR > 0 ? `(${formatNumber(tab1FullGrossEUR)} €)` : ''}
                   </button>
                 </div>
               </div>
 
               {/* RESUMEN LIQUIDACIÓN: CUADRE 100% ENTRE ARRIBA Y ABAJO */}
-              {fxAccountingMethod === 'subtotal' ? (
-                /* MODO 1: EXACTO TRADE REPUBLIC (SUBTOTAL 36,20 € - IRPF 6,88 € = NETO 29,32 €) */
+              {tab1NetEUR === 0 && fxGrossUSD === 0 ? (
+                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center space-y-1">
+                  <span className="text-slate-400 text-xs">
+                    Introduce el rendimiento por acción o el bruto de tu extracto arriba para calcular el neto.
+                  </span>
+                  <div className="text-emerald-400 font-mono font-bold text-lg">0,00 €</div>
+                </div>
+              ) : fxAccountingMethod === 'subtotal' ? (
+                /* MODO 1: EXACTO TRADE REPUBLIC (SUBTOTAL - IRPF = NETO) */
                 <div className="bg-slate-950 border border-emerald-500/40 rounded-xl p-3.5 space-y-2 shadow-inner">
                   <div className="flex justify-between text-slate-300">
                     <span>Dividendo Bruto Liquidado en España (Subtotal extracto):</span>
                     <span className="font-extrabold text-white font-mono text-sm">{formatNumber(tab1SubtotalEUR)} €</span>
                   </div>
                   <div className="flex justify-between text-rose-400 pl-3">
-                    <span>↳ Retención IRPF España (19% sobre 36,20 €):</span>
+                    <span>↳ Retención IRPF España (19% sobre {formatNumber(tab1SubtotalEUR)} €):</span>
                     <span className="font-mono font-bold">-{formatNumber(tab1DestEUR)} €</span>
                   </div>
                   <div className="flex justify-between text-amber-300/80 pl-3 text-[11px] border-t border-slate-800/60 pt-1">
@@ -873,7 +896,7 @@ export function NewDividendModal({
                     <div>
                       <span className="text-white">TOTAL NETO INGRESADO EN CUENTA (Abajo):</span>
                       <span className="block text-[10px] text-emerald-300 font-normal">
-                        36,20 € - 6,88 € = 29,32 € (¡Coincide 100% arriba y abajo con tu justificante!)
+                        {formatNumber(tab1SubtotalEUR)} € - {formatNumber(tab1DestEUR)} € = {formatNumber(tab1NetEUR)} € (¡Coincide 100% arriba y abajo!)
                       </span>
                     </div>
                     <span className="font-mono text-xl font-black text-emerald-400">
@@ -882,10 +905,10 @@ export function NewDividendModal({
                   </div>
                 </div>
               ) : (
-                /* MODO 2: BRUTO ÍNTEGRO (42,59 € - 13,27 € = 29,32 €) */
+                /* MODO 2: BRUTO ÍNTEGRO */
                 <div className="bg-slate-950 border border-blue-500/40 rounded-xl p-3.5 space-y-2 shadow-inner">
                   <div className="flex justify-between text-slate-300">
-                    <span>Rendimiento Bruto Íntegro ({sharesCount} accs × {fxPerShareUSD} $ / {fxRate}):</span>
+                    <span>Rendimiento Bruto Íntegro ({sharesCount} accs × {fxPerShareUSD || '0'} $ / {fxRate || 1}):</span>
                     <span className="font-extrabold text-white font-mono text-sm">{formatNumber(tab1FullGrossEUR)} €</span>
                   </div>
                   <div className="flex justify-between text-amber-300/90 pl-3">
@@ -908,7 +931,7 @@ export function NewDividendModal({
                     <div>
                       <span className="text-white">TOTAL NETO INGRESADO EN CUENTA (Abajo):</span>
                       <span className="block text-[10px] text-emerald-300 font-normal">
-                        42,59 € bruto - 13,27 € retenciones = 29,32 €
+                        {formatNumber(tab1FullGrossEUR)} € bruto - {formatNumber(tab1TotalWithholdingEUR)} € retenciones = {formatNumber(tab1NetEUR)} €
                       </span>
                     </div>
                     <span className="font-mono text-xl font-black text-emerald-400">
@@ -966,7 +989,7 @@ export function NewDividendModal({
                         step="0.0001"
                         value={perShareEUR}
                         onChange={e => handleDirectPerShareChange(e.target.value)}
-                        placeholder="0.50"
+                        placeholder="0.00"
                         className="w-full bg-slate-900 border border-cyan-500/50 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
@@ -992,8 +1015,9 @@ export function NewDividendModal({
                     <input
                       type="number"
                       step="any"
-                      value={directGrossEUR || ''}
+                      value={directGrossEUR ? directGrossEUR : ''}
                       onChange={e => handleDirectGrossChange(Number(e.target.value))}
+                      placeholder="0.00"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-blue-500"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
@@ -1053,8 +1077,9 @@ export function NewDividendModal({
                       <input
                         type="number"
                         step="any"
-                        value={singleWithholdingEUR || ''}
+                        value={singleWithholdingEUR ? singleWithholdingEUR : ''}
                         onChange={e => setSingleWithholdingEUR(parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-rose-400 font-mono font-bold"
                       />
                     </div>
@@ -1077,8 +1102,9 @@ export function NewDividendModal({
                         <input
                           type="number"
                           step="any"
-                          value={originEUR || ''}
+                          value={originEUR ? originEUR : ''}
                           onChange={e => setOriginEUR(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
                           className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono font-bold"
                         />
                       </div>
@@ -1101,8 +1127,9 @@ export function NewDividendModal({
                         <input
                           type="number"
                           step="any"
-                          value={destEUR || ''}
+                          value={destEUR ? destEUR : ''}
                           onChange={e => setDestEUR(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
                           className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-rose-300 font-mono font-bold"
                         />
                       </div>
@@ -1133,7 +1160,9 @@ export function NewDividendModal({
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>
-                {isEditing ? 'Guardar Cambios' : `Guardar Dividendo (${formatEUR(activeTab === 'foreign' ? tab1NetEUR : tab2NetEUR)})`}
+                {isEditing
+                  ? 'Guardar Cambios'
+                  : `Guardar Dividendo (${formatEUR(activeTab === 'foreign' ? tab1NetEUR : tab2NetEUR)})`}
               </span>
             </button>
           </div>
