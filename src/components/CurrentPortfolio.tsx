@@ -282,20 +282,7 @@ export function CurrentPortfolio({
 
       {/* Expandable Filter drawer */}
       {showFilters && (
-        <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs animate-in slide-in-from-top-2">
-          <div>
-            <label className="block text-slate-400 font-semibold mb-1">Filtrar por Año de compra:</label>
-            <select
-              value={selectedYear}
-              onChange={e => setSelectedYear(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
-            >
-              <option value="TODOS">Todos los años</option>
-              {availableYears.map(yr => (
-                <option key={yr} value={String(yr)}>Año {yr}</option>
-              ))}
-            </select>
-          </div>
+        <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs animate-in slide-in-from-top-2">
           <div>
             <label className="block text-slate-400 font-semibold mb-1">Filtrar por País:</label>
             <select

@@ -95,19 +95,7 @@ export function DividendsView({
             ))}
           </select>
 
-          {/* Selector de orden cronológico */}
-          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs font-medium text-slate-300">
-            <ArrowUpDown className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <select
-              value={sortDirection}
-              onChange={e => setSortDirection(e.target.value as 'desc' | 'asc')}
-              className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
-              title="Selecciona el orden de los dividendos por fecha"
-            >
-              <option value="desc" className="bg-slate-900 text-white">📅 Más recientes primero</option>
-              <option value="asc" className="bg-slate-900 text-white">📅 Cronológico (antiguos primero)</option>
-            </select>
-          </div>
+
 
           <button
             onClick={() => {

@@ -116,24 +116,7 @@ export function OperationsView({
             ))}
           </select>
 
-          {/* Selector de orden cronológico */}
-          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs font-medium text-slate-300">
-            <ArrowUpDown className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <span className="text-slate-400 hidden sm:inline">Orden:</span>
-            <select
-              value={sortDirection}
-              onChange={e => handleToggleSortDirection(e.target.value as 'asc' | 'desc')}
-              className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
-              title="Selecciona el orden de las operaciones por fecha"
-            >
-              <option value="asc" className="bg-slate-900 text-white">
-                📅 Cronológico (2025 → 2026)
-              </option>
-              <option value="desc" className="bg-slate-900 text-white">
-                📅 Más recientes primero (2026 → 2025)
-              </option>
-            </select>
-          </div>
+
 
           <button
             onClick={() => {
