@@ -799,6 +799,11 @@ export function PrintReportModal({
                         <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(d.grossEUR)}</td>
                         <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300">
                           {d.withholdingEUR > 0 ? `-${formatEUR(d.withholdingEUR)}` : '0,00 €'}
+                          {d.hasDoubleWithholding && d.withholdingOriginEUR != null && d.withholdingDestinationEUR != null && (
+                            <span className="block text-[9px] text-slate-500 font-sans">
+                              Orig: {formatEUR(d.withholdingOriginEUR)} | Dest: {formatEUR(d.withholdingDestinationEUR)}
+                            </span>
+                          )}
                         </td>
                         <td
                           className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${

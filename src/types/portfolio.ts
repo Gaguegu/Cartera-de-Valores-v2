@@ -91,8 +91,22 @@ export interface DividendRecord {
   company: string;
   symbol: string;
   grossEUR: number;
-  withholdingEUR: number;
+  withholdingEUR: number; // Retención total acumulada para compatibilidad global
   netEUR: number;
+  // Campos para Doble Retención Fiscal (Origen + Destino)
+  shares?: number;                          // Número de acciones
+  hasDoubleWithholding?: boolean;           // Si aplica doble retención internacional
+  withholdingOriginEUR?: number;            // Retención en país de origen (ej. USA W-8BEN en €)
+  withholdingOriginPercent?: number;        // Porcentaje retención origen (ej. 15%)
+  withholdingOriginCountry?: string;        // País de origen (ej. "EEUU (USA)")
+  withholdingDestinationEUR?: number;       // Retención en destino (España IRPF en €)
+  withholdingDestinationPercent?: number;   // Porcentaje destino (ej. 19%)
+  withholdingDestinationCountry?: string;   // País de destino (ej. "España")
+  // Datos en divisa extranjera si aplica (ej. Trade Republic / Degiro slip)
+  foreignCurrency?: string;                 // 'USD' | 'GBP' | 'CHF' | etc.
+  grossForeign?: number;                    // Bruto en divisa extranjera (ej. 49.14 USD)
+  withholdingOriginForeign?: number;        // Retención origen en divisa extranjera (ej. 7.37 USD)
+  fxRate?: number;                          // Tipo de cambio aplicado (ej. 1.1539 USD/EUR)
 }
 
 export interface UpcomingDividend {

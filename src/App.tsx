@@ -33,7 +33,7 @@ import { QuotesView } from './components/QuotesView';
 
 import { StockDetailModal } from './components/modals/StockDetailModal';
 import { NewOperationModal } from './components/modals/NewOperationModal';
-import { NewDividendModal, PrefilledDividendInfo } from './components/modals/NewDividendModal';
+import { NewDividendModal, PrefilledDividendInfo, DividendSubmitData } from './components/modals/NewDividendModal';
 import { GitHubMobileGuideModal } from './components/modals/GitHubMobileGuideModal';
 import { PrintReportModal } from './components/modals/PrintReportModal';
 import { VersionsModal } from './components/modals/VersionsModal';
@@ -287,6 +287,7 @@ export default function App() {
   const [prefilledSymbol, setPrefilledSymbol] = useState<string | undefined>(undefined);
   const [isNewDivOpen, setIsNewDivOpen] = useState(false);
   const [prefilledDividendData, setPrefilledDividendData] = useState<PrefilledDividendInfo | null>(null);
+  const [editingDividend, setEditingDividend] = useState<DividendRecord | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printType, setPrintType] = useState<'full' | 'annual' | 'tax' | 'operations' | 'portfolio' | 'closed' | 'dividends'>('full');
@@ -466,6 +467,7 @@ export default function App() {
       ? matchingPos.shares
       : symbolPurchases.reduce((acc, p) => acc + (p.shares || 0), 0);
 
+    setEditingDividend(null);
     setPrefilledDividendData({
       symbol: op.symbol,
       company: op.company,
@@ -481,6 +483,7 @@ export default function App() {
     const symbolPurchases = operations.filter(
       o => o.symbol.toUpperCase() === stock.symbol.toUpperCase() && o.type === 'Compra'
     );
+    setEditingDividend(null);
     setPrefilledDividendData({
       symbol: stock.symbol,
       company: stock.company,
@@ -819,20 +822,40 @@ export default function App() {
     setClosedPositions(prev => prev.filter(c => c.id !== id));
   };
 
-  const handleAddDividend = (dividendData: {
-    symbol: string;
-    company: string;
-    grossEUR: number;
-    withholdingEUR: number;
-    netEUR: number;
-    date: string;
-    year: number;
-  }) => {
-    const newDiv: DividendRecord = {
-      id: `div-${Date.now()}`,
-      ...dividendData,
-    };
-    setDividends(prev => [newDiv, ...prev]);
+  const handleSaveDividend = (dividendData: DividendSubmitData) => {
+    const isEdit = Boolean(editingDividend || dividendData.id);
+    const targetId = dividendData.id || editingDividend?.id;
+
+    if (isEdit && targetId) {
+      setDividends(prev =>
+        prev.map(d =>
+          d.id === targetId
+            ? {
+                ...d,
+                ...dividendData,
+                id: targetId,
+              }
+            : d
+        )
+      );
+      setEditingDividend(null);
+    } else {
+      const newDiv: DividendRecord = {
+        id: `div-${Date.now()}`,
+        ...dividendData,
+      };
+      setDividends(prev => [newDiv, ...prev]);
+    }
+  };
+
+  const handleStartEditDividend = (div: DividendRecord) => {
+    setEditingDividend(div);
+    setPrefilledDividendData(null);
+    setIsNewDivOpen(true);
+  };
+
+  const handleDeleteDividend = (id: string) => {
+    setDividends(prev => prev.filter(d => d.id !== id));
   };
 
   const handleAddBroker = (brokerData: Omit<Broker, 'id'>) => {
@@ -1238,6 +1261,7 @@ export default function App() {
                 onSelectStock={stock => setSelectedStock(stock)}
                 onOpenNewOperation={handleOpenNewOperation}
                 onOpenNewDividend={() => {
+                  setEditingDividend(null);
                   setPrefilledDividendData(null);
                   setIsNewDivOpen(true);
                 }}
@@ -1284,9 +1308,12 @@ export default function App() {
               <DividendsView
                 dividends={dividends}
                 onOpenNewDividend={() => {
+                  setEditingDividend(null);
                   setPrefilledDividendData(null);
                   setIsNewDivOpen(true);
                 }}
+                onEditDividend={handleStartEditDividend}
+                onDeleteDividend={handleDeleteDividend}
                 onOpenPrintReport={handleOpenPrintReport}
               />
             )}
@@ -1404,17 +1431,19 @@ export default function App() {
         allOperations={operations}
       />
 
-      {/* MODAL 3: New Dividend */}
+      {/* MODAL 3: New / Edit Dividend */}
       <NewDividendModal
         isOpen={isNewDivOpen}
         onClose={() => {
           setIsNewDivOpen(false);
           setPrefilledDividendData(null);
+          setEditingDividend(null);
         }}
-        onSubmit={handleAddDividend}
+        onSubmit={handleSaveDividend}
         availablePositions={positions}
         operations={operations}
         prefilledData={prefilledDividendData}
+        dividendToEdit={editingDividend}
       />
 
       {/* MODAL 4: Step-by-Step GitHub & Mobile (Web + Android APK + PWA) Guide */}
