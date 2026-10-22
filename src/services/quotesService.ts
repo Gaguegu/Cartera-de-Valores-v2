@@ -47,6 +47,9 @@ const SYMBOL_MAP: Record<string, { yahooSymbol: string; company: string; country
   'GOOGL': { yahooSymbol: 'GOOGL', company: 'Alphabet (Google)', country: 'USA', region: 'EEUU', currency: 'USD', exchange: 'NASDAQ' },
   'META': { yahooSymbol: 'META', company: 'Meta Platforms', country: 'USA', region: 'EEUU', currency: 'USD', exchange: 'NASDAQ' },
   'TSLA': { yahooSymbol: 'TSLA', company: 'Tesla', country: 'USA', region: 'EEUU', currency: 'USD', exchange: 'NASDAQ' },
+  'BE': { yahooSymbol: 'BE', company: 'Bloom Energy Corp.', country: 'USA', region: 'EEUU', currency: 'USD', exchange: 'NYSE' },
+  'CEG': { yahooSymbol: 'CEG', company: 'Constellation Energy Corp.', country: 'USA', region: 'EEUU', currency: 'USD', exchange: 'NASDAQ' },
+  'AMD': { yahooSymbol: 'AMD', company: 'Advanced Micro Devices Inc.', country: 'USA', region: 'EEUU', currency: 'USD', exchange: 'NASDAQ' },
 };
 
 // Tipo de cambio EUR/USD estimado por defecto

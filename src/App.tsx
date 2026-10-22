@@ -206,6 +206,74 @@ export default function App() {
         };
       }
 
+      // Corrección BE (Bloom Energy) - NYSE EEUU
+      const isBE = p.symbol && p.symbol.toUpperCase() === 'BE';
+      if (isBE && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent)) {
+        positionsChanged = true;
+        const curPrice = p.currentPrice || 252.00;
+        const priceUSD = p.priceUSD || Number((curPrice * 1.12).toFixed(2));
+        const valEUR = Number((p.shares * curPrice).toFixed(2));
+        const costEUR = p.shares * (p.pmcWithCommission || p.buyPrice || 233.65);
+        const gainEUR = Number((valEUR - costEUR).toFixed(2));
+        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 7.82;
+        return {
+          ...p,
+          company: 'Bloom Energy Corp.',
+          country: 'USA',
+          priceUSD,
+          dayChangePercent: p.dayChangePercent || 1.16,
+          currentValueEUR: valEUR,
+          gainLossEUR: gainEUR,
+          gainLossPercent: gainPct,
+        };
+      }
+
+      // Corrección CEG (Constellation Energy) - NASDAQ EEUU
+      const isCEG = p.symbol && p.symbol.toUpperCase() === 'CEG';
+      if (isCEG && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent)) {
+        positionsChanged = true;
+        const curPrice = p.currentPrice || 258.00;
+        const priceUSD = p.priceUSD || Number((curPrice * 1.12).toFixed(2));
+        const valEUR = Number((p.shares * curPrice).toFixed(2));
+        const costEUR = p.shares * (p.pmcWithCommission || p.buyPrice || 255.11);
+        const gainEUR = Number((valEUR - costEUR).toFixed(2));
+        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 1.10;
+        return {
+          ...p,
+          company: 'Constellation Energy Corp.',
+          country: 'USA',
+          priceUSD,
+          dayChangePercent: p.dayChangePercent || 0.99,
+          currentValueEUR: valEUR,
+          gainLossEUR: gainEUR,
+          gainLossPercent: gainPct,
+        };
+      }
+
+      // Corrección AMD (Advanced Micro Devices) - NASDAQ EEUU
+      const isAMD = p.symbol && p.symbol.toUpperCase() === 'AMD';
+      if (isAMD && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent)) {
+        positionsChanged = true;
+        return {
+          ...p,
+          company: 'Advanced Micro Devices Inc.',
+          country: 'USA',
+          priceUSD: p.priceUSD || 156.80,
+          dayChangePercent: p.dayChangePercent || 1.88,
+        };
+      }
+
+      // Corrección general para cualquier posición de empresa estadounidense con país erróneo
+      const symUpper = (p.symbol || '').toUpperCase();
+      const US_STOCKS = ['BE', 'CEG', 'AMD', 'MSFT', 'META', 'AMZN', 'AAPL', 'NVDA', 'ORCL', 'GOOGL', 'TSLA', 'PLTR', 'LLY', 'WMT', 'JNJ', 'PG', 'NFLX', 'COIN', 'BABA', 'JPM', 'V', 'DIS', 'INTC'];
+      if (US_STOCKS.includes(symUpper) && p.country !== 'USA') {
+        positionsChanged = true;
+        return {
+          ...p,
+          country: 'USA',
+        };
+      }
+
       return p;
     });
     if (positionsChanged) {
@@ -585,7 +653,16 @@ export default function App() {
       id: existingPos?.id || symbolKey.toLowerCase(),
       symbol: symbolKey,
       company: compName,
-      country: existingPos?.country || (['ORCL', 'AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'JPM', 'V'].includes(symbolKey) ? 'USA' : 'ES'),
+      country: (() => {
+        const sym = symbolKey.toUpperCase();
+        const US_STOCKS = ['BE', 'CEG', 'AMD', 'MSFT', 'META', 'AMZN', 'AAPL', 'NVDA', 'ORCL', 'GOOGL', 'TSLA', 'PLTR', 'LLY', 'WMT', 'JNJ', 'PG', 'NFLX', 'COIN', 'BABA', 'JPM', 'V', 'DIS', 'INTC'];
+        if (US_STOCKS.includes(sym)) return 'USA';
+        const SPANISH_STOCKS = ['SAN', 'ITX', 'IBE', 'BBVA', 'CABK', 'REP', 'TEF', 'ELE', 'NTGY', 'ACS', 'FER', 'AMS', 'IAG', 'GRF', 'MAP', 'SAB', 'RED', 'COL', 'MRL', 'BKT'];
+        if (SPANISH_STOCKS.includes(sym)) return 'España';
+        const EUROPEAN_STOCKS = ['ASML', 'MC', 'SAP', 'TTE', 'OR', 'SIE', 'ALV', 'NOVO', 'RMS', 'SU'];
+        if (EUROPEAN_STOCKS.includes(sym)) return sym === 'ASML' ? 'Países Bajos' : sym === 'NOVO' ? 'Dinamarca' : ['SAP', 'SIE', 'ALV'].includes(sym) ? 'Alemania' : 'Francia';
+        return existingPos?.country && existingPos.country !== 'ES' ? existingPos.country : 'USA';
+      })(),
       currency: 'EUR',
       shares: remainingShares,
       buyPrice: Number(pureAvgBuyPrice.toFixed(2)),

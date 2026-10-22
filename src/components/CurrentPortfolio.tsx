@@ -118,6 +118,36 @@ export function CurrentPortfolio({
   const totalCost = totalValueEUR - totalGainEUR;
   const totalPercent = totalCost > 0 ? (totalGainEUR / totalCost) * 100 : 0;
 
+  // Helper para calcular el coste invertido total en compras de una posición incluyendo comisiones de compra
+  const getPositionInvestedCost = (pos: StockPosition) => {
+    const symbolPurchases = (operations || []).filter(
+      o => o.symbol.toUpperCase() === pos.symbol.toUpperCase() && o.type === 'Compra'
+    );
+    if (symbolPurchases.length > 0) {
+      const totalBoughtShares = symbolPurchases.reduce((acc, o) => acc + (o.shares || 0), 0);
+      const totalCostWithComm = symbolPurchases.reduce(
+        (acc, o) => acc + (o.shares || 0) * (o.price || 0) + (o.commissionEUR || 0),
+        0
+      );
+      if (totalBoughtShares > 0) {
+        return Number(((totalCostWithComm / totalBoughtShares) * pos.shares).toFixed(2));
+      }
+    }
+    const unitPrice = pos.pmcWithCommission && pos.pmcWithCommission > 0 ? pos.pmcWithCommission : pos.buyPrice;
+    const base = pos.shares * unitPrice;
+    const comm = (!pos.pmcWithCommission && pos.totalCommissionEUR) ? pos.totalCommissionEUR : 0;
+    return Number((base + comm).toFixed(2));
+  };
+
+  // Dinero total invertido en la cartera (compras con comisiones de compra incluidas)
+  const totalInvestedWithCommission = useMemo(() => {
+    return filtered.reduce((acc, p) => acc + getPositionInvestedCost(p), 0);
+  }, [filtered, operations]);
+
+  const totalPortfolioInvestedWithCommission = useMemo(() => {
+    return positions.reduce((acc, p) => acc + getPositionInvestedCost(p), 0);
+  }, [positions, operations]);
+
   const handleExportCSV = () => {
     const headers = [
       'Símbolo',
@@ -397,20 +427,16 @@ export function CurrentPortfolio({
                     <div className="flex flex-col items-start gap-1">
                       <span className="font-semibold text-white">{pos.company}</span>
                       {(() => {
-                        const info = getPositionYearsInfo(pos.symbol);
-                        if (info.years.length === 0) return null;
-                        const has2025 = info.years.includes(2025);
+                        const posCost = getPositionInvestedCost(pos);
+                        const pctOfTotal = totalPortfolioInvestedWithCommission > 0
+                          ? (posCost / totalPortfolioInvestedWithCommission) * 100
+                          : 0;
                         return (
                           <span
-                            className={`text-[10px] inline-flex items-center gap-1 font-mono rounded px-1.5 py-0.5 font-semibold ${
-                              has2025
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                : 'bg-slate-800 text-slate-300 border border-slate-700'
-                            }`}
-                            title={`Compras registradas en el ejercicio: ${info.years.join(', ')}`}
+                            className="text-[10px] inline-flex items-center gap-1 font-mono rounded px-1.5 py-0.5 font-bold bg-blue-950/70 text-blue-300 border border-blue-500/30"
+                            title={`Coste de compra con comisiones: ${formatEUR(posCost)} (${formatNumber(pctOfTotal, 2)}% del total invertido en compras)`}
                           >
-                            <Calendar className="w-2.5 h-2.5 shrink-0" />
-                            <span>Compra {info.years.join(', ')}</span>
+                            <span>{formatNumber(pctOfTotal, 2)}% de compras</span>
                           </span>
                         );
                       })()}
@@ -565,8 +591,8 @@ export function CurrentPortfolio({
           </table>
         </div>
 
-        {/* Footer Summary - Screen 2 Footer: Total cartera */}
-        <div className="p-4 bg-[#0e1b30] border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+        {/* Footer Summary - Screen 2 Footer: Total compras con comisiones y Total cartera */}
+        <div className="p-4 bg-[#0e1b30] border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="text-slate-400">
             Mostrando <span className="text-white font-bold">{sorted.length}</span> de{' '}
             <span className="text-white font-bold">{positions.length}</span> posiciones abiertas
@@ -574,20 +600,35 @@ export function CurrentPortfolio({
               <span className="ml-1.5 text-cyan-400 font-semibold">(Filtrado por compras de {selectedYear})</span>
             )}
           </div>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-slate-400 font-semibold">
-              {selectedYear !== 'TODOS' ? `Total cartera (${selectedYear}):` : 'Total cartera:'}
-            </span>
-            <span className="text-xl font-extrabold text-white font-mono">
-              {formatEUR(totalValueEUR)}
-            </span>
-            <span
-              className={`px-2.5 py-0.5 rounded-md font-bold text-xs font-mono ${
-                totalPercent >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-500'
-              }`}
-            >
-              {formatPercent(totalPercent)}
-            </span>
+
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm">
+            {/* Total Invertido en Compras (con comisiones de compra) */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-semibold">
+                Total compras (con comisiones):
+              </span>
+              <span className="text-base font-extrabold text-blue-300 font-mono">
+                {formatEUR(totalInvestedWithCommission)}
+              </span>
+            </div>
+
+            {/* Total Valoración Actual Cartera */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-semibold">
+                {selectedYear !== 'TODOS' ? `Valor actual (${selectedYear}):` : 'Valor actual cartera:'}
+              </span>
+              <span className="text-xl font-extrabold text-white font-mono">
+                {formatEUR(totalValueEUR)}
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-md font-bold text-xs font-mono ${
+                  totalPercent >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-500'
+                }`}
+                title={`Plusvalía latente total: ${totalGainEUR > 0 ? `+${formatEUR(totalGainEUR)}` : formatEUR(totalGainEUR)}`}
+              >
+                {formatPercent(totalPercent)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
