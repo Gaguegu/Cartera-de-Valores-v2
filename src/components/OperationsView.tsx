@@ -191,13 +191,13 @@ export function OperationsView({
                 <th
                   onClick={() => handleToggleSortDirection()}
                   className="py-3.5 px-4 cursor-pointer hover:text-white select-none transition-colors group"
-                  title="Haz clic para alternar orden: Cronológico (2025 → 2026) o Más recientes primero"
+                  title="Haz clic para alternar orden: más recientes primero o cronológico"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Fecha</span>
                     <ArrowUpDown className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
                     <span className="text-[10px] text-blue-400/90 font-mono font-normal">
-                      {sortDirection === 'asc' ? '▲ (2025 → 2026)' : '▼ (2026 → 2025)'}
+                      {sortDirection === 'asc' ? '▲' : '▼'}
                     </span>
                   </div>
                 </th>
