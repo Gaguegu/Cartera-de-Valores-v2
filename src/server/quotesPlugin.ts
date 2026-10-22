@@ -201,15 +201,16 @@ export function quotesApiPlugin(): Plugin {
             return;
           }
 
-          // 4. Índices principales y tipo de cambio EUR/USD
+          // 4. Índices principales y tipo de cambio EUR/USD y EUR/GBP
           if (pathname === '/api/quotes/indices') {
-            const indexSymbols = ['^GSPC', '^NDX', '^IBEX', '^STOXX50E', 'EURUSD=X'];
+            const indexSymbols = ['^GSPC', '^NDX', '^IBEX', '^STOXX50E', 'EURUSD=X', 'EURGBP=X'];
             const names: Record<string, string> = {
               '^GSPC': 'S&P 500',
               '^NDX': 'Nasdaq 100',
               '^IBEX': 'IBEX 35',
               '^STOXX50E': 'EuroStoxx 50',
               'EURUSD=X': 'EUR / USD',
+              'EURGBP=X': 'EUR / GBP',
             };
 
             const results = await Promise.allSettled(
@@ -239,6 +240,42 @@ export function quotesApiPlugin(): Plugin {
               .filter(Boolean);
 
             res.end(JSON.stringify({ indices }));
+            return;
+          }
+
+          // 5. Tipos de cambio oficiales en tiempo real EUR/USD y EUR/GBP
+          if (pathname === '/api/quotes/fx') {
+            const symbols = ['EURUSD=X', 'EURGBP=X'];
+            const fxResults = await Promise.allSettled(
+              symbols.map(async s => {
+                const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
+                const yData = await fetchFromYahoo(yUrl);
+                const meta = yData.chart?.result?.[0]?.meta;
+                return {
+                  symbol: s,
+                  price: meta?.regularMarketPrice ?? 0,
+                };
+              })
+            );
+
+            let usdEurRate = 1.1227;
+            let gbpEurRate = 0.8376;
+
+            for (const r of fxResults) {
+              if (r.status === 'fulfilled' && r.value) {
+                if (r.value.symbol === 'EURUSD=X' && r.value.price > 0) {
+                  usdEurRate = Number(r.value.price.toFixed(4));
+                } else if (r.value.symbol === 'EURGBP=X' && r.value.price > 0) {
+                  gbpEurRate = Number(r.value.price.toFixed(4));
+                }
+              }
+            }
+
+            res.end(JSON.stringify({
+              usdEurRate,
+              gbpEurRate,
+              updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            }));
             return;
           }
 

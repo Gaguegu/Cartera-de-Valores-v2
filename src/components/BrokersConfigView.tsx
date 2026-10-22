@@ -24,7 +24,10 @@ import {
   Info,
   Trash2,
   Check,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react';
+import { getStoredFxRates, saveStoredFxRates, fetchLiveFxRates } from '../services/quotesService';
 
 interface BrokersConfigViewProps {
   brokers: Broker[];
@@ -39,6 +42,7 @@ interface BrokersConfigViewProps {
   onUpdateAutoLock?: (minutes: number) => void;
   securityHint?: string;
   onUpdateHint?: (hint: string) => void;
+  onRefreshQuotesOnline?: () => Promise<any>;
 }
 
 export function BrokersConfigView({
@@ -54,6 +58,7 @@ export function BrokersConfigView({
   onUpdateAutoLock,
   securityHint,
   onUpdateHint,
+  onRefreshQuotesOnline,
 }: BrokersConfigViewProps) {
   const [activeTab, setActiveTab] = useState<'seguridad' | 'copias' | 'brokers' | 'impuestos' | 'divisas' | 'general'>('seguridad');
   const [showZeroConfirmModal, setShowZeroConfirmModal] = useState(false);
@@ -86,8 +91,61 @@ export function BrokersConfigView({
   const [esWithholding, setEsWithholding] = useState(19);
 
   // FX rates
-  const [usdEurRate, setUsdEurRate] = useState(1.085);
-  const [gbpEurRate, setGbpEurRate] = useState(0.855);
+  const [usdEurRate, setUsdEurRate] = useState(() => getStoredFxRates().usdEur);
+  const [gbpEurRate, setGbpEurRate] = useState(() => getStoredFxRates().gbpEur);
+  const [isUpdatingFx, setIsUpdatingFx] = useState(false);
+  const [fxToast, setFxToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [lastFxUpdatedAt, setLastFxUpdatedAt] = useState<string | null>(() => getStoredFxRates().updatedAt || null);
+
+  const handleUpdateFxLive = async () => {
+    setIsUpdatingFx(true);
+    setFxToast(null);
+    try {
+      const live = await fetchLiveFxRates();
+      if (live && live.usdEur > 0) {
+        setUsdEurRate(live.usdEur);
+        setGbpEurRate(live.gbpEur);
+        const timeNow = live.updatedAt || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setLastFxUpdatedAt(timeNow);
+        setFxToast({
+          type: 'success',
+          message: `¡Divisas sincronizadas con éxito al mercado en vivo! 1 € = ${live.usdEur.toFixed(4)} $ USD · 1 € = ${live.gbpEur.toFixed(4)} £ GBP (${timeNow})`
+        });
+        if (onRefreshQuotesOnline) {
+          await onRefreshQuotesOnline();
+        }
+      } else {
+        setFxToast({
+          type: 'error',
+          message: 'No se pudo obtener el tipo de cambio en tiempo real. Se mantienen los valores guardados.'
+        });
+      }
+    } catch (e) {
+      console.warn(e);
+      setFxToast({
+        type: 'error',
+        message: 'Error de conexión al consultar el tipo de cambio de divisas.'
+      });
+    } finally {
+      setIsUpdatingFx(false);
+      setTimeout(() => setFxToast(null), 6000);
+    }
+  };
+
+  const handleSaveManualFx = () => {
+    const timeNow = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    saveStoredFxRates({
+      usdEur: usdEurRate,
+      gbpEur: gbpEurRate,
+      updatedAt: timeNow,
+    });
+    setLastFxUpdatedAt(timeNow);
+    setFxToast({
+      type: 'success',
+      message: `Tipos de cambio guardados manualmente: 1 € = ${usdEurRate.toFixed(4)} $ · 1 € = ${gbpEurRate.toFixed(4)} £`
+    });
+    setTimeout(() => setFxToast(null), 4000);
+  };
 
   const handleSaveBroker = (e: React.FormEvent) => {
     e.preventDefault();
@@ -601,48 +659,87 @@ export function BrokersConfigView({
 
       {/* TAB 5: DIVISAS */}
       {activeTab === 'divisas' && (
-        <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl p-6 shadow-xl space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h3 className="text-sm font-bold text-white">Tipos de Cambio Oficiales respecto al Euro (€)</h3>
-              <p className="text-xs text-slate-400">Conversión de activos en dólares estadounidenses o libras esterlinas a la moneda base (EUR).</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Tipos de Cambio Oficiales respecto al Euro (€)</h3>
+                {lastFxUpdatedAt && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
+                    Última sinc: {lastFxUpdatedAt}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Conversión de activos en dólares estadounidenses (USD) o libras esterlinas (GBP) a la moneda base de la cartera (EUR).
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const res = await fetch('/api/quotes/indices');
-                  if (res.ok) {
-                    const data = await res.json();
-                    const fx = data.indices?.find((i: any) => i.symbol === 'EURUSD=X');
-                    if (fx && fx.price > 0) {
-                      setUsdEurRate(Number(fx.price.toFixed(4)));
-                    }
-                  }
-                } catch (e) {
-                  console.warn(e);
-                }
-              }}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Actualizar con mercado en vivo</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveManualFx}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-600/70 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95"
+                title="Guardar tipos de cambio introducidos manualmente"
+              >
+                <Check className="w-3.5 h-3.5 text-slate-300" />
+                <span>Guardar manual</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdateFxLive}
+                disabled={isUpdatingFx}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95 disabled:opacity-60"
+                title="Consultar tipos de cambio en vivo desde los mercados financieros internacionales"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isUpdatingFx ? 'animate-spin' : ''}`} />
+                <span>{isUpdatingFx ? 'Actualizando divisas...' : 'Actualizar con mercado en vivo'}</span>
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-2">
+
+          {/* Feedback Toast / Alert inside Divisas */}
+          {fxToast && (
+            <div
+              className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200 ${
+                fxToast.type === 'success'
+                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200'
+                  : 'bg-amber-950/80 border-amber-500/50 text-amber-200'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                {fxToast.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                )}
+                <span className="font-medium">{fxToast.message}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFxToast(null)}
+                className="text-slate-400 hover:text-white px-1 font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
             <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
               <label className="font-semibold text-slate-300 block">Dólar Estadounidense (EUR / USD):</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  step="0.001"
+                  step="0.0001"
                   value={usdEurRate}
                   onChange={e => setUsdEurRate(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono w-28"
+                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono w-32 focus:border-cyan-500 focus:outline-none"
                 />
                 <span className="text-slate-400 font-bold">$ / €</span>
               </div>
-              <p className="text-[11px] text-slate-500">1 € = {(usdEurRate).toFixed(3)} USD (aprox. {(1 / usdEurRate).toFixed(4)} € por dólar)</p>
+              <p className="text-[11px] text-slate-400">
+                1 € = {(usdEurRate).toFixed(4)} USD (aprox. {(usdEurRate > 0 ? (1 / usdEurRate).toFixed(4) : 0)} € por dólar)
+              </p>
             </div>
 
             <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
@@ -650,14 +747,16 @@ export function BrokersConfigView({
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  step="0.001"
+                  step="0.0001"
                   value={gbpEurRate}
                   onChange={e => setGbpEurRate(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono w-28"
+                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono w-32 focus:border-cyan-500 focus:outline-none"
                 />
                 <span className="text-slate-400 font-bold">£ / €</span>
               </div>
-              <p className="text-[11px] text-slate-500">1 € = {(gbpEurRate).toFixed(3)} GBP</p>
+              <p className="text-[11px] text-slate-400">
+                1 € = {(gbpEurRate).toFixed(4)} GBP (aprox. {(gbpEurRate > 0 ? (1 / gbpEurRate).toFixed(4) : 0)} € por libra)
+              </p>
             </div>
           </div>
         </div>

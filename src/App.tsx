@@ -47,7 +47,8 @@ import { useAppUpdater } from './hooks/useAppUpdater';
 import { useAppSecurity } from './hooks/useAppSecurity';
 import { AppPortfolioBackupData } from './utils/cryptoService';
 import { parseYearFromDate } from './utils/formatters';
-import { fetchBatchQuotes } from './services/quotesService';
+import { fetchBatchQuotes, fetchLiveFxRates } from './services/quotesService';
+import { CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<ActiveTab>('dashboard');
@@ -416,6 +417,7 @@ export default function App() {
   const [lastQuotesUpdatedAt, setLastQuotesUpdatedAt] = useState<string>(() => {
     return localStorage.getItem('last_quotes_updated_at') || '';
   });
+  const [globalToast, setGlobalToast] = useState<{ title: string; message: string; type?: 'success' | 'info' | 'error' } | null>(null);
 
   // Versions Modal & Automatic App Updater (GitHub sync)
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
@@ -1114,6 +1116,9 @@ export default function App() {
   const handleRefreshAllQuotesOnline = async () => {
     setIsRefreshingQuotes(true);
     try {
+      // 1. Sincronizar tipos de cambio en vivo primero (USD y GBP)
+      const liveFx = await fetchLiveFxRates();
+
       const allSymbols = Array.from(
         new Set([
           ...positions.map(p => p.symbol.toUpperCase()),
@@ -1165,12 +1170,26 @@ export default function App() {
           return hasChanges ? updated : prevAlerts;
         });
 
-        const timeStr = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const timeStr = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastQuotesUpdatedAt(timeStr);
         localStorage.setItem('last_quotes_updated_at', timeStr);
+
+        const updatedCount = positions.filter(p => portMap[p.symbol.toUpperCase()]).length;
+        setGlobalToast({
+          title: 'Cotizaciones y Divisas Actualizadas',
+          message: `¡${updatedCount} de ${positions.length} valores de la cartera actualizados con éxito a las ${timeStr}! Divisas en vivo: 1 € = ${liveFx.usdEur.toFixed(4)} $ USD · 1 € = ${liveFx.gbpEur.toFixed(4)} £ GBP.`,
+          type: 'success',
+        });
+        setTimeout(() => setGlobalToast(null), 5000);
       }
     } catch (err) {
       console.warn('Error refreshing live quotes:', err);
+      setGlobalToast({
+        title: 'Aviso de conexión',
+        message: 'No se pudo conectar con el servidor de cotizaciones en tiempo real.',
+        type: 'error',
+      });
+      setTimeout(() => setGlobalToast(null), 5000);
     } finally {
       setIsRefreshingQuotes(false);
     }
@@ -1481,6 +1500,7 @@ export default function App() {
                 onUpdateAutoLock={updateAutoLock}
                 securityHint={securityHint}
                 onUpdateHint={updateHint}
+                onRefreshQuotesOnline={handleRefreshAllQuotesOnline}
                 onOpenSecurityModal={tab => {
                   setSecurityModalTab(tab || 'backup');
                   setIsSecurityModalOpen(true);
@@ -1490,6 +1510,37 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* Floating Global Toast Notification for Quotes and Currencies */}
+      {globalToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#0f1d33] border border-cyan-500/60 text-white px-4 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 max-w-md backdrop-blur-md">
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+            globalToast.type === 'error'
+              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+          }`}>
+            {globalToast.type === 'error' ? (
+              <AlertTriangle className="w-4 h-4 text-rose-400" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            )}
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-white flex items-center gap-1.5">
+              {globalToast.title}
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+            </p>
+            <p className="text-slate-300 mt-0.5 leading-snug">{globalToast.message}</p>
+          </div>
+          <button
+            onClick={() => setGlobalToast(null)}
+            className="text-slate-400 hover:text-white text-xs ml-auto font-bold px-1.5 py-0.5 rounded cursor-pointer"
+            aria-label="Cerrar notificación"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
 
     {/* Non-printable modal overlays */}

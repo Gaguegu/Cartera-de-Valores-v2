@@ -252,15 +252,22 @@ export function CurrentPortfolio({
           )}
 
           {onRefreshQuotesOnline && (
-            <button
-              onClick={() => onRefreshQuotesOnline()}
-              disabled={isRefreshingQuotes}
-              className="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95"
-              title={lastQuotesUpdatedAt ? `Actualizar precios en vivo (Última: ${lastQuotesUpdatedAt})` : 'Actualizar todas las cotizaciones de la cartera en tiempo real'}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshingQuotes ? 'animate-spin' : ''}`} />
-              <span>{isRefreshingQuotes ? 'Actualizando...' : 'Actualizar Cotizaciones'}</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onRefreshQuotesOnline()}
+                disabled={isRefreshingQuotes}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95 disabled:opacity-60"
+                title={lastQuotesUpdatedAt ? `Actualizar precios en vivo (Última sincronización: ${lastQuotesUpdatedAt})` : 'Actualizar todas las cotizaciones de la cartera en tiempo real'}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshingQuotes ? 'animate-spin' : ''}`} />
+                <span>{isRefreshingQuotes ? 'Actualizando...' : 'Actualizar Cotizaciones'}</span>
+              </button>
+              {lastQuotesUpdatedAt && (
+                <span className="hidden xl:inline-flex items-center px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700/60 text-[10px] text-slate-400 font-mono" title={`Última actualización de cotizaciones: ${lastQuotesUpdatedAt}`}>
+                  {lastQuotesUpdatedAt}
+                </span>
+              )}
+            </div>
           )}
 
           {onOpenRebalanceModal && (
