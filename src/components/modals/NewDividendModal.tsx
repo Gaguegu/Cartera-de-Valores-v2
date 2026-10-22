@@ -24,6 +24,7 @@ export type DividendSubmitData = {
   id?: string;
   symbol: string;
   company: string;
+  country?: string;
   grossEUR: number;
   withholdingEUR: number;
   netEUR: number;
@@ -424,6 +425,7 @@ export function NewDividendModal({
         id: dividendToEdit?.id,
         symbol: symbol.toUpperCase(),
         company,
+        country: 'EE.UU.',
         grossEUR: grossToSave,
         withholdingEUR: withToSave,
         netEUR: netToSave,
@@ -447,6 +449,7 @@ export function NewDividendModal({
         id: dividendToEdit?.id,
         symbol: symbol.toUpperCase(),
         company,
+        country: hasDoubleWithholding ? originCountry : 'España',
         grossEUR: directGrossEUR,
         withholdingEUR: tab2TotalWithholdingEUR,
         netEUR: tab2NetEUR,

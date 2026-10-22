@@ -291,7 +291,13 @@ export default function App() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printType, setPrintType] = useState<'full' | 'annual' | 'tax' | 'operations' | 'portfolio' | 'closed' | 'dividends'>('full');
-  const [printOptions, setPrintOptions] = useState<{ charts: boolean; dividends: boolean; closed: boolean }>({
+  const [printOptions, setPrintOptions] = useState<{
+    charts: boolean;
+    dividends: boolean;
+    closed: boolean;
+    country?: string;
+    withholdingType?: string;
+  }>({
     charts: true,
     dividends: true,
     closed: true,
@@ -912,7 +918,14 @@ export default function App() {
 
   const handleOpenPrintReport = (
     type: 'full' | 'annual' | 'tax' | 'operations' | 'portfolio' | 'closed' | 'dividends' = 'full',
-    options?: { charts?: boolean; dividends?: boolean; closed?: boolean; year?: number | string }
+    options?: {
+      charts?: boolean;
+      dividends?: boolean;
+      closed?: boolean;
+      year?: number | string;
+      country?: string;
+      withholdingType?: string;
+    }
   ) => {
     setPrintType(type);
     if (options) {
@@ -920,6 +933,8 @@ export default function App() {
         charts: options.charts ?? true,
         dividends: options.dividends ?? true,
         closed: options.closed ?? true,
+        country: options.country,
+        withholdingType: options.withholdingType,
       });
       if (options.year !== undefined) {
         setPrintYear(options.year);
@@ -1307,6 +1322,7 @@ export default function App() {
             {currentTab === 'dividends' && (
               <DividendsView
                 dividends={dividends}
+                positions={positions}
                 onOpenNewDividend={() => {
                   setEditingDividend(null);
                   setPrefilledDividendData(null);

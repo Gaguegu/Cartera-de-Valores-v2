@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Printer, Calendar, Filter, Info } from 'lucide-react';
+import { X, Printer, Calendar, Filter, Info, RotateCcw } from 'lucide-react';
 import { StockPosition, Operation, ClosedPosition, DividendRecord } from '../../types/portfolio';
-import { formatEUR, formatNumber, formatPercent, getAvailableFiscalYears, parseDateToTimestamp } from '../../utils/formatters';
+import {
+  formatEUR,
+  formatNumber,
+  formatPercent,
+  getAvailableFiscalYears,
+  parseDateToTimestamp,
+  getDividendCountry,
+  COUNTRY_WITHHOLDINGS,
+} from '../../utils/formatters';
 
 interface PrintReportModalProps {
   isOpen: boolean;
@@ -16,6 +24,8 @@ interface PrintReportModalProps {
     charts: boolean;
     dividends: boolean;
     closed: boolean;
+    country?: string;
+    withholdingType?: string;
   };
 }
 
@@ -61,7 +71,26 @@ export function PrintReportModal({
     return 'all';
   });
 
+  const [selectedCountry, setSelectedCountry] = useState<string>(options?.country || 'all');
+  const [selectedWithholdingType, setSelectedWithholdingType] = useState<string>(options?.withholdingType || 'all');
   const [activeReportType, setActiveReportType] = useState<PrintReportModalProps['reportType']>(reportType);
+
+  // Lista única de países para filtrar dividendos
+  const availableCountries = useMemo(() => {
+    const countrySet = new Set<string>();
+    dividends.forEach(d => {
+      const c = getDividendCountry(d, positions);
+      if (c) countrySet.add(c);
+    });
+    ['EE.UU.', 'España', 'Alemania'].forEach(c => countrySet.add(c));
+    return Array.from(countrySet).sort((a, b) => {
+      if (a === 'España') return -1;
+      if (b === 'España') return 1;
+      if (a === 'EE.UU.') return -1;
+      if (b === 'EE.UU.') return 1;
+      return a.localeCompare(b);
+    });
+  }, [dividends, positions]);
 
   useEffect(() => {
     if (isOpen) {
@@ -71,8 +100,14 @@ export function PrintReportModal({
       } else if (!selectedYear) {
         setSelectedYear('all');
       }
+      if (options?.country !== undefined) {
+        setSelectedCountry(options.country);
+      }
+      if (options?.withholdingType !== undefined) {
+        setSelectedWithholdingType(options.withholdingType);
+      }
     }
-  }, [isOpen, initialYear, reportType]);
+  }, [isOpen, initialYear, reportType, options]);
 
   if (!isOpen) return null;
 
@@ -111,14 +146,61 @@ export function PrintReportModal({
     return y === yearNum;
   });
 
+  // Helper para verificar el tipo de retención en dividendos
+  const checkWithholdingType = (d: DividendRecord) => {
+    const hasOrigin = Boolean(d.withholdingOriginEUR && d.withholdingOriginEUR > 0);
+    const hasDest = Boolean(d.withholdingDestinationEUR && d.withholdingDestinationEUR > 0);
+    const isDouble = Boolean(d.hasDoubleWithholding) || (hasOrigin && hasDest);
+
+    if (isDouble) return 'double';
+    if (d.withholdingEUR === 0) return 'exempt';
+
+    const c = getDividendCountry(d, positions);
+    if (hasOrigin && !hasDest) return 'origin';
+    if (hasDest && !hasOrigin) return 'destination';
+
+    if (c === 'España') return 'destination';
+    return 'origin';
+  };
+
+  // Filtrado de dividendos según Año, País y Tipo de Retención
   const filteredDividends = dividends.filter(d => {
     const y = getRecordYear(d);
-    if (isAllYears) return true;
-    return y === yearNum;
+    if (!isAllYears && y !== yearNum) return false;
+
+    if (selectedCountry !== 'all') {
+      const c = getDividendCountry(d, positions);
+      if (c !== selectedCountry) return false;
+    }
+
+    if (selectedWithholdingType !== 'all') {
+      const type = checkWithholdingType(d);
+      if (selectedWithholdingType === 'double' && type !== 'double') return false;
+      if (selectedWithholdingType === 'origin' && type !== 'origin') return false;
+      if (selectedWithholdingType === 'destination' && type !== 'destination') return false;
+      if (selectedWithholdingType === 'exempt' && type !== 'exempt') return false;
+    }
+
+    return true;
   });
 
   const totalDividends = filteredDividends.reduce((acc, d) => acc + (d.grossEUR || 0), 0);
   const totalWithholding = filteredDividends.reduce((acc, d) => acc + (d.withholdingEUR || 0), 0);
+  const totalOriginWithholding = filteredDividends.reduce((acc, d) => {
+    if (d.withholdingOriginEUR != null) return acc + d.withholdingOriginEUR;
+    if (!d.hasDoubleWithholding && getDividendCountry(d, positions) !== 'España') {
+      return acc + (d.withholdingEUR || 0);
+    }
+    return acc;
+  }, 0);
+  const totalDestWithholding = filteredDividends.reduce((acc, d) => {
+    if (d.withholdingDestinationEUR != null) return acc + d.withholdingDestinationEUR;
+    if (!d.hasDoubleWithholding && getDividendCountry(d, positions) === 'España') {
+      return acc + (d.withholdingEUR || 0);
+    }
+    return acc;
+  }, 0);
+
   const closedGains = filteredClosed.reduce((acc, c) => acc + (c.resultEUR || 0), 0);
   const netDividends = totalDividends - totalWithholding;
 
@@ -207,6 +289,46 @@ export function PrintReportModal({
                   ))}
                 </select>
               </div>
+
+              {activeReportType === 'dividends' && (
+                <>
+                  {/* Selector interactivo de País */}
+                  <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+                    <span className="text-slate-400 text-[11px] font-medium">País:</span>
+                    <select
+                      value={selectedCountry}
+                      onChange={e => setSelectedCountry(e.target.value)}
+                      className="bg-slate-900 border border-slate-600 text-white rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none focus:border-blue-400 cursor-pointer max-w-[170px]"
+                    >
+                      <option value="all">Todos los países</option>
+                      {availableCountries.map(c => {
+                        const prof = COUNTRY_WITHHOLDINGS[c];
+                        return (
+                          <option key={c} value={c}>
+                            {prof ? `${prof.flag} ${c}` : c}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Selector interactivo de Retenciones */}
+                  <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+                    <span className="text-slate-400 text-[11px] font-medium">Retención:</span>
+                    <select
+                      value={selectedWithholdingType}
+                      onChange={e => setSelectedWithholdingType(e.target.value)}
+                      className="bg-slate-900 border border-slate-600 text-white rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none focus:border-blue-400 cursor-pointer"
+                    >
+                      <option value="all">Todas</option>
+                      <option value="double">Doble Retención</option>
+                      <option value="origin">Solo Origen</option>
+                      <option value="destination">Solo Destino (IRPF)</option>
+                      <option value="exempt">Sin Retención</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
               <button
                 onClick={handlePrint}
@@ -331,6 +453,31 @@ export function PrintReportModal({
             <h2 className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-wide">
               {getTitle()}
             </h2>
+            {activeReportType === 'dividends' && (
+              <div className="mt-1 flex items-center justify-center gap-1.5 flex-wrap text-[10px] text-slate-600 font-medium">
+                <span className="bg-white border border-slate-300 px-2 py-0.5 rounded font-mono font-bold text-slate-800">
+                  {yearExerciseLabel}
+                </span>
+                <span className="bg-white border border-slate-300 px-2 py-0.5 rounded font-bold text-slate-800">
+                  País: {selectedCountry === 'all' ? 'Todos los países' : `${COUNTRY_WITHHOLDINGS[selectedCountry]?.flag || ''} ${selectedCountry}`}
+                </span>
+                <span className="bg-white border border-slate-300 px-2 py-0.5 rounded font-bold text-slate-800">
+                  Retención:{' '}
+                  {selectedWithholdingType === 'all'
+                    ? 'Todas las retenciones'
+                    : selectedWithholdingType === 'double'
+                    ? 'Doble Retención (Origen + Destino)'
+                    : selectedWithholdingType === 'origin'
+                    ? 'Solo Retención en Origen'
+                    : selectedWithholdingType === 'destination'
+                    ? 'Solo Retención en Destino (IRPF)'
+                    : 'Sin Retención (Exento)'}
+                </span>
+                <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold font-mono">
+                  {filteredDividends.length} {filteredDividends.length === 1 ? 'cobro' : 'cobros'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Resumen Ejecutivo de Métricas (Strip Específico según la pantalla) */}
@@ -393,15 +540,24 @@ export function PrintReportModal({
               <div className="border-r border-slate-200 last:border-none p-1">
                 <span className="text-[9px] text-slate-500 uppercase block font-bold">Cobros de Dividendos</span>
                 <span className="text-sm font-extrabold text-slate-900 font-mono">{filteredDividends.length}</span>
-                <span className="text-[9px] text-slate-500 block font-mono">Abonos registrados</span>
+                <span className="text-[9px] text-slate-500 block font-mono">
+                  {selectedCountry !== 'all' ? selectedCountry : 'Global'}
+                </span>
               </div>
               <div className="border-r border-slate-200 last:border-none p-1">
                 <span className="text-[9px] text-slate-500 uppercase block font-bold">Importe Bruto</span>
                 <span className="text-sm font-extrabold text-blue-800 font-mono">{formatEUR(totalDividends)}</span>
               </div>
               <div className="border-r border-slate-200 last:border-none p-1">
-                <span className="text-[9px] text-slate-500 uppercase block font-bold">Retenciones IRPF</span>
+                <span className="text-[9px] text-slate-500 uppercase block font-bold">Retenciones Fiscales</span>
                 <span className="text-sm font-extrabold text-rose-700 font-mono">-{formatEUR(totalWithholding)}</span>
+                {(totalOriginWithholding > 0 || totalDestWithholding > 0) && (
+                  <span className="text-[9px] text-slate-500 block font-sans">
+                    {totalOriginWithholding > 0 && `Orig: ${formatEUR(totalOriginWithholding)}`}
+                    {totalOriginWithholding > 0 && totalDestWithholding > 0 && ' · '}
+                    {totalDestWithholding > 0 && `Dest: ${formatEUR(totalDestWithholding)}`}
+                  </span>
+                )}
               </div>
               <div className="p-1">
                 <span className="text-[9px] text-slate-500 uppercase block font-bold">Neto Cobrado</span>
@@ -769,59 +925,103 @@ export function PrintReportModal({
           {/* Section: Dividendos Cobrados */}
           {(activeReportType === 'dividends' || activeReportType === 'full' || activeReportType === 'annual' || activeReportType === 'tax') && options.dividends && (
             <div className="space-y-1.5 report-avoid-break">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
-                {activeReportType === 'full' ? '4. ' : activeReportType === 'tax' ? '2. ' : ''}Rendimientos de Dividendos y Retenciones Fiscales ({yearExerciseLabel})
-              </h3>
+              <div className="flex items-center justify-between border-b border-slate-300 pb-1">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  {activeReportType === 'full' ? '4. ' : activeReportType === 'tax' ? '2. ' : ''}Rendimientos de Dividendos y Retenciones Fiscales ({yearExerciseLabel})
+                </h3>
+                {activeReportType === 'dividends' && (
+                  <span className="text-[10px] text-slate-600 font-mono">
+                    Filtro: {selectedCountry === 'all' ? 'Todos los países' : selectedCountry} · {selectedWithholdingType === 'all' ? 'Todas las retenciones' : selectedWithholdingType === 'double' ? 'Doble Retención' : selectedWithholdingType === 'origin' ? 'Solo Origen' : selectedWithholdingType === 'destination' ? 'Solo Destino (IRPF)' : 'Exento'}
+                  </span>
+                )}
+              </div>
               <table className="w-full text-[11px] text-left border-collapse border border-slate-300">
                 <thead>
                   <tr className="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold">
                     <th className="p-1.5 border border-slate-300">Fecha</th>
                     <th className="p-1.5 border border-slate-300">Empresa</th>
                     <th className="p-1.5 border border-slate-300">Ticker</th>
+                    <th className="p-1.5 border border-slate-300">País / Régimen</th>
                     <th className="p-1.5 border border-slate-300 text-right">Bruto (€)</th>
-                    <th className="p-1.5 border border-slate-300 text-right">Retención IRPF (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Ret. Origen (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Ret. Destino (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Retención Total (€)</th>
                     <th className="p-1.5 border border-slate-300 text-right">Neto Percibido (€)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredDividends.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-3 text-center text-slate-500 italic border border-slate-300">
-                        No hay cobros de dividendos registrados para {yearExerciseLabel.toLowerCase()}.
+                      <td colSpan={9} className="p-3 text-center text-slate-500 italic border border-slate-300">
+                        No hay cobros de dividendos registrados que coincidan con los filtros aplicados ({yearExerciseLabel.toLowerCase()}, país: {selectedCountry === 'all' ? 'todos' : selectedCountry}, retención: {selectedWithholdingType}).
                       </td>
                     </tr>
                   ) : (
-                    filteredDividends.map((d, idx) => (
-                      <tr key={idx} className="border-b border-slate-300 even:bg-slate-50">
-                        <td className="p-1.5 border border-slate-300">{d.date}</td>
-                        <td className="p-1.5 border border-slate-300 font-medium">{d.company}</td>
-                        <td className="p-1.5 font-bold font-mono border border-slate-300">{d.symbol}</td>
-                        <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(d.grossEUR)}</td>
-                        <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300">
-                          {d.withholdingEUR > 0 ? `-${formatEUR(d.withholdingEUR)}` : '0,00 €'}
-                          {d.hasDoubleWithholding && d.withholdingOriginEUR != null && d.withholdingDestinationEUR != null && (
-                            <span className="block text-[9px] text-slate-500 font-sans">
-                              Orig: {formatEUR(d.withholdingOriginEUR)} | Dest: {formatEUR(d.withholdingDestinationEUR)}
+                    filteredDividends.map((d, idx) => {
+                      const country = getDividendCountry(d, positions);
+                      const profile = COUNTRY_WITHHOLDINGS[country];
+                      const origEUR = d.withholdingOriginEUR != null ? d.withholdingOriginEUR : (!d.hasDoubleWithholding && country !== 'España' ? d.withholdingEUR : 0);
+                      const destEUR = d.withholdingDestinationEUR != null ? d.withholdingDestinationEUR : (!d.hasDoubleWithholding && country === 'España' ? d.withholdingEUR : 0);
+
+                      return (
+                        <tr key={idx} className="border-b border-slate-300 even:bg-slate-50">
+                          <td className="p-1.5 border border-slate-300 font-mono">{d.date}</td>
+                          <td className="p-1.5 border border-slate-300 font-medium">{d.company}</td>
+                          <td className="p-1.5 font-bold font-mono border border-slate-300">{d.symbol}</td>
+                          <td className="p-1.5 border border-slate-300 text-slate-700">
+                            <span className="inline-flex items-center gap-1">
+                              <span>{profile?.flag || '🌐'}</span>
+                              <span className="font-medium">{country}</span>
                             </span>
-                          )}
-                        </td>
-                        <td
-                          className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${
-                            d.netEUR < 0 ? 'text-red-700' : d.netEUR > 0 ? 'text-emerald-700' : 'text-slate-700'
-                          }`}
-                        >
-                          {d.netEUR > 0 ? `+${formatEUR(d.netEUR)}` : formatEUR(d.netEUR)}
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(d.grossEUR)}</td>
+                          <td className="p-1.5 text-right font-mono text-amber-800 border border-slate-300">
+                            {origEUR > 0 ? (
+                              <span>
+                                {formatEUR(origEUR)}
+                                {d.withholdingOriginPercent ? <span className="text-[9px] text-slate-500 block">({d.withholdingOriginPercent}%)</span> : null}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300">
+                            {destEUR > 0 ? (
+                              <span>
+                                {formatEUR(destEUR)}
+                                {d.withholdingDestinationPercent ? <span className="text-[9px] text-slate-500 block">({d.withholdingDestinationPercent}%)</span> : null}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td className="p-1.5 text-right font-mono text-rose-700 font-bold border border-slate-300">
+                            {d.withholdingEUR > 0 ? `-${formatEUR(d.withholdingEUR)}` : '0,00 €'}
+                          </td>
+                          <td
+                            className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${
+                              d.netEUR < 0 ? 'text-red-700' : d.netEUR > 0 ? 'text-emerald-700' : 'text-slate-700'
+                            }`}
+                          >
+                            {d.netEUR > 0 ? `+${formatEUR(d.netEUR)}` : formatEUR(d.netEUR)}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                   {filteredDividends.length > 0 && (
                     <tr className="bg-slate-100 font-bold border-t-2 border-slate-400">
-                      <td colSpan={3} className="p-1.5 border border-slate-300 text-right uppercase">
+                      <td colSpan={4} className="p-1.5 border border-slate-300 text-right uppercase">
                         TOTALES DIVIDENDOS ({yearLabel.toUpperCase()}):
                       </td>
                       <td className="p-1.5 border border-slate-300 text-right font-mono">{formatEUR(totalDividends)}</td>
+                      <td className="p-1.5 border border-slate-300 text-right text-amber-800 font-mono">
+                        {totalOriginWithholding > 0 ? formatEUR(totalOriginWithholding) : '—'}
+                      </td>
                       <td className="p-1.5 border border-slate-300 text-right text-rose-700 font-mono">
+                        {totalDestWithholding > 0 ? formatEUR(totalDestWithholding) : '—'}
+                      </td>
+                      <td className="p-1.5 border border-slate-300 text-right text-rose-700 font-mono font-bold">
                         {totalWithholding > 0 ? `-${formatEUR(totalWithholding)}` : '0,00 €'}
                       </td>
                       <td

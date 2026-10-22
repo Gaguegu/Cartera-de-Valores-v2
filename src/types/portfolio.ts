@@ -90,6 +90,7 @@ export interface DividendRecord {
   year: number;
   company: string;
   symbol: string;
+  country?: string;                         // País del activo (ej. "USA", "España", "Alemania")
   grossEUR: number;
   withholdingEUR: number; // Retención total acumulada para compatibilidad global
   netEUR: number;

@@ -144,3 +144,94 @@ export function parseDateToTimestamp(dateStr?: string): number {
   return isNaN(t) ? 0 : t;
 }
 
+export interface CountryWithholdingProfile {
+  name: string;
+  flag: string;
+  originRate: string;
+  destRate: string;
+  summary: string;
+}
+
+export const COUNTRY_WITHHOLDINGS: Record<string, CountryWithholdingProfile> = {
+  'EE.UU.': {
+    name: 'EE.UU.',
+    flag: '🇺🇸',
+    originRate: '15% (W-8BEN)',
+    destRate: '19% (IRPF)',
+    summary: '15% Origen + 19% Destino',
+  },
+  'España': {
+    name: 'España',
+    flag: '🇪🇸',
+    originRate: '0%',
+    destRate: '19% (IRPF)',
+    summary: '19% IRPF Nacional',
+  },
+  'Alemania': {
+    name: 'Alemania',
+    flag: '🇩🇪',
+    originRate: '26,38%',
+    destRate: '19% (IRPF)',
+    summary: '26,38% Origen + 19% Destino',
+  },
+  'Francia': {
+    name: 'Francia',
+    flag: '🇫🇷',
+    originRate: '12,8% / 25%',
+    destRate: '19% (IRPF)',
+    summary: '12,8% Origen + 19% Destino',
+  },
+  'Países Bajos': {
+    name: 'Países Bajos',
+    flag: '🇳🇱',
+    originRate: '15%',
+    destRate: '19% (IRPF)',
+    summary: '15% Origen + 19% Destino',
+  },
+  'Reino Unido': {
+    name: 'Reino Unido',
+    flag: '🇬🇧',
+    originRate: '0%',
+    destRate: '19% (IRPF)',
+    summary: '0% Origen + 19% Destino',
+  },
+  'Suiza': {
+    name: 'Suiza',
+    flag: '🇨🇭',
+    originRate: '35%',
+    destRate: '19% (IRPF)',
+    summary: '35% Origen + 19% Destino',
+  },
+};
+
+export function normalizeCountryName(countryRaw?: string): string {
+  if (!countryRaw) return 'Otros';
+  const c = countryRaw.trim().toUpperCase();
+  if (c.includes('ESTADOS UNIDOS') || c.includes('EEUU') || c.includes('USA') || c === 'US') return 'EE.UU.';
+  if (c.includes('ESPAÑA') || c.includes('SPAIN') || c === 'ES') return 'España';
+  if (c.includes('ALEMANIA') || c.includes('GERMANY') || c === 'DE') return 'Alemania';
+  if (c.includes('FRANCIA') || c.includes('FRANCE') || c === 'FR') return 'Francia';
+  if (c.includes('REINO UNIDO') || c.includes('UK') || c === 'GB') return 'Reino Unido';
+  if (c.includes('PAÍSES BAJOS') || c.includes('HOLANDA') || c.includes('NETHERLANDS') || c === 'NL') return 'Países Bajos';
+  if (c.includes('SUIZA') || c.includes('SWITZERLAND') || c === 'CH') return 'Suiza';
+  return countryRaw;
+}
+
+export function getDividendCountry(
+  dividend: { symbol?: string; country?: string; withholdingOriginCountry?: string },
+  positions?: { symbol: string; country?: string }[]
+): string {
+  if (dividend.country) return normalizeCountryName(dividend.country);
+  if (dividend.withholdingOriginCountry) return normalizeCountryName(dividend.withholdingOriginCountry);
+  if (positions && dividend.symbol) {
+    const pos = positions.find(p => p.symbol.toUpperCase() === dividend.symbol!.toUpperCase());
+    if (pos?.country) return normalizeCountryName(pos.country);
+  }
+  const sym = (dividend.symbol || '').toUpperCase();
+  if (['IBE', 'SAN', 'BBVA', 'ITX', 'NTGY', 'REP', 'TEF', 'ACS', 'FER'].includes(sym)) return 'España';
+  if (['SIE', 'SAP', 'BMW', 'BAS', 'ALV', 'DAI'].includes(sym)) return 'Alemania';
+  if (['ASML'].includes(sym)) return 'Países Bajos';
+  return 'EE.UU.';
+}
+
+

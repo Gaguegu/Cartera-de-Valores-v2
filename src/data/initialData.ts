@@ -430,9 +430,17 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2024,
     company: 'Microsoft',
     symbol: 'MSFT',
+    country: 'EE.UU.',
     grossEUR: 320.00,
-    withholdingEUR: 48.00,
-    netEUR: 272.00
+    withholdingEUR: 99.68,
+    netEUR: 220.32,
+    hasDoubleWithholding: true,
+    withholdingOriginEUR: 48.00,
+    withholdingOriginPercent: 15,
+    withholdingOriginCountry: 'EE.UU.',
+    withholdingDestinationEUR: 51.68,
+    withholdingDestinationPercent: 19,
+    withholdingDestinationCountry: 'España'
   },
   {
     id: 'div-2',
@@ -440,9 +448,14 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2024,
     company: 'Apple',
     symbol: 'AAPL',
+    country: 'EE.UU.',
     grossEUR: 180.00,
     withholdingEUR: 27.00,
-    netEUR: 153.00
+    netEUR: 153.00,
+    hasDoubleWithholding: false,
+    withholdingOriginEUR: 27.00,
+    withholdingOriginPercent: 15,
+    withholdingOriginCountry: 'EE.UU.'
   },
   {
     id: 'div-3',
@@ -450,9 +463,17 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2024,
     company: 'Meta',
     symbol: 'META',
+    country: 'EE.UU.',
     grossEUR: 210.50,
-    withholdingEUR: 31.58,
-    netEUR: 178.92
+    withholdingEUR: 65.57,
+    netEUR: 144.93,
+    hasDoubleWithholding: true,
+    withholdingOriginEUR: 31.58,
+    withholdingOriginPercent: 15,
+    withholdingOriginCountry: 'EE.UU.',
+    withholdingDestinationEUR: 33.99,
+    withholdingDestinationPercent: 19,
+    withholdingDestinationCountry: 'España'
   },
   {
     id: 'div-4',
@@ -460,9 +481,14 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2024,
     company: 'Amazon',
     symbol: 'AMZN',
+    country: 'EE.UU.',
     grossEUR: 150.30,
     withholdingEUR: 22.55,
-    netEUR: 127.75
+    netEUR: 127.75,
+    hasDoubleWithholding: false,
+    withholdingOriginEUR: 22.55,
+    withholdingOriginPercent: 15,
+    withholdingOriginCountry: 'EE.UU.'
   },
   {
     id: 'div-5',
@@ -470,9 +496,14 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2024,
     company: 'Siemens',
     symbol: 'SIE',
+    country: 'Alemania',
     grossEUR: 120.00,
-    withholdingEUR: 18.00,
-    netEUR: 102.00
+    withholdingEUR: 31.65,
+    netEUR: 88.35,
+    hasDoubleWithholding: false,
+    withholdingOriginEUR: 31.65,
+    withholdingOriginPercent: 26.375,
+    withholdingOriginCountry: 'Alemania'
   },
   {
     id: 'div-6',
@@ -480,9 +511,17 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2025,
     company: 'Microsoft',
     symbol: 'MSFT',
+    country: 'EE.UU.',
     grossEUR: 345.00,
-    withholdingEUR: 51.75,
-    netEUR: 293.25
+    withholdingEUR: 107.47,
+    netEUR: 237.53,
+    hasDoubleWithholding: true,
+    withholdingOriginEUR: 51.75,
+    withholdingOriginPercent: 15,
+    withholdingOriginCountry: 'EE.UU.',
+    withholdingDestinationEUR: 55.72,
+    withholdingDestinationPercent: 19,
+    withholdingDestinationCountry: 'España'
   },
   {
     id: 'div-7',
@@ -490,9 +529,14 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2025,
     company: 'Apple',
     symbol: 'AAPL',
+    country: 'EE.UU.',
     grossEUR: 195.00,
     withholdingEUR: 29.25,
-    netEUR: 165.75
+    netEUR: 165.75,
+    hasDoubleWithholding: false,
+    withholdingOriginEUR: 29.25,
+    withholdingOriginPercent: 15,
+    withholdingOriginCountry: 'EE.UU.'
   },
   {
     id: 'div-8',
@@ -500,9 +544,14 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
     year: 2025,
     company: 'Iberdrola',
     symbol: 'IBE',
+    country: 'España',
     grossEUR: 410.00,
     withholdingEUR: 77.90,
-    netEUR: 332.10
+    netEUR: 332.10,
+    hasDoubleWithholding: false,
+    withholdingDestinationEUR: 77.90,
+    withholdingDestinationPercent: 19,
+    withholdingDestinationCountry: 'España'
   }
 ];
 
