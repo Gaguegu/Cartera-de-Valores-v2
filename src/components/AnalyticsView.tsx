@@ -192,7 +192,7 @@ export function AnalyticsView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Controls */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-4 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs">
             <PieChart className="w-3.5 h-3.5 text-blue-400" />

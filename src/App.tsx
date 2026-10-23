@@ -1283,53 +1283,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a1424] text-slate-100 flex flex-col font-sans print:bg-white print:text-slate-900 print:min-h-0 print:h-auto">
-      <div className="app-shell-ui flex-1 flex flex-col min-h-screen print:hidden">
-        {/* Update Notification Banner / Toast */}
-      <UpdateNotificationBanner
-        updateAvailable={updateAvailable}
-        justUpdated={justUpdated}
-        manualFeedback={manualFeedback}
-        isUpdating={isUpdating}
-        onInstallNow={handleInstallNow}
-        onForceReload={handleForceReload}
-        onDismissJustUpdated={dismissJustUpdated}
-        onDismissManualFeedback={dismissManualFeedback}
-        onOpenVersionsModal={() => setIsVersionsModalOpen(true)}
-      />
-
-      {/* Header */}
-      <Header
-        currentTab={currentTab}
-        onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-        onOpenGuide={() => setIsGuideOpen(true)}
-        totalPortfolioValue={totalPortfolioValue}
-        currentVersion={currentVersion}
-        onOpenVersionsModal={() => setIsVersionsModalOpen(true)}
-        isCheckingVersion={isCheckingUpdates}
-        hasPendingUpdate={Boolean(updateAvailable)}
-        onCheckForUpdates={() => checkForUpdates(true)}
-        onInstallNow={() => handleInstallNow()}
-        onForceReload={handleForceReload}
-        hasPassword={hasPassword}
-        onLockApp={lockApp}
-        onOpenSecurityModal={tab => {
-          setSecurityModalTab(tab || 'backup');
-          setIsSecurityModalOpen(true);
-        }}
-        onOpenAlertsModal={() => {
-          setPreselectedAlertSymbol(undefined);
-          setIsAlertsModalOpen(true);
-        }}
-        triggeredAlertsCount={alerts.filter(a => a.triggered && a.active).length}
-        onRefreshQuotesOnline={handleRefreshAllQuotesOnline}
-        isRefreshingQuotes={isRefreshingQuotes}
-        lastQuotesUpdatedAt={lastQuotesUpdatedAt}
-      />
-
-      {/* Main layout container with sidebar and content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
+    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#0a1424] text-slate-100 flex flex-col font-sans select-none print:bg-white print:text-slate-900 print:h-auto print:overflow-visible">
+      <div className="app-shell-ui flex-1 flex h-full max-h-full overflow-hidden min-h-0 print:hidden">
+        {/* Left Column: Sidebar fija y permanente en pantalla completa */}
         <Sidebar
           currentTab={currentTab}
           onSelectTab={setCurrentTab}
@@ -1349,8 +1305,52 @@ export default function App() {
           }}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424]">
+        {/* Right Column: Header fijo arriba y Contenido principal con scroll abajo */}
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          {/* Update Notification Banner / Toast */}
+          <UpdateNotificationBanner
+            updateAvailable={updateAvailable}
+            justUpdated={justUpdated}
+            manualFeedback={manualFeedback}
+            isUpdating={isUpdating}
+            onInstallNow={handleInstallNow}
+            onForceReload={handleForceReload}
+            onDismissJustUpdated={dismissJustUpdated}
+            onDismissManualFeedback={dismissManualFeedback}
+            onOpenVersionsModal={() => setIsVersionsModalOpen(true)}
+          />
+
+          {/* Header fijo superior de la columna principal */}
+          <Header
+            currentTab={currentTab}
+            onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+            onOpenGuide={() => setIsGuideOpen(true)}
+            totalPortfolioValue={totalPortfolioValue}
+            currentVersion={currentVersion}
+            onOpenVersionsModal={() => setIsVersionsModalOpen(true)}
+            isCheckingVersion={isCheckingUpdates}
+            hasPendingUpdate={Boolean(updateAvailable)}
+            onCheckForUpdates={() => checkForUpdates(true)}
+            onInstallNow={() => handleInstallNow()}
+            onForceReload={handleForceReload}
+            hasPassword={hasPassword}
+            onLockApp={lockApp}
+            onOpenSecurityModal={tab => {
+              setSecurityModalTab(tab || 'backup');
+              setIsSecurityModalOpen(true);
+            }}
+            onOpenAlertsModal={() => {
+              setPreselectedAlertSymbol(undefined);
+              setIsAlertsModalOpen(true);
+            }}
+            triggeredAlertsCount={alerts.filter(a => a.triggered && a.active).length}
+            onRefreshQuotesOnline={handleRefreshAllQuotesOnline}
+            isRefreshingQuotes={isRefreshingQuotes}
+            lastQuotesUpdatedAt={lastQuotesUpdatedAt}
+          />
+
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424]">
           <div className="max-w-7xl mx-auto">
             {/* View Switching */}
             {currentTab === 'dashboard' && (

@@ -150,7 +150,7 @@ export function DividendCalendarView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Filter Bar */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-4 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
             <Coins className="w-5 h-5 text-emerald-400" />

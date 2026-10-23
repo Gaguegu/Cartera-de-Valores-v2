@@ -87,27 +87,28 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-[#0f1e36] border-b border-slate-800/80 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-md relative min-h-[64px]">
-      {/* Left: Mobile trigger & Logo + Current View */}
+    <header className="shrink-0 z-20 bg-[#0f1e36] border-b border-slate-800/80 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-md relative min-h-[64px]">
+      {/* Left: Mobile trigger & Current View */}
       <div className="flex items-center gap-3">
         <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+          className="lg:hidden p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
           aria-label="Abrir menú"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-900/30">
-            <TrendingUp className="w-5 h-5 text-white" />
+        <div className="flex items-center gap-2.5">
+          <div className="lg:hidden w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
+            <TrendingUp className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-wider text-white">Cartera de Valores</span>
-              <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-slate-500"></span>
-              <h1 className="text-sm font-semibold text-slate-300 tracking-tight">
-                {getTabTitle(currentTab)}
+              <span className="lg:hidden font-extrabold text-sm tracking-wider text-white">Cartera de Valores</span>
+              <span className="lg:hidden w-1 h-1 rounded-full bg-slate-500"></span>
+              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5">
+                <span className="text-slate-400 font-normal hidden lg:inline">Panel /</span>
+                <span className="text-white font-extrabold">{getTabTitle(currentTab)}</span>
               </h1>
             </div>
             <p className="text-[11px] text-slate-400 font-medium hidden md:block">

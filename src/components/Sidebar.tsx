@@ -79,8 +79,8 @@ export function Sidebar({
 
       {/* Sidebar container - Fijo en la vista lateral sin desbordamiento */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-72 bg-[#0c182c] border-r border-slate-800/80 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-full lg:shrink-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0c182c] border-r border-slate-800/80 flex flex-col h-full overflow-hidden transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:shrink-0 lg:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Brand Header */}
@@ -98,14 +98,14 @@ export function Sidebar({
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation list - scrollable sólo si la pantalla es muy pequeña */}
-        <div className="p-3 space-y-1 overflow-y-auto flex-1">
+        {/* Navigation list - scrollable con min-h-0 para no desbordar controles */}
+        <div className="p-3 space-y-1 overflow-y-auto flex-1 min-h-0">
           {navItems.map(item => {
             const isActive = currentTab === item.id;
             return (
