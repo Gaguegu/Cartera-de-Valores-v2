@@ -1347,6 +1347,8 @@ export default function App() {
             onRefreshQuotesOnline={handleRefreshAllQuotesOnline}
             isRefreshingQuotes={isRefreshingQuotes}
             lastQuotesUpdatedAt={lastQuotesUpdatedAt}
+            cashEUR={cashEUR}
+            onOpenNewOperation={() => handleOpenNewOperation()}
           />
 
           {/* Main Content Area */}

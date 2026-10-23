@@ -80,30 +80,18 @@ export function Dashboard({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Page Title & Subtitle bar */}
-      <div className="sticky top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-            Resumen de la cartera
-          </h2>
-          <p className="text-xs text-slate-400">
-            Seguimiento en tiempo real de inversiones globales valoradas en euros · Método FIFO
-          </p>
+      {/* Barra compacta solo para pantallas móviles (en escritorio está unificada en el encabezado principal) */}
+      <div className="sm:hidden flex items-center justify-between gap-2 bg-[#12233f] border border-slate-700/80 p-3 rounded-xl shadow-md">
+        <div className="flex items-center gap-1.5 text-xs text-slate-300">
+          <span className="text-emerald-400 font-bold">💶 Efectivo:</span>
+          <span className="font-mono font-bold text-white">{formatEUR(cashEUR)}</span>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Cash badge from PDF spec */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-300">
-            <span className="text-emerald-400 font-bold">💶 Efectivo disponible:</span>
-            <span className="font-mono font-bold text-white">{formatEUR(cashEUR)}</span>
-          </div>
-
-          <button
-            onClick={onOpenNewOperation}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> Nueva operación
-          </button>
-        </div>
+        <button
+          onClick={onOpenNewOperation}
+          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow flex items-center gap-1 cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" /> Nueva operación
+        </button>
       </div>
 
       {/* 4 Cards from Screen 1 */}

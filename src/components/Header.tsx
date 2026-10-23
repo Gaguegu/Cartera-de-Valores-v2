@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { Menu, RefreshCw, TrendingUp, Calendar, Sparkles, Lock, Shield, Bell, Globe } from 'lucide-react';
+import { Menu, RefreshCw, TrendingUp, Calendar, Sparkles, Lock, Shield, Bell, Globe, Plus } from 'lucide-react';
 import { ActiveTab } from '../types/portfolio';
+import { formatEUR } from '../utils/formatters';
 
 interface HeaderProps {
   currentTab: ActiveTab;
@@ -23,6 +24,8 @@ interface HeaderProps {
   onRefreshQuotesOnline?: () => Promise<void>;
   isRefreshingQuotes?: boolean;
   lastQuotesUpdatedAt?: string;
+  cashEUR?: number;
+  onOpenNewOperation?: () => void;
 }
 
 export function Header({
@@ -44,6 +47,8 @@ export function Header({
   onRefreshQuotesOnline,
   isRefreshingQuotes = false,
   lastQuotesUpdatedAt,
+  cashEUR,
+  onOpenNewOperation,
 }: HeaderProps) {
   const todayFormatted = useMemo(() => {
     return new Intl.DateTimeFormat('es-ES', {
@@ -88,50 +93,76 @@ export function Header({
 
   return (
     <header className="shrink-0 z-20 bg-[#0f1e36] border-b border-slate-800/80 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-md relative min-h-[64px]">
-      {/* Left: Mobile trigger & Current View */}
-      <div className="flex items-center gap-3">
+      {/* Left: Mobile trigger & Current View (con controles de Dashboard unificados) */}
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+          className="lg:hidden p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer shrink-0"
           aria-label="Abrir menú"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2.5">
-          <div className="lg:hidden w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="lg:hidden w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shrink-0">
             <TrendingUp className="w-4 h-4 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="lg:hidden font-extrabold text-sm tracking-wider text-white">Cartera de Valores</span>
               <span className="lg:hidden w-1 h-1 rounded-full bg-slate-500"></span>
-              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5">
+              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
                 <span className="text-slate-400 font-normal hidden lg:inline">Panel /</span>
                 <span className="text-white font-extrabold">{getTabTitle(currentTab)}</span>
+                {currentTab === 'dashboard' && (
+                  <span className="hidden xl:inline text-[11px] font-semibold text-blue-300 bg-blue-900/40 border border-blue-700/50 px-2 py-0.5 rounded-full ml-1">
+                    Resumen de la cartera
+                  </span>
+                )}
               </h1>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium hidden md:block">
-              Gestión Integral de Inversiones · Control total de tu patrimonio
+            <p className="text-[11px] text-slate-400 font-medium hidden md:block truncate">
+              {currentTab === 'dashboard'
+                ? 'Seguimiento en tiempo real de inversiones globales valoradas en euros · Método FIFO'
+                : 'Gestión Integral de Inversiones · Control total de tu patrimonio'}
             </p>
           </div>
         </div>
+
+        {/* Controles de Dashboard unificados en la cabecera única: Efectivo y Nueva Operación */}
+        {currentTab === 'dashboard' && (
+          <div className="hidden sm:flex items-center gap-2 ml-1 lg:ml-2 pl-3 border-l border-slate-800 shrink-0">
+            {typeof cashEUR === 'number' && (
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 text-xs text-slate-300">
+                <span className="text-emerald-400 font-bold">💶 Efectivo:</span>
+                <span className="font-mono font-bold text-white">{formatEUR(cashEUR)}</span>
+              </div>
+            )}
+            {onOpenNewOperation && (
+              <button
+                onClick={onOpenNewOperation}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95"
+                title="Registrar una nueva compra o venta de acciones"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Nueva operación</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* CENTRO: Botón compacto de Bloqueo en color Rojo (presente en todas las pantallas) */}
-      <div className="flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+      {/* Right: Botón Bloquear en Rojo (in-flow sin solaparse), Alertas, Mercado, Óvalo Versión, Comprobar actualizaciones, Fecha */}
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-3">
+        {/* BOTÓN ROJO DE BLOQUEO: colocado de forma fluida para que nunca se solape con ningún botón */}
         <button
           onClick={hasPassword && onLockApp ? onLockApp : () => onOpenSecurityModal && onOpenSecurityModal('password')}
-          className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-black bg-red-600 hover:bg-red-500 active:bg-red-700 border-2 border-red-400 text-white shadow-[0_0_14px_rgba(239,68,68,0.55)] hover:shadow-[0_0_20px_rgba(239,68,68,0.8)] transition-all cursor-pointer select-none active:scale-95"
+          className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-black bg-red-600 hover:bg-red-500 active:bg-red-700 border-2 border-red-400 text-white shadow-[0_0_14px_rgba(239,68,68,0.55)] hover:shadow-[0_0_20px_rgba(239,68,68,0.8)] transition-all cursor-pointer select-none active:scale-95 shrink-0"
           title={hasPassword ? 'Bloquear aplicación ahora (un solo clic)' : 'Configurar contraseña de acceso'}
         >
           <Lock className="w-3.5 h-3.5 text-white" />
           <span>Bloquear</span>
         </button>
-      </div>
-
-      {/* Right: Óvalo de versiones modificadas, Fecha, Acciones */}
-      <div className="flex items-center gap-2 sm:gap-3">
         {/* BOTÓN / INDICADOR DE ALERTAS DE PRECIO (CAMPANA) */}
         {onOpenAlertsModal && (
           <button
