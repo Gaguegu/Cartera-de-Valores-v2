@@ -89,8 +89,8 @@ export function OperationsView({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      {/* Top Bar - Screen 4 Header */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/70 shadow-md">
+      {/* Top Bar - Screen 4 Header (Fijo en la parte superior) */}
+      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-2">
           {/* Filter Type */}
           <select
@@ -184,13 +184,13 @@ export function OperationsView({
 
       {/* Operations Table */}
       <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80">
+        <div className="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead className="sticky top-0 z-10 bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 shadow-md">
               <tr>
                 <th
                   onClick={() => handleToggleSortDirection()}
-                  className="py-3.5 px-4 cursor-pointer hover:text-white select-none transition-colors group"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white select-none transition-colors group border-b border-slate-700/80"
                   title="Haz clic para alternar orden: más recientes primero o cronológico"
                 >
                   <div className="flex items-center gap-1.5">
@@ -201,14 +201,14 @@ export function OperationsView({
                     </span>
                   </div>
                 </th>
-                <th className="py-3.5 px-4">Tipo</th>
-                <th className="py-3.5 px-4">Símbolo</th>
-                <th className="py-3.5 px-4">Empresa</th>
-                <th className="py-3.5 px-4 text-right">Cantidad</th>
-                <th className="py-3.5 px-4 text-right">Precio</th>
-                <th className="py-3.5 px-4 text-right">Total (€)</th>
-                <th className="py-3.5 px-4 text-right">Comisión</th>
-                <th className="py-3.5 px-3 text-center">Acción</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 border-b border-slate-700/80">Tipo</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 border-b border-slate-700/80">Símbolo</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 border-b border-slate-700/80">Empresa</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Cantidad</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Precio</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Total (€)</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Comisión</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-center border-b border-slate-700/80">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">

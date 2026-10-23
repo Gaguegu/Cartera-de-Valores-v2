@@ -195,7 +195,7 @@ export function DividendsView({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Controls: Filtros por Año, País con sus respectivas retenciones y Tipo de Retención */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-4 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky top-0 z-20 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Selector de Año */}
           <div className="flex items-center gap-1.5">
@@ -362,13 +362,13 @@ export function DividendsView({
 
       {/* Dividends Table */}
       <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80">
+            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 sticky top-0 z-10 shadow-md">
               <tr>
                 <th
                   onClick={() => setSortDirection(prev => (prev === 'desc' ? 'asc' : 'desc'))}
-                  className="py-3.5 px-4 cursor-pointer hover:text-white select-none transition-colors group"
+                  className="py-3.5 px-4 cursor-pointer hover:text-white select-none transition-colors group sticky top-0 bg-[#0e1b30]"
                   title="Haz clic para alternar orden de fechas"
                 >
                   <div className="flex items-center gap-1.5">
@@ -379,13 +379,13 @@ export function DividendsView({
                     </span>
                   </div>
                 </th>
-                <th className="py-3.5 px-4">Empresa</th>
-                <th className="py-3.5 px-4">Símbolo</th>
-                <th className="py-3.5 px-3">País</th>
-                <th className="py-3.5 px-4 text-right">Bruto (€)</th>
-                <th className="py-3.5 px-4 text-right">Retenciones (€)</th>
-                <th className="py-3.5 px-4 text-right">Neto (€)</th>
-                <th className="py-3.5 px-3 text-center w-24">Acciones</th>
+                <th className="py-3.5 px-4 sticky top-0 bg-[#0e1b30]">Empresa</th>
+                <th className="py-3.5 px-4 sticky top-0 bg-[#0e1b30]">Símbolo</th>
+                <th className="py-3.5 px-3 sticky top-0 bg-[#0e1b30]">País</th>
+                <th className="py-3.5 px-4 text-right sticky top-0 bg-[#0e1b30]">Bruto (€)</th>
+                <th className="py-3.5 px-4 text-right sticky top-0 bg-[#0e1b30]">Retenciones (€)</th>
+                <th className="py-3.5 px-4 text-right sticky top-0 bg-[#0e1b30]">Neto (€)</th>
+                <th className="py-3.5 px-3 text-center w-24 sticky top-0 bg-[#0e1b30]">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">

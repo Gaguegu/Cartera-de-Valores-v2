@@ -183,8 +183,8 @@ export function CurrentPortfolio({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      {/* Action and Filter Bar - Screen 2 Header */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/70 shadow-md">
+      {/* Action and Filter Bar - Screen 2 Header (Fijo en la parte superior) */}
+      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur-md">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Selector rápido de ejercicio / año de compra */}
           <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner">
@@ -351,16 +351,16 @@ export function CurrentPortfolio({
 
       {/* Main Table - Screen 2 */}
       <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none">
+        <div className="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead className="sticky top-0 z-10 bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none shadow-md">
               <tr>
                 <th
                   onClick={() => {
                     setSortField('symbol');
                     setSortAsc(!sortAsc);
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:text-white"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center gap-1">
                     <span>Símbolo</span>
@@ -372,24 +372,24 @@ export function CurrentPortfolio({
                     setSortField('company');
                     setSortAsc(!sortAsc);
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:text-white"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center gap-1">
                     <span>Empresa</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
-                <th className="py-3.5 px-3">País</th>
-                <th className="py-3.5 px-3">Divisa</th>
-                <th className="py-3.5 px-4 text-right">Cantidad</th>
-                <th className="py-3.5 px-4 text-right">Precio compra (€)</th>
-                <th className="py-3.5 px-4 text-right">Precio actual (€)</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 border-b border-slate-700/80">País</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 border-b border-slate-700/80">Divisa</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Cantidad</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Precio compra (€)</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Precio actual (€)</th>
                 <th
                   onClick={() => {
                     setSortField('currentValueEUR');
                     setSortAsc(!sortAsc);
                   }}
-                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Valor (€)</span>
@@ -401,14 +401,14 @@ export function CurrentPortfolio({
                     setSortField('gainLossPercent');
                     setSortAsc(!sortAsc);
                   }}
-                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Plusvalía %</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
-                <th className="py-3.5 px-3 text-center">Acciones</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-center border-b border-slate-700/80">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">

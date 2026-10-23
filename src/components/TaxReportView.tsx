@@ -56,7 +56,7 @@ export function TaxReportView({ onOpenPrintReport, closedPositions = [], dividen
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Year Filter Header */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-4 rounded-2xl shadow-md flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl backdrop-blur-md flex items-center justify-between">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
             Fiscal / IRPF (Declaración de la Renta)

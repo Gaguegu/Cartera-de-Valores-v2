@@ -163,7 +163,7 @@ export function BrokersConfigView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Configuration Header & Navigation */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-5 rounded-2xl shadow-md space-y-4">
+      <div className="sticky top-0 z-20 bg-[#12233f] border border-slate-700/80 p-5 rounded-2xl shadow-xl space-y-4 backdrop-blur-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl shadow-inner">

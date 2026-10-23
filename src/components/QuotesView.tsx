@@ -337,7 +337,7 @@ export function QuotesView({
       )}
 
       {/* Search and Filters Toolbar */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-4 rounded-2xl shadow-md space-y-4">
+      <div className="sticky top-0 z-20 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl space-y-4 backdrop-blur-md">
         <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -453,18 +453,18 @@ export function QuotesView({
 
       {/* Quotes Results Table */}
       <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none">
+            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none sticky top-0 z-10 shadow-md">
               <tr>
-                <th className="py-3.5 px-4">Tícker</th>
-                <th className="py-3.5 px-4">Empresa</th>
-                <th className="py-3.5 px-3">Mercado / País</th>
-                <th className="py-3.5 px-4 text-right">Cotización</th>
-                <th className="py-3.5 px-4 text-right">Variación Día</th>
-                <th className="py-3.5 px-4 text-center">Rango 52 Semanas</th>
-                <th className="py-3.5 px-3 text-center">Estado</th>
-                <th className="py-3.5 px-4 text-right">Acciones</th>
+                <th className="py-3.5 px-4 sticky top-0 bg-[#0e1b30]">Tícker</th>
+                <th className="py-3.5 px-4 sticky top-0 bg-[#0e1b30]">Empresa</th>
+                <th className="py-3.5 px-3 sticky top-0 bg-[#0e1b30]">Mercado / País</th>
+                <th className="py-3.5 px-4 text-right sticky top-0 bg-[#0e1b30]">Cotización</th>
+                <th className="py-3.5 px-4 text-right sticky top-0 bg-[#0e1b30]">Variación Día</th>
+                <th className="py-3.5 px-4 text-center sticky top-0 bg-[#0e1b30]">Rango 52 Semanas</th>
+                <th className="py-3.5 px-3 text-center sticky top-0 bg-[#0e1b30]">Estado</th>
+                <th className="py-3.5 px-4 text-right sticky top-0 bg-[#0e1b30]">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">

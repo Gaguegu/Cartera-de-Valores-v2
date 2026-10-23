@@ -161,8 +161,8 @@ export function ClosedPortfolioView({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      {/* Action and Filter Bar - Idéntico diseño al de la Cartera Actual */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/70 shadow-md">
+      {/* Action and Filter Bar - Screen 5 Header (Fijo en la parte superior) */}
+      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur-md">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Selector desplegable de ejercicio / año de venta */}
           <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner">
@@ -227,14 +227,15 @@ export function ClosedPortfolioView({
       </div>
 
       {/* Main Table */}
+      {/* Closed Positions Table */}
       <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none">
+        <div className="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead className="sticky top-0 z-10 bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none shadow-md">
               <tr>
                 <th
                   onClick={() => handleToggleSort('symbol')}
-                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors group"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white transition-colors group border-b border-slate-700/80"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Símbolo</span>
@@ -243,7 +244,7 @@ export function ClosedPortfolioView({
                 </th>
                 <th
                   onClick={() => handleToggleSort('company')}
-                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors group"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white transition-colors group border-b border-slate-700/80"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Empresa</span>
@@ -252,7 +253,7 @@ export function ClosedPortfolioView({
                 </th>
                 <th
                   onClick={() => handleToggleSort('saleDateTimestamp')}
-                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors group"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white transition-colors group border-b border-slate-700/80"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Fecha venta</span>
@@ -261,7 +262,7 @@ export function ClosedPortfolioView({
                 </th>
                 <th
                   onClick={() => handleToggleSort('shares')}
-                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group border-b border-slate-700/80"
                 >
                   <div className="flex items-center justify-end gap-1.5">
                     <span>Cantidad</span>
@@ -270,7 +271,7 @@ export function ClosedPortfolioView({
                 </th>
                 <th
                   onClick={() => handleToggleSort('salePrice')}
-                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group border-b border-slate-700/80"
                 >
                   <div className="flex items-center justify-end gap-1.5">
                     <span>Precio venta</span>
@@ -279,14 +280,14 @@ export function ClosedPortfolioView({
                 </th>
                 <th
                   onClick={() => handleToggleSort('resultEUR')}
-                  className="py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white transition-colors group border-b border-slate-700/80"
                 >
                   <div className="flex items-center justify-end gap-1.5">
                     <span>Resultado €</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
                   </div>
                 </th>
-                <th className="py-3.5 px-3 text-center">Acción</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-center border-b border-slate-700/80">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
