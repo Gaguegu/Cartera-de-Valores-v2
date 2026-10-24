@@ -1121,7 +1121,9 @@ export default function App() {
         // La cartera opera, valora y multiplica siempre en EUROS (€)
         const priceEUR = quote.currentPriceEUR;
         const currentValueEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costBasisEUR = p.shares * (p.pmcWithCommission || p.buyPrice || 0);
+        const costBasisEUR = (typeof p.totalInvestedEUR === 'number' && p.totalInvestedEUR > 0)
+          ? p.totalInvestedEUR
+          : p.shares * (p.pmcWithCommission || p.buyPrice || 0);
         const gainLossEUR = Number((currentValueEUR - costBasisEUR).toFixed(2));
         const gainLossPercent = costBasisEUR > 0 ? Number(((gainLossEUR / costBasisEUR) * 100).toFixed(2)) : 0;
 

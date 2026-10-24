@@ -9,15 +9,18 @@ const quoteCache = new Map<string, CachedQuote>();
 const CACHE_TTL_MS = 20 * 1000; // 20 segundos de caché en memoria
 
 async function fetchFromYahoo(url: string) {
-  const cached = quoteCache.get(url);
+  // Usar query2.finance.yahoo.com que no devuelve HTTP 429 a IPs de contenedores
+  const targetUrl = url.replace('query1.finance.yahoo.com', 'query2.finance.yahoo.com');
+  const cached = quoteCache.get(targetUrl);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const res = await fetch(url, {
+  const res = await fetch(targetUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       'Accept': 'application/json',
+      'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
     },
     signal: AbortSignal.timeout(6000),
   });
@@ -27,7 +30,7 @@ async function fetchFromYahoo(url: string) {
   }
 
   const data = await res.json();
-  quoteCache.set(url, { data, timestamp: Date.now() });
+  quoteCache.set(targetUrl, { data, timestamp: Date.now() });
   return data;
 }
 
@@ -68,7 +71,7 @@ export function quotesApiPlugin(): Plugin {
             const detailedQuotes = await Promise.all(
               filteredRaw.map(async (q: any) => {
                 try {
-                  const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(q.symbol)}?interval=1d&range=1d`;
+                  const chartUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(q.symbol)}?interval=1d&range=1d`;
                   const chartData = await fetchFromYahoo(chartUrl);
                   const meta = chartData.chart?.result?.[0]?.meta;
                   if (!meta) return null;
@@ -120,7 +123,7 @@ export function quotesApiPlugin(): Plugin {
               return;
             }
 
-            const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+            const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
             const yData = await fetchFromYahoo(yUrl);
             const meta = yData.chart?.result?.[0]?.meta;
 
@@ -167,7 +170,7 @@ export function quotesApiPlugin(): Plugin {
 
             const results = await Promise.allSettled(
               symbols.map(async s => {
-                const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
+                const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
                 const yData = await fetchFromYahoo(yUrl);
                 const meta = yData.chart?.result?.[0]?.meta;
                 if (!meta) return null;
@@ -215,7 +218,7 @@ export function quotesApiPlugin(): Plugin {
 
             const results = await Promise.allSettled(
               indexSymbols.map(async s => {
-                const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
+                const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
                 const yData = await fetchFromYahoo(yUrl);
                 const meta = yData.chart?.result?.[0]?.meta;
                 if (!meta) return null;
@@ -245,28 +248,51 @@ export function quotesApiPlugin(): Plugin {
 
           // 5. Tipos de cambio oficiales en tiempo real EUR/USD y EUR/GBP
           if (pathname === '/api/quotes/fx') {
-            const symbols = ['EURUSD=X', 'EURGBP=X'];
-            const fxResults = await Promise.allSettled(
-              symbols.map(async s => {
-                const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
-                const yData = await fetchFromYahoo(yUrl);
-                const meta = yData.chart?.result?.[0]?.meta;
-                return {
-                  symbol: s,
-                  price: meta?.regularMarketPrice ?? 0,
-                };
-              })
-            );
+            let usdEurRate = 1.1193;
+            let gbpEurRate = 0.8373;
+            let success = false;
 
-            let usdEurRate = 1.1227;
-            let gbpEurRate = 0.8376;
+            // 1. Intentar API oficial de tipos de cambio del BCE (Frankfurter)
+            try {
+              const frankRes = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,GBP', {
+                headers: { 'Accept': 'application/json' },
+                signal: AbortSignal.timeout(4000),
+                redirect: 'follow',
+              });
+              if (frankRes.ok) {
+                const fData = await frankRes.json();
+                if (fData?.rates?.USD > 0) {
+                  usdEurRate = Number(fData.rates.USD.toFixed(4));
+                  if (fData?.rates?.GBP > 0) gbpEurRate = Number(fData.rates.GBP.toFixed(4));
+                  success = true;
+                }
+              }
+            } catch (fErr) {
+              // Continuar con Yahoo Finance
+            }
 
-            for (const r of fxResults) {
-              if (r.status === 'fulfilled' && r.value) {
-                if (r.value.symbol === 'EURUSD=X' && r.value.price > 0) {
-                  usdEurRate = Number(r.value.price.toFixed(4));
-                } else if (r.value.symbol === 'EURGBP=X' && r.value.price > 0) {
-                  gbpEurRate = Number(r.value.price.toFixed(4));
+            // 2. Si Frankfurter no respondió, consultar Yahoo Finance query2
+            if (!success) {
+              const symbols = ['EURUSD=X', 'EURGBP=X'];
+              const fxResults = await Promise.allSettled(
+                symbols.map(async s => {
+                  const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
+                  const yData = await fetchFromYahoo(yUrl);
+                  const meta = yData.chart?.result?.[0]?.meta;
+                  return {
+                    symbol: s,
+                    price: meta?.regularMarketPrice ?? 0,
+                  };
+                })
+              );
+
+              for (const r of fxResults) {
+                if (r.status === 'fulfilled' && r.value) {
+                  if (r.value.symbol === 'EURUSD=X' && r.value.price > 0) {
+                    usdEurRate = Number(r.value.price.toFixed(4));
+                  } else if (r.value.symbol === 'EURGBP=X' && r.value.price > 0) {
+                    gbpEurRate = Number(r.value.price.toFixed(4));
+                  }
                 }
               }
             }
