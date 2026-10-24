@@ -8,30 +8,52 @@ interface CachedQuote {
 const quoteCache = new Map<string, CachedQuote>();
 const CACHE_TTL_MS = 20 * 1000; // 20 segundos de caché en memoria
 
-async function fetchFromYahoo(url: string) {
-  // Usar query2.finance.yahoo.com que no devuelve HTTP 429 a IPs de contenedores
+async function fetchFromYahoo(url: string, retries = 2): Promise<any> {
   const targetUrl = url.replace('query1.finance.yahoo.com', 'query2.finance.yahoo.com');
   const cached = quoteCache.get(targetUrl);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const res = await fetch(targetUrl, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      'Accept': 'application/json',
-      'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-    },
-    signal: AbortSignal.timeout(6000),
-  });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+        },
+        signal: AbortSignal.timeout(6000),
+      });
 
-  if (!res.ok) {
-    throw new Error(`Yahoo returned status ${res.status}`);
+      if (!res.ok) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 120 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(`Yahoo returned status ${res.status}`);
+      }
+
+      const text = await res.text();
+      if (!text || !text.trim().startsWith('{')) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 150 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(`Invalid Yahoo response: ${text.slice(0, 100)}`);
+      }
+
+      const data = JSON.parse(text);
+      quoteCache.set(targetUrl, { data, timestamp: Date.now() });
+      return data;
+    } catch (err: any) {
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 120 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
   }
-
-  const data = await res.json();
-  quoteCache.set(targetUrl, { data, timestamp: Date.now() });
-  return data;
 }
 
 export function quotesApiPlugin(): Plugin {
@@ -168,37 +190,40 @@ export function quotesApiPlugin(): Plugin {
               return;
             }
 
-            const results = await Promise.allSettled(
-              symbols.map(async s => {
+            const quotes: any[] = [];
+            for (let i = 0; i < symbols.length; i++) {
+              const s = symbols[i];
+              try {
                 const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
                 const yData = await fetchFromYahoo(yUrl);
-                const meta = yData.chart?.result?.[0]?.meta;
-                if (!meta) return null;
+                const meta = yData?.chart?.result?.[0]?.meta;
+                if (meta && meta.regularMarketPrice > 0) {
+                  const curPrice = meta.regularMarketPrice;
+                  const prevClose = meta.chartPreviousClose ?? curPrice;
+                  const change = curPrice - prevClose;
+                  const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-                const curPrice = meta.regularMarketPrice ?? 0;
-                const prevClose = meta.chartPreviousClose ?? curPrice;
-                const change = curPrice - prevClose;
-                const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
-                return {
-                  symbol: s,
-                  company: meta.shortName || s,
-                  currency: meta.currency || 'USD',
-                  price: curPrice,
-                  change: Number(change.toFixed(2)),
-                  changePercent: Number(changePercent.toFixed(2)),
-                  dayHigh: meta.regularMarketDayHigh,
-                  dayLow: meta.regularMarketDayLow,
-                  high52: meta.fiftyTwoWeekHigh,
-                  low52: meta.fiftyTwoWeekLow,
-                  volume: meta.regularMarketVolume,
-                };
-              })
-            );
-
-            const quotes = results
-              .map(r => (r.status === 'fulfilled' ? r.value : null))
-              .filter(Boolean);
+                  quotes.push({
+                    symbol: s,
+                    company: meta.shortName || s,
+                    currency: meta.currency || 'USD',
+                    price: curPrice,
+                    change: Number(change.toFixed(2)),
+                    changePercent: Number(changePercent.toFixed(2)),
+                    dayHigh: meta.regularMarketDayHigh,
+                    dayLow: meta.regularMarketDayLow,
+                    high52: meta.fiftyTwoWeekHigh,
+                    low52: meta.fiftyTwoWeekLow,
+                    volume: meta.regularMarketVolume,
+                  });
+                }
+              } catch (err) {
+                console.warn(`[Quotes Plugin] Failed symbol ${s}:`, err);
+              }
+              if (i < symbols.length - 1) {
+                await new Promise(r => setTimeout(r, 60));
+              }
+            }
 
             res.end(JSON.stringify({ quotes }));
             return;
@@ -216,31 +241,34 @@ export function quotesApiPlugin(): Plugin {
               'EURGBP=X': 'EUR / GBP',
             };
 
-            const results = await Promise.allSettled(
-              indexSymbols.map(async s => {
+            const indices: any[] = [];
+            for (let i = 0; i < indexSymbols.length; i++) {
+              const s = indexSymbols[i];
+              try {
                 const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
                 const yData = await fetchFromYahoo(yUrl);
-                const meta = yData.chart?.result?.[0]?.meta;
-                if (!meta) return null;
+                const meta = yData?.chart?.result?.[0]?.meta;
+                if (meta) {
+                  const curPrice = meta.regularMarketPrice ?? 0;
+                  const prevClose = meta.chartPreviousClose ?? curPrice;
+                  const change = curPrice - prevClose;
+                  const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-                const curPrice = meta.regularMarketPrice ?? 0;
-                const prevClose = meta.chartPreviousClose ?? curPrice;
-                const change = curPrice - prevClose;
-                const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
-                return {
-                  symbol: s,
-                  name: names[s] || s,
-                  price: curPrice,
-                  change: Number(change.toFixed(2)),
-                  changePercent: Number(changePercent.toFixed(2)),
-                };
-              })
-            );
-
-            const indices = results
-              .map(r => (r.status === 'fulfilled' ? r.value : null))
-              .filter(Boolean);
+                  indices.push({
+                    symbol: s,
+                    name: names[s] || s,
+                    price: curPrice,
+                    change: Number(change.toFixed(2)),
+                    changePercent: Number(changePercent.toFixed(2)),
+                  });
+                }
+              } catch (err) {
+                console.warn(`[Quotes Plugin] Failed index ${s}:`, err);
+              }
+              if (i < indexSymbols.length - 1) {
+                await new Promise(r => setTimeout(r, 60));
+              }
+            }
 
             res.end(JSON.stringify({ indices }));
             return;
@@ -254,10 +282,9 @@ export function quotesApiPlugin(): Plugin {
 
             // 1. Intentar API oficial de tipos de cambio del BCE (Frankfurter)
             try {
-              const frankRes = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,GBP', {
+              const frankRes = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', {
                 headers: { 'Accept': 'application/json' },
                 signal: AbortSignal.timeout(4000),
-                redirect: 'follow',
               });
               if (frankRes.ok) {
                 const fData = await frankRes.json();

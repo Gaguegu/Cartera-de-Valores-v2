@@ -92,42 +92,70 @@ export function saveStoredFxRates(rates: FxRates) {
 }
 
 export async function fetchLiveFxRates(): Promise<FxRates> {
-  // 1. Intentar endpoint dedicado /api/quotes/fx
+  // 1. Intentar API oficial de tipos de cambio del BCE (Frankfurter) directamente desde el cliente con CORS
   try {
-    const res = await fetch('/api/quotes/fx');
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.usdEurRate > 0) {
+    const frankRes = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (frankRes.ok) {
+      const fData = await frankRes.json();
+      if (fData?.rates?.USD > 0) {
         const rates: FxRates = {
-          usdEur: Number(data.usdEurRate.toFixed(4)),
-          gbpEur: data.gbpEurRate ? Number(data.gbpEurRate.toFixed(4)) : currentGbpEurRate,
-          updatedAt: data.updatedAt || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          usdEur: Number(fData.rates.USD.toFixed(4)),
+          gbpEur: fData?.rates?.GBP > 0 ? Number(fData.rates.GBP.toFixed(4)) : currentGbpEurRate,
+          updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         };
         saveStoredFxRates(rates);
         return rates;
       }
     }
   } catch (err) {
+    // Continuar con los endpoints de respaldo
+  }
+
+  // 2. Intentar endpoint dedicado /api/quotes/fx con credenciales de autenticación
+  try {
+    const res = await fetch('/api/quotes/fx', { credentials: 'include' });
+    if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data && data.usdEurRate > 0) {
+          const rates: FxRates = {
+            usdEur: Number(data.usdEurRate.toFixed(4)),
+            gbpEur: data.gbpEurRate ? Number(data.gbpEurRate.toFixed(4)) : currentGbpEurRate,
+            updatedAt: data.updatedAt || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          };
+          saveStoredFxRates(rates);
+          return rates;
+        }
+      }
+    }
+  } catch (err) {
     console.warn('[QuotesService] /api/quotes/fx failed, trying indices:', err);
   }
 
-  // 2. Intentar endpoint /api/quotes/indices
+  // 3. Intentar endpoint /api/quotes/indices
   try {
-    const res = await fetch('/api/quotes/indices');
+    const res = await fetch('/api/quotes/indices', { credentials: 'include' });
     if (res.ok) {
-      const data = await res.json();
-      if (data.indices && Array.isArray(data.indices)) {
-        const fxUsd = data.indices.find((i: any) => i.symbol === 'EURUSD=X');
-        const fxGbp = data.indices.find((i: any) => i.symbol === 'EURGBP=X');
-        const usdEur = fxUsd && fxUsd.price > 0 ? Number(fxUsd.price.toFixed(4)) : currentEurUsdRate;
-        const gbpEur = fxGbp && fxGbp.price > 0 ? Number(fxGbp.price.toFixed(4)) : currentGbpEurRate;
-        const rates: FxRates = {
-          usdEur,
-          gbpEur,
-          updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        };
-        saveStoredFxRates(rates);
-        return rates;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.indices && Array.isArray(data.indices)) {
+          const fxUsd = data.indices.find((i: any) => i.symbol === 'EURUSD=X');
+          const fxGbp = data.indices.find((i: any) => i.symbol === 'EURGBP=X');
+          const usdEur = fxUsd && fxUsd.price > 0 ? Number(fxUsd.price.toFixed(4)) : currentEurUsdRate;
+          const gbpEur = fxGbp && fxGbp.price > 0 ? Number(fxGbp.price.toFixed(4)) : currentGbpEurRate;
+          const rates: FxRates = {
+            usdEur,
+            gbpEur,
+            updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          };
+          saveStoredFxRates(rates);
+          return rates;
+        }
       }
     }
   } catch (err) {
@@ -147,24 +175,28 @@ export function resolveYahooSymbol(symbol: string): string {
 
 export async function fetchLiveIndices(): Promise<MarketIndex[]> {
   try {
-    const res = await fetch('/api/quotes/indices');
-    if (!res.ok) throw new Error('Indices request failed');
-    const data = await res.json();
-    if (data.indices && Array.isArray(data.indices)) {
-      const fxUsd = data.indices.find((i: any) => i.symbol === 'EURUSD=X');
-      const fxGbp = data.indices.find((i: any) => i.symbol === 'EURGBP=X');
-      if (fxUsd && fxUsd.price > 0) {
-        currentEurUsdRate = fxUsd.price;
+    const res = await fetch('/api/quotes/indices', { credentials: 'include' });
+    if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.indices && Array.isArray(data.indices)) {
+          const fxUsd = data.indices.find((i: any) => i.symbol === 'EURUSD=X');
+          const fxGbp = data.indices.find((i: any) => i.symbol === 'EURGBP=X');
+          if (fxUsd && fxUsd.price > 0) {
+            currentEurUsdRate = fxUsd.price;
+          }
+          if (fxGbp && fxGbp.price > 0) {
+            currentGbpEurRate = fxGbp.price;
+          }
+          saveStoredFxRates({
+            usdEur: currentEurUsdRate,
+            gbpEur: currentGbpEurRate,
+            updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          });
+          return data.indices;
+        }
       }
-      if (fxGbp && fxGbp.price > 0) {
-        currentGbpEurRate = fxGbp.price;
-      }
-      saveStoredFxRates({
-        usdEur: currentEurUsdRate,
-        gbpEur: currentGbpEurRate,
-        updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      });
-      return data.indices;
     }
   } catch (err) {
     console.warn('[QuotesService] Could not fetch live indices, using fallback:', err);
@@ -174,11 +206,11 @@ export async function fetchLiveIndices(): Promise<MarketIndex[]> {
 
   // Fallback con datos realistas
   return [
-    { symbol: '^GSPC', name: 'S&P 500', price: 7725.10, change: 6.20, changePercent: 0.08 },
-    { symbol: '^NDX', name: 'Nasdaq 100', price: 29782.15, change: -168.40, changePercent: -0.56 },
-    { symbol: '^IBEX', name: 'IBEX 35', price: 19189.70, change: -41.00, changePercent: -0.21 },
-    { symbol: '^STOXX50E', name: 'EuroStoxx 50', price: 6168.94, change: -21.40, changePercent: -0.35 },
-    { symbol: 'EURUSD=X', name: 'EUR / USD', price: currentEurUsdRate, change: 0.005, changePercent: 0.45 },
+    { symbol: '^GSPC', name: 'S&P 500', price: 7623.68, change: -39.75, changePercent: -0.52 },
+    { symbol: '^NDX', name: 'Nasdaq 100', price: 28957.53, change: -1.16, changePercent: 0.00 },
+    { symbol: '^IBEX', name: 'IBEX 35', price: 18989.80, change: 76.30, changePercent: 0.40 },
+    { symbol: '^STOXX50E', name: 'EuroStoxx 50', price: 6068.22, change: -18.79, changePercent: -0.31 },
+    { symbol: 'EURUSD=X', name: 'EUR / USD', price: currentEurUsdRate, change: 0.002, changePercent: 0.18 },
     { symbol: 'EURGBP=X', name: 'EUR / GBP', price: currentGbpEurRate, change: -0.001, changePercent: -0.12 },
   ];
 }
@@ -186,46 +218,97 @@ export async function fetchLiveIndices(): Promise<MarketIndex[]> {
 export async function fetchQuoteOnline(symbol: string): Promise<MarketQuote | null> {
   const yahooSym = resolveYahooSymbol(symbol);
   getStoredFxRates();
+
+  // 1. Intentar endpoint local
   try {
-    const res = await fetch(`/api/quotes/quote?symbol=${encodeURIComponent(yahooSym)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (data && data.price) {
-      const isUSD = data.currency === 'USD';
-      const isGBP = data.currency === 'GBP';
-      const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
-      const priceEUR = isUSD ? data.price / fxRate : isGBP ? data.price / fxRate : data.price;
+    const res = await fetch(`/api/quotes/quote?symbol=${encodeURIComponent(yahooSym)}`, { credentials: 'include' });
+    if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data && data.price) {
+          const isUSD = data.currency === 'USD';
+          const isGBP = data.currency === 'GBP';
+          const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
+          const priceEUR = isUSD || isGBP ? data.price / fxRate : data.price;
 
-      // Determinar país y región
-      const known = SYMBOL_MAP[symbol.toUpperCase()];
-      const country = known ? known.country : (isUSD ? 'USA' : (yahooSym.includes('.MC') ? 'España' : 'Europa'));
-      const region: 'ESPAÑA' | 'EUROPA' | 'EEUU' = known ? known.region : (country === 'España' ? 'ESPAÑA' : (country === 'USA' ? 'EEUU' : 'EUROPA'));
+          const known = SYMBOL_MAP[symbol.toUpperCase()];
+          const country = known ? known.country : (isUSD ? 'USA' : (yahooSym.includes('.MC') ? 'España' : 'Europa'));
+          const region: 'ESPAÑA' | 'EUROPA' | 'EEUU' = known ? known.region : (country === 'España' ? 'ESPAÑA' : (country === 'USA' ? 'EEUU' : 'EUROPA'));
 
-      return {
-        symbol: yahooSym,
-        displaySymbol: symbol.toUpperCase(),
-        company: data.company || known?.company || symbol.toUpperCase(),
-        country,
-        region,
-        exchange: data.exchangeName || known?.exchange || (isUSD ? 'NYSE/NASDAQ' : 'Europa'),
-        currency: (data.currency as Currency) || 'EUR',
-        price: data.price,
-        priceEUR: Number(priceEUR.toFixed(2)),
-        change: data.change || 0,
-        changePercent: data.changePercent || 0,
-        dayHigh: data.dayHigh,
-        dayLow: data.dayLow,
-        high52: data.high52,
-        low52: data.low52,
-        volume: data.volume,
-        lastUpdated: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      };
+          return {
+            symbol: yahooSym,
+            displaySymbol: symbol.toUpperCase(),
+            company: data.company || known?.company || symbol.toUpperCase(),
+            country,
+            region,
+            exchange: data.exchangeName || known?.exchange || (isUSD ? 'NYSE/NASDAQ' : 'Europa'),
+            currency: (data.currency as Currency) || 'EUR',
+            price: data.price,
+            priceEUR: Number(priceEUR.toFixed(2)),
+            change: data.change || 0,
+            changePercent: data.changePercent || 0,
+            dayHigh: data.dayHigh,
+            dayLow: data.dayLow,
+            high52: data.high52,
+            low52: data.low52,
+            volume: data.volume,
+            lastUpdated: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          };
+        }
+      }
     }
   } catch (err) {
-    console.warn(`[QuotesService] Error fetching ${symbol}:`, err);
+    console.warn(`[QuotesService] Local fetch for ${symbol} failed:`, err);
   }
 
-  // Fallback si no hay conexión
+  // 2. Fallback directo en vivo vía proxy CORS para entornos cliente / PWA
+  try {
+    const directUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=1d`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
+    const pRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+    if (pRes.ok) {
+      const chartData = await pRes.json();
+      const meta = chartData.chart?.result?.[0]?.meta;
+      if (meta && meta.regularMarketPrice > 0) {
+        const curPrice = meta.regularMarketPrice;
+        const prevClose = meta.chartPreviousClose ?? curPrice;
+        const change = curPrice - prevClose;
+        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+        const isUSD = meta.currency === 'USD';
+        const isGBP = meta.currency === 'GBP';
+        const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
+        const priceEUR = isUSD || isGBP ? curPrice / fxRate : curPrice;
+        const known = SYMBOL_MAP[symbol.toUpperCase()];
+        const country = known ? known.country : (isUSD ? 'USA' : (yahooSym.includes('.MC') ? 'España' : 'Europa'));
+        const region: 'ESPAÑA' | 'EUROPA' | 'EEUU' = known ? known.region : (country === 'España' ? 'ESPAÑA' : (country === 'USA' ? 'EEUU' : 'EUROPA'));
+
+        return {
+          symbol: yahooSym,
+          displaySymbol: symbol.toUpperCase(),
+          company: meta.shortName || known?.company || symbol.toUpperCase(),
+          country,
+          region,
+          exchange: meta.exchangeName || known?.exchange || (isUSD ? 'NYSE/NASDAQ' : 'Europa'),
+          currency: (meta.currency as Currency) || 'EUR',
+          price: curPrice,
+          priceEUR: Number(priceEUR.toFixed(2)),
+          change: Number(change.toFixed(2)),
+          changePercent: Number(changePercent.toFixed(2)),
+          dayHigh: meta.regularMarketDayHigh,
+          dayLow: meta.regularMarketDayLow,
+          high52: meta.fiftyTwoWeekHigh,
+          low52: meta.fiftyTwoWeekLow,
+          volume: meta.regularMarketVolume,
+          lastUpdated: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        };
+      }
+    }
+  } catch (proxyErr) {
+    console.warn(`[QuotesService] Direct proxy for ${symbol} failed:`, proxyErr);
+  }
+
+  // 3. Fallback de catálogo
   const popular = POPULAR_MARKET_STOCKS.find(
     s => s.symbol.toUpperCase() === yahooSym.toUpperCase() || s.displaySymbol?.toUpperCase() === symbol.toUpperCase()
   );
@@ -245,33 +328,77 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
 
   const resultMap: Record<string, { price: number; priceEUR: number; currency?: string; changePercent: number }> = {};
 
+  // 1. Intentar endpoint local del servidor /api/quotes/batch
   try {
-    const res = await fetch(`/api/quotes/batch?symbols=${encodeURIComponent(yahooSymbols.join(','))}`);
+    const res = await fetch(`/api/quotes/batch?symbols=${encodeURIComponent(yahooSymbols.join(','))}`, {
+      credentials: 'include',
+    });
     if (res.ok) {
-      const data = await res.json();
-      if (data.quotes && Array.isArray(data.quotes)) {
-        for (const q of data.quotes) {
-          const origSym = symbolMapToOriginal[q.symbol.toUpperCase()] || q.symbol.toUpperCase();
-          const isUSD = q.currency === 'USD';
-          const isGBP = q.currency === 'GBP';
-          const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
-          const priceEUR = isUSD || isGBP ? q.price / fxRate : q.price;
-          resultMap[origSym] = {
-            price: q.price,
-            priceEUR: Number(priceEUR.toFixed(2)),
-            currency: q.currency,
-            changePercent: q.changePercent || 0,
-          };
-          // También registrar por el símbolo Yahoo
-          resultMap[q.symbol.toUpperCase()] = resultMap[origSym];
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.quotes && Array.isArray(data.quotes) && data.quotes.length > 0) {
+          for (const q of data.quotes) {
+            const origSym = symbolMapToOriginal[q.symbol.toUpperCase()] || q.symbol.toUpperCase();
+            const isUSD = q.currency === 'USD';
+            const isGBP = q.currency === 'GBP';
+            const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
+            const priceEUR = isUSD || isGBP ? q.price / fxRate : q.price;
+            resultMap[origSym] = {
+              price: q.price,
+              priceEUR: Number(priceEUR.toFixed(2)),
+              currency: q.currency,
+              changePercent: q.changePercent || 0,
+            };
+            resultMap[q.symbol.toUpperCase()] = resultMap[origSym];
+          }
         }
       }
     }
   } catch (err) {
-    console.warn('[QuotesService] Batch fetch failed, using fallback:', err);
+    console.warn('[QuotesService] Batch fetch local failed, attempting direct proxy:', err);
   }
 
-  // Si algún símbolo no vino del servidor, consultar base popular
+  // 2. Si algún símbolo falta o falló la conexión local (ej. en standalone PWA), consultar directo vía proxy CORS en vivo
+  const missingSymbols = symbols.filter(s => !resultMap[s.toUpperCase()]);
+  if (missingSymbols.length > 0) {
+    await Promise.allSettled(
+      missingSymbols.map(async s => {
+        const ySym = resolveYahooSymbol(s);
+        try {
+          const directUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=1d`;
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
+          const pRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
+          if (pRes.ok) {
+            const chartData = await pRes.json();
+            const meta = chartData.chart?.result?.[0]?.meta;
+            if (meta && meta.regularMarketPrice > 0) {
+              const curPrice = meta.regularMarketPrice;
+              const prevClose = meta.chartPreviousClose ?? curPrice;
+              const change = curPrice - prevClose;
+              const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+              const isUSD = meta.currency === 'USD';
+              const isGBP = meta.currency === 'GBP';
+              const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
+              const priceEUR = isUSD || isGBP ? curPrice / fxRate : curPrice;
+
+              resultMap[s.toUpperCase()] = {
+                price: curPrice,
+                priceEUR: Number(priceEUR.toFixed(2)),
+                currency: meta.currency || 'USD',
+                changePercent: Number(changePercent.toFixed(2)),
+              };
+              resultMap[ySym.toUpperCase()] = resultMap[s.toUpperCase()];
+            }
+          }
+        } catch (proxyErr) {
+          console.warn(`[QuotesService] Direct proxy fallback for ${s} failed:`, proxyErr);
+        }
+      })
+    );
+  }
+
+  // 3. Fallback de catálogo para cualquier ticker que no se haya podido resolver
   for (const s of symbols) {
     const clean = s.toUpperCase();
     if (!resultMap[clean]) {

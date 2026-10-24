@@ -109,6 +109,93 @@ export default function App() {
         }
       }
 
+      // Actualizar automáticamente cotizaciones históricas fijas anteriores si estaban guardadas en localStorage
+      const symUpper = (p.symbol || '').toUpperCase();
+      if (symUpper === 'MSFT' && (p.priceUSD === 537.42 || Math.abs(p.currentPrice - 478.69) < 0.1)) {
+        const priceEUR = 468.61;
+        const valEUR = Number((p.shares * priceEUR).toFixed(2));
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 363.08));
+        return {
+          ...p,
+          currentPrice: priceEUR,
+          priceUSD: 524.51,
+          currentValueEUR: valEUR,
+          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
+          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
+          dayChangePercent: 0.66,
+        };
+      }
+      if (symUpper === 'META' && (p.priceUSD === 724.80 || Math.abs(p.currentPrice - 645.59) < 0.1)) {
+        const priceEUR = 574.13;
+        const valEUR = Number((p.shares * priceEUR).toFixed(2));
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 570.20));
+        return {
+          ...p,
+          currentPrice: priceEUR,
+          priceUSD: 642.62,
+          currentValueEUR: valEUR,
+          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
+          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
+          dayChangePercent: -0.96,
+        };
+      }
+      if (symUpper === 'BE' && (p.priceUSD === 282.24 || Math.abs(p.currentPrice - 251.39) < 0.1)) {
+        const priceEUR = 172.70;
+        const valEUR = Number((p.shares * priceEUR).toFixed(2));
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 233.65));
+        return {
+          ...p,
+          currentPrice: priceEUR,
+          priceUSD: 193.30,
+          currentValueEUR: valEUR,
+          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
+          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
+          dayChangePercent: -11.24,
+        };
+      }
+      if (symUpper === 'AMZN' && (p.priceUSD === 228.60 || Math.abs(p.currentPrice - 203.62) < 0.1)) {
+        const priceEUR = 221.57;
+        const valEUR = Number((p.shares * priceEUR).toFixed(2));
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 221.35));
+        return {
+          ...p,
+          currentPrice: priceEUR,
+          priceUSD: 248.00,
+          currentValueEUR: valEUR,
+          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
+          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
+          dayChangePercent: -0.95,
+        };
+      }
+      if (symUpper === 'CEG' && (p.priceUSD === 288.96 || Math.abs(p.currentPrice - 257.38) < 0.1)) {
+        const priceEUR = 226.44;
+        const valEUR = Number((p.shares * priceEUR).toFixed(2));
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 255.11));
+        return {
+          ...p,
+          currentPrice: priceEUR,
+          priceUSD: 253.45,
+          currentValueEUR: valEUR,
+          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
+          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
+          dayChangePercent: -0.69,
+        };
+      }
+      if (symUpper === 'AMD' && (p.priceUSD === 156.80 || Math.abs(p.currentPrice - 139.66) < 0.1)) {
+        const priceEUR = 461.71;
+        const valEUR = Number((p.shares * priceEUR).toFixed(2));
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 513.70));
+        return {
+          ...p,
+          currentPrice: priceEUR,
+          priceUSD: 516.79,
+          currentValueEUR: valEUR,
+          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
+          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
+          dayChangePercent: 1.74,
+        };
+      }
+
       return p;
     });
   });
@@ -211,18 +298,18 @@ export default function App() {
       const isBE = p.symbol && p.symbol.toUpperCase() === 'BE';
       if (isBE && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent)) {
         positionsChanged = true;
-        const curPrice = p.currentPrice || 252.00;
-        const priceUSD = p.priceUSD || Number((curPrice * 1.12).toFixed(2));
+        const curPrice = p.currentPrice || 172.70;
+        const priceUSD = p.priceUSD || 193.30;
         const valEUR = Number((p.shares * curPrice).toFixed(2));
-        const costEUR = p.shares * (p.pmcWithCommission || p.buyPrice || 233.65);
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 233.65));
         const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 7.82;
+        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 0;
         return {
           ...p,
           company: 'Bloom Energy Corp.',
           country: 'USA',
           priceUSD,
-          dayChangePercent: p.dayChangePercent || 1.16,
+          dayChangePercent: p.dayChangePercent || -11.24,
           currentValueEUR: valEUR,
           gainLossEUR: gainEUR,
           gainLossPercent: gainPct,
@@ -233,18 +320,18 @@ export default function App() {
       const isCEG = p.symbol && p.symbol.toUpperCase() === 'CEG';
       if (isCEG && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent)) {
         positionsChanged = true;
-        const curPrice = p.currentPrice || 258.00;
-        const priceUSD = p.priceUSD || Number((curPrice * 1.12).toFixed(2));
+        const curPrice = p.currentPrice || 226.44;
+        const priceUSD = p.priceUSD || 253.45;
         const valEUR = Number((p.shares * curPrice).toFixed(2));
-        const costEUR = p.shares * (p.pmcWithCommission || p.buyPrice || 255.11);
+        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 255.11));
         const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 1.10;
+        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 0;
         return {
           ...p,
           company: 'Constellation Energy Corp.',
           country: 'USA',
           priceUSD,
-          dayChangePercent: p.dayChangePercent || 0.99,
+          dayChangePercent: p.dayChangePercent || -0.69,
           currentValueEUR: valEUR,
           gainLossEUR: gainEUR,
           gainLossPercent: gainPct,
@@ -259,8 +346,8 @@ export default function App() {
           ...p,
           company: 'Advanced Micro Devices Inc.',
           country: 'USA',
-          priceUSD: p.priceUSD || 156.80,
-          dayChangePercent: p.dayChangePercent || 1.88,
+          priceUSD: p.priceUSD || 516.79,
+          dayChangePercent: p.dayChangePercent || 1.74,
         };
       }
 
@@ -1191,7 +1278,7 @@ export default function App() {
     });
   };
 
-  const handleRefreshAllQuotesOnline = async () => {
+  const handleRefreshAllQuotesOnline = async (showToast: boolean = true) => {
     setIsRefreshingQuotes(true);
     try {
       // 1. Sincronizar tipos de cambio en vivo primero (USD y GBP)
@@ -1252,26 +1339,38 @@ export default function App() {
         setLastQuotesUpdatedAt(timeStr);
         localStorage.setItem('last_quotes_updated_at', timeStr);
 
-        const updatedCount = positions.filter(p => portMap[p.symbol.toUpperCase()]).length;
-        setGlobalToast({
-          title: 'Cotizaciones y Divisas Actualizadas',
-          message: `¡${updatedCount} de ${positions.length} valores de la cartera actualizados con éxito a las ${timeStr}! Divisas en vivo: 1 € = ${liveFx.usdEur.toFixed(4)} $ USD · 1 € = ${liveFx.gbpEur.toFixed(4)} £ GBP.`,
-          type: 'success',
-        });
-        setTimeout(() => setGlobalToast(null), 5000);
+        if (showToast) {
+          const updatedCount = positions.filter(p => portMap[p.symbol.toUpperCase()]).length;
+          setGlobalToast({
+            title: 'Cotizaciones y Divisas Actualizadas',
+            message: `¡${updatedCount} de ${positions.length} valores de la cartera actualizados con éxito a las ${timeStr}! Divisas en vivo: 1 € = ${liveFx.usdEur.toFixed(4)} $ USD · 1 € = ${liveFx.gbpEur.toFixed(4)} £ GBP.`,
+            type: 'success',
+          });
+          setTimeout(() => setGlobalToast(null), 5000);
+        }
       }
     } catch (err) {
       console.warn('Error refreshing live quotes:', err);
-      setGlobalToast({
-        title: 'Aviso de conexión',
-        message: 'No se pudo conectar con el servidor de cotizaciones en tiempo real.',
-        type: 'error',
-      });
-      setTimeout(() => setGlobalToast(null), 5000);
+      if (showToast) {
+        setGlobalToast({
+          title: 'Aviso de conexión',
+          message: 'No se pudo conectar con el servidor de cotizaciones en tiempo real.',
+          type: 'error',
+        });
+        setTimeout(() => setGlobalToast(null), 5000);
+      }
     } finally {
       setIsRefreshingQuotes(false);
     }
   };
+
+  // Sincronizar cotizaciones automáticamente en vivo nada más cargar la aplicación
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleRefreshAllQuotesOnline(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleExecuteRebalancePurchases = (
     orders: { symbol: string; company: string; shares: number; price: number; totalEUR: number }[]
