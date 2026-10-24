@@ -19,6 +19,8 @@ export interface StockPosition {
   buyPrice: number;
   pmcWithCommission?: number;
   totalCommissionEUR?: number;
+  totalInvestedEUR?: number; // Total invertido real acumulado con comisiones (sin pérdidas por redondeo)
+  totalCostEUR?: number; // Coste de adquisición base sin comisiones
   currentPrice: number; // Siempre en EUROS (€) para los cálculos de la cartera
   priceUSD?: number; // Precio en dólares a título informativo si el valor cotiza en EE.UU.
   currentValueEUR: number;

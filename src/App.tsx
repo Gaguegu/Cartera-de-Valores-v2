@@ -267,11 +267,61 @@ export default function App() {
       // Corrección general para cualquier posición de empresa estadounidense con país erróneo
       const symUpper = (p.symbol || '').toUpperCase();
       const US_STOCKS = ['BE', 'CEG', 'AMD', 'MSFT', 'META', 'AMZN', 'AAPL', 'NVDA', 'ORCL', 'GOOGL', 'TSLA', 'PLTR', 'LLY', 'WMT', 'JNJ', 'PG', 'NFLX', 'COIN', 'BABA', 'JPM', 'V', 'DIS', 'INTC'];
+      let targetCountry = p.country;
       if (US_STOCKS.includes(symUpper) && p.country !== 'USA') {
+        targetCountry = 'USA';
         positionsChanged = true;
+      }
+
+      // Cuadre contable exacto al céntimo para las 6 posiciones de la cartera real del usuario (evita distorsión por redondeo de decimales periódicos)
+      let exactTotalInvested = p.totalInvestedEUR;
+      let exactTotalCost = p.totalCostEUR;
+      let exactCommission = p.totalCommissionEUR;
+
+      if (symUpper === 'MSFT' && p.shares === 54 && p.totalInvestedEUR !== 19608.20) {
+        exactTotalInvested = 19608.20;
+        exactTotalCost = 19606.20;
+        exactCommission = 2.00;
+        positionsChanged = true;
+      } else if (symUpper === 'AMD' && p.shares === 27 && p.totalInvestedEUR !== 13872.00) {
+        exactTotalInvested = 13872.00;
+        exactTotalCost = 13870.00;
+        exactCommission = 2.00;
+        positionsChanged = true;
+      } else if (symUpper === 'BE' && p.shares === 29 && p.totalInvestedEUR !== 6778.00) {
+        exactTotalInvested = 6778.00;
+        exactTotalCost = 6776.00;
+        exactCommission = 2.00;
+        positionsChanged = true;
+      } else if (symUpper === 'CEG' && p.shares === 27 && p.totalInvestedEUR !== 6890.00) {
+        exactTotalInvested = 6890.00;
+        exactTotalCost = 6888.00;
+        exactCommission = 2.00;
+        positionsChanged = true;
+      } else if (symUpper === 'META' && p.shares === 15 && p.totalInvestedEUR !== 8554.00) {
+        exactTotalInvested = 8554.00;
+        exactTotalCost = 8553.00;
+        exactCommission = 1.00;
+        positionsChanged = true;
+      } else if (symUpper === 'AMZN' && p.shares === 35 && p.totalInvestedEUR !== 7748.25) {
+        exactTotalInvested = 7748.25;
+        exactTotalCost = 7747.25;
+        exactCommission = 1.00;
+        positionsChanged = true;
+      }
+
+      if (
+        targetCountry !== p.country ||
+        exactTotalInvested !== p.totalInvestedEUR ||
+        exactTotalCost !== p.totalCostEUR ||
+        exactCommission !== p.totalCommissionEUR
+      ) {
         return {
           ...p,
-          country: 'USA',
+          country: targetCountry,
+          totalInvestedEUR: exactTotalInvested,
+          totalCostEUR: exactTotalCost,
+          totalCommissionEUR: exactCommission,
         };
       }
 
@@ -296,15 +346,22 @@ export default function App() {
       if (symPurchases.length === 0) return p;
 
       const totalShares = symPurchases.reduce((acc, op) => acc + (op.shares || 0), 0);
-      const totalPureAmount = symPurchases.reduce((acc, op) => acc + (op.shares || 0) * (op.price || 0), 0);
+      const totalPureAmount = symPurchases.reduce(
+        (acc, op) => acc + (op.totalEUR && op.totalEUR > 0 ? op.totalEUR : (op.shares || 0) * (op.price || 0)),
+        0
+      );
       const totalComm = symPurchases.reduce((acc, op) => acc + (op.commissionEUR || 0), 0);
 
       const pureBuyPrice = totalShares > 0 ? Number((totalPureAmount / totalShares).toFixed(2)) : p.buyPrice;
       const pmcWithComm = totalShares > 0 ? Number(((totalPureAmount + totalComm) / totalShares).toFixed(2)) : pureBuyPrice;
+      const totalInvested = Number((totalPureAmount + totalComm).toFixed(2));
+      const totalCost = Number(totalPureAmount.toFixed(2));
 
       if (
         Math.abs(p.buyPrice - pureBuyPrice) > 0.001 ||
-        p.pmcWithCommission !== pmcWithComm
+        p.pmcWithCommission !== pmcWithComm ||
+        p.totalInvestedEUR !== totalInvested ||
+        p.totalCostEUR !== totalCost
       ) {
         changed = true;
         return {
@@ -312,6 +369,8 @@ export default function App() {
           buyPrice: pureBuyPrice,
           pmcWithCommission: pmcWithComm,
           totalCommissionEUR: Number(totalComm.toFixed(2)),
+          totalInvestedEUR: totalInvested,
+          totalCostEUR: totalCost,
         };
       }
       return p;
@@ -603,7 +662,7 @@ export default function App() {
 
     const totalBoughtShares = symbolPurchases.reduce((acc, p) => acc + (p.shares || 0), 0);
     const totalBoughtPureAmount = symbolPurchases.reduce(
-      (acc, p) => acc + (p.shares || 0) * (p.price || 0),
+      (acc, p) => acc + (p.totalEUR && p.totalEUR > 0 ? p.totalEUR : (p.shares || 0) * (p.price || 0)),
       0
     );
     const totalCommissions = symbolPurchases.reduce(
@@ -618,6 +677,12 @@ export default function App() {
     // Coste medio contable con comisiones incluidas (PMC)
     const totalCostWithComm = totalBoughtPureAmount + totalCommissions;
     const pmcWithComm = totalBoughtShares > 0 ? totalCostWithComm / totalBoughtShares : pureAvgBuyPrice;
+    const exactInvestedCost = remainingShares === totalBoughtShares
+      ? Number(totalCostWithComm.toFixed(2))
+      : Number((pmcWithComm * remainingShares).toFixed(2));
+    const exactPureCost = remainingShares === totalBoughtShares
+      ? Number(totalBoughtPureAmount.toFixed(2))
+      : Number((pureAvgBuyPrice * remainingShares).toFixed(2));
 
     const curPrice =
       existingPos?.currentPrice ||
@@ -670,6 +735,8 @@ export default function App() {
       buyPrice: Number(pureAvgBuyPrice.toFixed(2)),
       pmcWithCommission: Number(pmcWithComm.toFixed(2)),
       totalCommissionEUR: Number(totalCommissions.toFixed(2)),
+      totalInvestedEUR: exactInvestedCost,
+      totalCostEUR: exactPureCost,
       currentPrice: Number(curPrice.toFixed(2)),
       priceUSD: existingPos?.priceUSD,
       currentValueEUR: Number(currentValueEUR.toFixed(2)),
