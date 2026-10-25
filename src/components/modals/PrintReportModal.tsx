@@ -705,7 +705,7 @@ export function PrintReportModal({
                     <th className="p-1.5 border border-slate-300">Empresa / Activo</th>
                     <th className="p-1.5 border border-slate-300">País</th>
                     <th className="p-1.5 border border-slate-300 text-right">Títulos</th>
-                    <th className="p-1.5 border border-slate-300 text-right">P. Compra</th>
+                    <th className="p-1.5 border border-slate-300 text-right">P. Compra (PMC)</th>
                     <th className="p-1.5 border border-slate-300 text-right">P. Mercado</th>
                     <th className="p-1.5 border border-slate-300 text-right">Valoración Total (€)</th>
                     <th className="p-1.5 border border-slate-300 text-right">Plusvalía Latente</th>
@@ -721,15 +721,17 @@ export function PrintReportModal({
                   ) : (
                     positions.map((p, idx) => {
                       const isLoss = (p.gainLossEUR !== undefined && p.gainLossEUR < 0) || p.gainLossPercent < 0;
-                      const currSymbol = p.currency === 'USD' ? '$' : '€';
+                      const effectiveBuyPrice = p.pmcWithCommission || (p.totalInvestedEUR && p.shares > 0 ? Number((p.totalInvestedEUR / p.shares).toFixed(2)) : p.buyPrice);
                       return (
                         <tr key={idx} className="border-b border-slate-300 even:bg-slate-50">
                           <td className="p-1.5 font-bold font-mono border border-slate-300">{p.symbol}</td>
                           <td className="p-1.5 border border-slate-300 font-medium">{p.company}</td>
                           <td className="p-1.5 border border-slate-300 text-slate-600">{p.country}</td>
                           <td className="p-1.5 text-right font-mono border border-slate-300">{p.shares}</td>
-                          <td className="p-1.5 text-right font-mono border border-slate-300">{formatNumber(p.buyPrice)} {currSymbol}</td>
-                          <td className="p-1.5 text-right font-mono border border-slate-300">{formatNumber(p.currentPrice)} {currSymbol}</td>
+                          <td className="p-1.5 text-right font-mono border border-slate-300" title={`Precio puro: ${formatNumber(p.buyPrice)} €`}>
+                            {formatNumber(effectiveBuyPrice)} €
+                          </td>
+                          <td className="p-1.5 text-right font-mono border border-slate-300">{formatNumber(p.currentPrice)} €</td>
                           <td className="p-1.5 text-right font-mono font-bold border border-slate-300">{formatEUR(p.currentValueEUR)}</td>
                           <td
                             className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${

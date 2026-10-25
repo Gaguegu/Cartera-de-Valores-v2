@@ -364,44 +364,52 @@ export default function App() {
       let exactTotalInvested = p.totalInvestedEUR;
       let exactTotalCost = p.totalCostEUR;
       let exactCommission = p.totalCommissionEUR;
+      let exactPmc = p.pmcWithCommission;
 
-      if (symUpper === 'MSFT' && p.shares === 54 && p.totalInvestedEUR !== 19608.20) {
+      if (symUpper === 'MSFT' && p.shares === 54) {
         exactTotalInvested = 19608.20;
         exactTotalCost = 19606.20;
         exactCommission = 2.00;
-        positionsChanged = true;
-      } else if (symUpper === 'AMD' && p.shares === 27 && p.totalInvestedEUR !== 13872.00) {
+        exactPmc = 363.11;
+        if (p.totalInvestedEUR !== 19608.20 || p.pmcWithCommission !== 363.11) positionsChanged = true;
+      } else if (symUpper === 'AMD' && p.shares === 27) {
         exactTotalInvested = 13872.00;
         exactTotalCost = 13870.00;
         exactCommission = 2.00;
-        positionsChanged = true;
-      } else if (symUpper === 'BE' && p.shares === 29 && p.totalInvestedEUR !== 6778.00) {
+        exactPmc = 513.78;
+        if (p.totalInvestedEUR !== 13872.00 || p.pmcWithCommission !== 513.78) positionsChanged = true;
+      } else if (symUpper === 'BE' && p.shares === 29) {
         exactTotalInvested = 6778.00;
         exactTotalCost = 6776.00;
         exactCommission = 2.00;
-        positionsChanged = true;
-      } else if (symUpper === 'CEG' && p.shares === 27 && p.totalInvestedEUR !== 6890.00) {
+        exactPmc = 233.72;
+        if (p.totalInvestedEUR !== 6778.00 || p.pmcWithCommission !== 233.72) positionsChanged = true;
+      } else if (symUpper === 'CEG' && p.shares === 27) {
         exactTotalInvested = 6890.00;
         exactTotalCost = 6888.00;
         exactCommission = 2.00;
-        positionsChanged = true;
-      } else if (symUpper === 'META' && p.shares === 15 && p.totalInvestedEUR !== 8554.00) {
+        exactPmc = 255.19;
+        if (p.totalInvestedEUR !== 6890.00 || p.pmcWithCommission !== 255.19) positionsChanged = true;
+      } else if (symUpper === 'META' && p.shares === 15) {
         exactTotalInvested = 8554.00;
         exactTotalCost = 8553.00;
         exactCommission = 1.00;
-        positionsChanged = true;
-      } else if (symUpper === 'AMZN' && p.shares === 35 && p.totalInvestedEUR !== 7748.25) {
+        exactPmc = 570.27;
+        if (p.totalInvestedEUR !== 8554.00 || p.pmcWithCommission !== 570.27) positionsChanged = true;
+      } else if (symUpper === 'AMZN' && p.shares === 35) {
         exactTotalInvested = 7748.25;
         exactTotalCost = 7747.25;
         exactCommission = 1.00;
-        positionsChanged = true;
+        exactPmc = 221.38;
+        if (p.totalInvestedEUR !== 7748.25 || p.pmcWithCommission !== 221.38) positionsChanged = true;
       }
 
       if (
         targetCountry !== p.country ||
         exactTotalInvested !== p.totalInvestedEUR ||
         exactTotalCost !== p.totalCostEUR ||
-        exactCommission !== p.totalCommissionEUR
+        exactCommission !== p.totalCommissionEUR ||
+        exactPmc !== p.pmcWithCommission
       ) {
         return {
           ...p,
@@ -409,6 +417,7 @@ export default function App() {
           totalInvestedEUR: exactTotalInvested,
           totalCostEUR: exactTotalCost,
           totalCommissionEUR: exactCommission,
+          pmcWithCommission: exactPmc,
         };
       }
 
@@ -440,18 +449,18 @@ export default function App() {
       const totalComm = symPurchases.reduce((acc, op) => acc + (op.commissionEUR || 0), 0);
 
       const pureBuyPrice = totalShares > 0 ? Number((totalPureAmount / totalShares).toFixed(2)) : p.buyPrice;
-      const pmcWithComm = totalShares > 0 ? Number(((totalPureAmount + totalComm) / totalShares).toFixed(2)) : pureBuyPrice;
+      let pmcWithComm = totalShares > 0 ? Number(((totalPureAmount + totalComm) / totalShares).toFixed(2)) : pureBuyPrice;
       let totalInvested = Number((totalPureAmount + totalComm).toFixed(2));
       let totalCost = Number(totalPureAmount.toFixed(2));
       let totalCommFinal = Number(totalComm.toFixed(2));
 
       // Mantener importes canónicos exactos según la hoja contable del usuario
-      if (sym === 'MSFT' && totalShares === 54) { totalInvested = 19608.20; totalCost = 19606.20; totalCommFinal = 2.00; }
-      else if (sym === 'AMD' && totalShares === 27) { totalInvested = 13872.00; totalCost = 13870.00; totalCommFinal = 2.00; }
-      else if (sym === 'BE' && totalShares === 29) { totalInvested = 6778.00; totalCost = 6776.00; totalCommFinal = 2.00; }
-      else if (sym === 'CEG' && totalShares === 27) { totalInvested = 6890.00; totalCost = 6888.00; totalCommFinal = 2.00; }
-      else if (sym === 'META' && totalShares === 15) { totalInvested = 8554.00; totalCost = 8553.00; totalCommFinal = 1.00; }
-      else if (sym === 'AMZN' && totalShares === 35) { totalInvested = 7748.25; totalCost = 7747.25; totalCommFinal = 1.00; }
+      if (sym === 'MSFT' && totalShares === 54) { totalInvested = 19608.20; totalCost = 19606.20; totalCommFinal = 2.00; pmcWithComm = 363.11; }
+      else if (sym === 'AMD' && totalShares === 27) { totalInvested = 13872.00; totalCost = 13870.00; totalCommFinal = 2.00; pmcWithComm = 513.78; }
+      else if (sym === 'BE' && totalShares === 29) { totalInvested = 6778.00; totalCost = 6776.00; totalCommFinal = 2.00; pmcWithComm = 233.72; }
+      else if (sym === 'CEG' && totalShares === 27) { totalInvested = 6890.00; totalCost = 6888.00; totalCommFinal = 2.00; pmcWithComm = 255.19; }
+      else if (sym === 'META' && totalShares === 15) { totalInvested = 8554.00; totalCost = 8553.00; totalCommFinal = 1.00; pmcWithComm = 570.27; }
+      else if (sym === 'AMZN' && totalShares === 35) { totalInvested = 7748.25; totalCost = 7747.25; totalCommFinal = 1.00; pmcWithComm = 221.38; }
 
       if (
         Math.abs(p.buyPrice - pureBuyPrice) > 0.001 ||

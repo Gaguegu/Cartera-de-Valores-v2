@@ -100,24 +100,6 @@ export function CurrentPortfolio({
     return matchesSearch && matchesCountry && matchesSector && matchesYear;
   });
 
-  // Sorting
-  const sorted = [...filtered].sort((a, b) => {
-    const aVal = a[sortField];
-    const bVal = b[sortField];
-    if (typeof aVal === 'number' && typeof bVal === 'number') {
-      return sortAsc ? aVal - bVal : bVal - aVal;
-    }
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-    }
-    return 0;
-  });
-
-  const totalValueEUR = filtered.reduce((acc, p) => acc + p.currentValueEUR, 0);
-  const totalGainEUR = filtered.reduce((acc, p) => acc + p.gainLossEUR, 0);
-  const totalCost = totalValueEUR - totalGainEUR;
-  const totalPercent = totalCost > 0 ? (totalGainEUR / totalCost) * 100 : 0;
-
   // Helper para calcular el coste invertido total en compras de una posición incluyendo comisiones de compra
   const getPositionInvestedCost = (pos: StockPosition): number => {
     const sym = (pos.symbol || '').toUpperCase();
@@ -164,6 +146,37 @@ export function CurrentPortfolio({
     return Number((base + comm).toFixed(2));
   };
 
+  // Helper para obtener el Precio Medio de Compra con comisiones (PMC real de compra)
+  // (importe de la acción + comisión de compra) / títulos comprados
+  const getPositionPmcWithCommission = (pos: StockPosition): number => {
+    if (!pos.shares || pos.shares <= 0) return pos.buyPrice;
+    const invested = getPositionInvestedCost(pos);
+    return Number((invested / pos.shares).toFixed(2));
+  };
+
+  // Sorting
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortField === 'buyPrice') {
+      const aVal = getPositionPmcWithCommission(a);
+      const bVal = getPositionPmcWithCommission(b);
+      return sortAsc ? aVal - bVal : bVal - aVal;
+    }
+    const aVal = a[sortField];
+    const bVal = b[sortField];
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortAsc ? aVal - bVal : bVal - aVal;
+    }
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+    return 0;
+  });
+
+  const totalValueEUR = filtered.reduce((acc, p) => acc + p.currentValueEUR, 0);
+  const totalGainEUR = filtered.reduce((acc, p) => acc + p.gainLossEUR, 0);
+  const totalCost = totalValueEUR - totalGainEUR;
+  const totalPercent = totalCost > 0 ? (totalGainEUR / totalCost) * 100 : 0;
+
   // Dinero total invertido en la cartera (compras con comisiones de compra incluidas)
   const totalInvestedWithCommission = useMemo(() => {
     const sum = filtered.reduce((acc, p) => acc + getPositionInvestedCost(p), 0);
@@ -182,8 +195,9 @@ export function CurrentPortfolio({
       'País',
       'Divisa',
       'Cantidad',
-      'Precio Compra (€)',
-      'Precio Actual',
+      'Precio Compra (€) [PMC con comisiones]',
+      'Precio Compra Puro (€)',
+      'Precio Actual (€)',
       'Valor Total (€)',
       'Plusvalía (€)',
       'Plusvalía (%)',
@@ -195,6 +209,7 @@ export function CurrentPortfolio({
       p.country,
       p.currency,
       p.shares,
+      getPositionPmcWithCommission(p),
       p.buyPrice,
       p.currentPrice,
       p.currentValueEUR,
@@ -409,7 +424,20 @@ export function CurrentPortfolio({
                 <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 border-b border-slate-700/80">País</th>
                 <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 border-b border-slate-700/80">Divisa</th>
                 <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Cantidad</th>
-                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Precio compra (€)</th>
+                <th
+                  onClick={() => {
+                    setSortField('buyPrice');
+                    setSortAsc(!sortAsc);
+                  }}
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
+                  title="Precio Medio de Compra por acción incluyendo comisiones de compra (PMC con comisiones)"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>Precio compra (€)</span>
+                    <ArrowUpDown className="w-3 h-3" />
+                  </div>
+                  <div className="text-[10px] text-blue-300 font-normal">PMC con comisiones</div>
+                </th>
                 <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Precio actual (€)</th>
                 <th
                   onClick={() => {
@@ -492,10 +520,27 @@ export function CurrentPortfolio({
                     {pos.shares}
                   </td>
 
-                  {/* Precio compra (€) */}
-                  <td className="py-3.5 px-4 text-right text-slate-300 font-mono">
-                    {formatNumber(pos.buyPrice)} €
-                  </td>
+                  {/* Precio compra (€) - PMC real con comisiones */}
+                  {(() => {
+                    const pmcWithComm = getPositionPmcWithCommission(pos);
+                    const posCost = getPositionInvestedCost(pos);
+                    const hasComm = Boolean(pos.totalCommissionEUR && pos.totalCommissionEUR > 0);
+                    return (
+                      <td className="py-3.5 px-4 text-right text-slate-200 font-mono">
+                        <div className="font-semibold text-white">
+                          {formatNumber(pmcWithComm)} €
+                        </div>
+                        {hasComm && Math.abs(pmcWithComm - pos.buyPrice) > 0.005 ? (
+                          <div
+                            className="text-[10px] text-slate-400 font-normal"
+                            title={`Precio base acción: ${formatNumber(pos.buyPrice)} € · Comisión de compra: +${formatNumber(pos.totalCommissionEUR || 0)} € · Total invertido: ${formatEUR(posCost)}`}
+                          >
+                            (puro: {formatNumber(pos.buyPrice)} €)
+                          </div>
+                        ) : null}
+                      </td>
+                    );
+                  })()}
 
                   {/* Precio actual (€) y dólares solo a título informativo */}
                   <td className="py-3.5 px-4 text-right text-slate-200 font-mono font-medium">

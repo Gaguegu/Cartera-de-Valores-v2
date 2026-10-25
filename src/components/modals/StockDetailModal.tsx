@@ -198,13 +198,21 @@ export function StockDetailModal({
               <span className="text-[11px] text-slate-500">títulos en cartera</span>
             </div>
 
-            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
-              <span className="text-xs text-slate-400 block font-medium">Precio compra</span>
-              <span className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1 block">
-                {formatNumber(stock.buyPrice)} €
-              </span>
-              <span className="text-[11px] text-slate-500">precio de compra</span>
-            </div>
+            {(() => {
+              const effectivePmc = stock.pmcWithCommission || (stock.totalInvestedEUR && stock.shares > 0 ? Number((stock.totalInvestedEUR / stock.shares).toFixed(2)) : stock.buyPrice);
+              const hasComm = Boolean(stock.totalCommissionEUR && stock.totalCommissionEUR > 0);
+              return (
+                <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+                  <span className="text-xs text-slate-400 block font-medium">Precio compra (PMC)</span>
+                  <span className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1 block">
+                    {formatNumber(effectivePmc)} €
+                  </span>
+                  <span className="text-[11px] text-slate-400" title={`Precio de ejecución: ${formatNumber(stock.buyPrice)} € · Comisión de compra: +${formatNumber(stock.totalCommissionEUR || 0)} €`}>
+                    {hasComm ? `Incluye +${formatNumber(stock.totalCommissionEUR || 0)} € comisiones` : 'PMC con comisiones'}
+                  </span>
+                </div>
+              );
+            })()}
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
               <span className="text-xs text-slate-400 block font-medium">Valor actual</span>
