@@ -52,8 +52,8 @@ const SYMBOL_MAP: Record<string, { yahooSymbol: string; company: string; country
   'AMD': { yahooSymbol: 'AMD', company: 'Advanced Micro Devices Inc.', country: 'USA', region: 'EEUU', currency: 'USD', exchange: 'NASDAQ' },
 };
 
-// Tipos de cambio por defecto
-let currentEurUsdRate = 1.1227;
+// Tipos de cambio por defecto sincronizados con el cierre y cotización oficial de Yahoo Finance (EURUSD=X y EURGBP=X)
+let currentEurUsdRate = 1.1204;
 let currentGbpEurRate = 0.8376;
 
 export interface FxRates {
@@ -68,6 +68,11 @@ export function getStoredFxRates(): FxRates {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && parsed.usdEur > 0) {
+        // Si tenía guardado el tipo desfasado del BCE (1.1193), migrar a la cotización oficial de Yahoo Finance (1.1204)
+        if (Math.abs(parsed.usdEur - 1.1193) < 0.0005) {
+          parsed.usdEur = 1.1204;
+          localStorage.setItem('cartera_fx_rates', JSON.stringify(parsed));
+        }
         currentEurUsdRate = Number(parsed.usdEur);
         if (parsed.gbpEur > 0) currentGbpEurRate = Number(parsed.gbpEur);
         return {
@@ -92,29 +97,7 @@ export function saveStoredFxRates(rates: FxRates) {
 }
 
 export async function fetchLiveFxRates(): Promise<FxRates> {
-  // 1. Intentar API oficial de tipos de cambio del BCE (Frankfurter) directamente desde el cliente con CORS
-  try {
-    const frankRes = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(4000),
-    });
-    if (frankRes.ok) {
-      const fData = await frankRes.json();
-      if (fData?.rates?.USD > 0) {
-        const rates: FxRates = {
-          usdEur: Number(fData.rates.USD.toFixed(4)),
-          gbpEur: fData?.rates?.GBP > 0 ? Number(fData.rates.GBP.toFixed(4)) : currentGbpEurRate,
-          updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        };
-        saveStoredFxRates(rates);
-        return rates;
-      }
-    }
-  } catch (err) {
-    // Continuar con los endpoints de respaldo
-  }
-
-  // 2. Intentar endpoint dedicado /api/quotes/fx con credenciales de autenticación
+  // 1. Consultar primero el endpoint de cotización en tiempo real de Yahoo Finance (/api/quotes/fx)
   try {
     const res = await fetch('/api/quotes/fx', { credentials: 'include' });
     if (res.ok) {
@@ -136,7 +119,7 @@ export async function fetchLiveFxRates(): Promise<FxRates> {
     console.warn('[QuotesService] /api/quotes/fx failed, trying indices:', err);
   }
 
-  // 3. Intentar endpoint /api/quotes/indices
+  // 2. Intentar endpoint /api/quotes/indices (que también extrae EURUSD=X y EURGBP=X de Yahoo Finance)
   try {
     const res = await fetch('/api/quotes/indices', { credentials: 'include' });
     if (res.ok) {
@@ -161,6 +144,26 @@ export async function fetchLiveFxRates(): Promise<FxRates> {
   } catch (err) {
     console.warn('[QuotesService] fetchLiveFxRates indices fallback failed:', err);
   }
+
+  // 3. Fallback adicional directo si no hay backend activo (Frankfurter)
+  try {
+    const frankRes = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (frankRes.ok) {
+      const fData = await frankRes.json();
+      if (fData?.rates?.USD > 0) {
+        const rates: FxRates = {
+          usdEur: Number(fData.rates.USD.toFixed(4)),
+          gbpEur: fData?.rates?.GBP > 0 ? Number(fData.rates.GBP.toFixed(4)) : currentGbpEurRate,
+          updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        };
+        saveStoredFxRates(rates);
+        return rates;
+      }
+    }
+  } catch {}
 
   return getStoredFxRates();
 }

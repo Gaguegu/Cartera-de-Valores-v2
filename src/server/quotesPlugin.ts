@@ -274,53 +274,53 @@ export function quotesApiPlugin(): Plugin {
             return;
           }
 
-          // 5. Tipos de cambio oficiales en tiempo real EUR/USD y EUR/GBP
+          // 5. Tipos de cambio en tiempo real EUR/USD y EUR/GBP (Fuente principal: Yahoo Finance EURUSD=X)
           if (pathname === '/api/quotes/fx') {
-            let usdEurRate = 1.1193;
-            let gbpEurRate = 0.8373;
+            let usdEurRate = 1.1204;
+            let gbpEurRate = 0.8376;
             let success = false;
 
-            // 1. Intentar API oficial de tipos de cambio del BCE (Frankfurter)
+            // 1. Consultar Yahoo Finance para EURUSD=X y EURGBP=X como fuente primaria de mercado
             try {
-              const frankRes = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', {
-                headers: { 'Accept': 'application/json' },
-                signal: AbortSignal.timeout(4000),
-              });
-              if (frankRes.ok) {
-                const fData = await frankRes.json();
-                if (fData?.rates?.USD > 0) {
-                  usdEurRate = Number(fData.rates.USD.toFixed(4));
-                  if (fData?.rates?.GBP > 0) gbpEurRate = Number(fData.rates.GBP.toFixed(4));
-                  success = true;
-                }
+              const yUrl = 'https://query2.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1d';
+              const yData = await fetchFromYahoo(yUrl);
+              const meta = yData?.chart?.result?.[0]?.meta;
+              if (meta && meta.regularMarketPrice > 0) {
+                usdEurRate = Number(meta.regularMarketPrice.toFixed(4));
+                success = true;
               }
-            } catch (fErr) {
-              // Continuar con Yahoo Finance
+            } catch (err) {
+              console.warn('[Quotes Plugin] Yahoo FX EURUSD=X failed:', err);
             }
 
-            // 2. Si Frankfurter no respondió, consultar Yahoo Finance query2
-            if (!success) {
-              const symbols = ['EURUSD=X', 'EURGBP=X'];
-              const fxResults = await Promise.allSettled(
-                symbols.map(async s => {
-                  const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
-                  const yData = await fetchFromYahoo(yUrl);
-                  const meta = yData.chart?.result?.[0]?.meta;
-                  return {
-                    symbol: s,
-                    price: meta?.regularMarketPrice ?? 0,
-                  };
-                })
-              );
+            try {
+              const yGbpUrl = 'https://query2.finance.yahoo.com/v8/finance/chart/EURGBP=X?interval=1d&range=1d';
+              const yGbpData = await fetchFromYahoo(yGbpUrl);
+              const gbpMeta = yGbpData?.chart?.result?.[0]?.meta;
+              if (gbpMeta && gbpMeta.regularMarketPrice > 0) {
+                gbpEurRate = Number(gbpMeta.regularMarketPrice.toFixed(4));
+              }
+            } catch (err) {
+              console.warn('[Quotes Plugin] Yahoo FX EURGBP=X failed:', err);
+            }
 
-              for (const r of fxResults) {
-                if (r.status === 'fulfilled' && r.value) {
-                  if (r.value.symbol === 'EURUSD=X' && r.value.price > 0) {
-                    usdEurRate = Number(r.value.price.toFixed(4));
-                  } else if (r.value.symbol === 'EURGBP=X' && r.value.price > 0) {
-                    gbpEurRate = Number(r.value.price.toFixed(4));
+            // 2. Si Yahoo Finance fallase, usar API de respaldo del BCE (Frankfurter)
+            if (!success) {
+              try {
+                const frankRes = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', {
+                  headers: { 'Accept': 'application/json' },
+                  signal: AbortSignal.timeout(4000),
+                });
+                if (frankRes.ok) {
+                  const fData = await frankRes.json();
+                  if (fData?.rates?.USD > 0) {
+                    usdEurRate = Number(fData.rates.USD.toFixed(4));
+                    if (fData?.rates?.GBP > 0) gbpEurRate = Number(fData.rates.GBP.toFixed(4));
+                    success = true;
                   }
                 }
+              } catch (fErr) {
+                // Mantener cotización previa
               }
             }
 
@@ -328,6 +328,7 @@ export function quotesApiPlugin(): Plugin {
               usdEurRate,
               gbpEurRate,
               updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              source: success ? 'Yahoo Finance (EURUSD=X)' : 'Fallback',
             }));
             return;
           }

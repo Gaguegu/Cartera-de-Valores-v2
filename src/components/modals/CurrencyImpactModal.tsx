@@ -26,7 +26,7 @@ export function CurrencyImpactModal({
   isOpen,
   onClose,
   positions,
-  currentEurUsd = 1.12,
+  currentEurUsd = 1.1204,
   onRefreshRates,
 }: CurrencyImpactModalProps) {
   const [simulatedRate, setSimulatedRate] = useState<number>(currentEurUsd);

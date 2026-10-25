@@ -109,7 +109,7 @@ export function BrokersConfigView({
         setLastFxUpdatedAt(timeNow);
         setFxToast({
           type: 'success',
-          message: `¡Divisas sincronizadas con éxito al mercado en vivo! 1 € = ${live.usdEur.toFixed(4)} $ USD · 1 € = ${live.gbpEur.toFixed(4)} £ GBP (${timeNow})`
+          message: `¡Divisas sincronizadas con éxito con Yahoo Finance (EURUSD=X)! 1 € = ${live.usdEur.toFixed(4)} $ USD · 1 € = ${live.gbpEur.toFixed(4)} £ GBP (${timeNow})`
         });
         if (onRefreshQuotesOnline) {
           await onRefreshQuotesOnline();
@@ -663,7 +663,7 @@ export function BrokersConfigView({
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">Tipos de Cambio Oficiales respecto al Euro (€)</h3>
+                <h3 className="text-sm font-bold text-white">Tipos de Cambio Oficiales respecto al Euro (€) · Yahoo Finance</h3>
                 {lastFxUpdatedAt && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
                     Última sinc: {lastFxUpdatedAt}
@@ -671,7 +671,7 @@ export function BrokersConfigView({
                 )}
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Conversión de activos en dólares estadounidenses (USD) o libras esterlinas (GBP) a la moneda base de la cartera (EUR).
+                Conversión de activos en dólares estadounidenses (Yahoo Finance: EURUSD=X) o libras esterlinas (EURGBP=X) a la moneda base de la cartera (EUR).
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -726,7 +726,7 @@ export function BrokersConfigView({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
             <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
-              <label className="font-semibold text-slate-300 block">Dólar Estadounidense (EUR / USD):</label>
+              <label className="font-semibold text-slate-300 block">Dólar Estadounidense (EUR / USD · Yahoo Finance EURUSD=X):</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"

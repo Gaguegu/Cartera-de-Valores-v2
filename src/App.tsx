@@ -47,7 +47,7 @@ import { useAppUpdater } from './hooks/useAppUpdater';
 import { useAppSecurity } from './hooks/useAppSecurity';
 import { AppPortfolioBackupData } from './utils/cryptoService';
 import { parseYearFromDate } from './utils/formatters';
-import { fetchBatchQuotes, fetchLiveFxRates } from './services/quotesService';
+import { fetchBatchQuotes, fetchLiveFxRates, getStoredFxRates } from './services/quotesService';
 import { CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -1874,6 +1874,7 @@ export default function App() {
         isOpen={isCurrencyModalOpen}
         onClose={() => setIsCurrencyModalOpen(false)}
         positions={positions}
+        currentEurUsd={getStoredFxRates().usdEur}
         onRefreshRates={handleRefreshAllQuotesOnline}
       />
     </div>
