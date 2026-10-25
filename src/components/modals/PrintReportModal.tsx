@@ -75,6 +75,11 @@ export function PrintReportModal({
   const [selectedWithholdingType, setSelectedWithholdingType] = useState<string>(options?.withholdingType || 'all');
   const [activeReportType, setActiveReportType] = useState<PrintReportModalProps['reportType']>(reportType);
 
+  // Opciones reactivas de impresión vinculadas a la selección del usuario y modificables en la vista previa
+  const [includeCharts, setIncludeCharts] = useState<boolean>(() => options?.charts ?? true);
+  const [includeDividends, setIncludeDividends] = useState<boolean>(() => options?.dividends ?? true);
+  const [includeClosed, setIncludeClosed] = useState<boolean>(() => options?.closed ?? true);
+
   // Lista única de países para filtrar dividendos
   const availableCountries = useMemo(() => {
     const countrySet = new Set<string>();
@@ -105,6 +110,15 @@ export function PrintReportModal({
       }
       if (options?.withholdingType !== undefined) {
         setSelectedWithholdingType(options.withholdingType);
+      }
+      if (options?.charts !== undefined) {
+        setIncludeCharts(options.charts);
+      }
+      if (options?.dividends !== undefined) {
+        setIncludeDividends(options.dividends);
+      }
+      if (options?.closed !== undefined) {
+        setIncludeClosed(options.closed);
       }
     }
   }, [isOpen, initialYear, reportType, options]);
@@ -208,6 +222,52 @@ export function PrintReportModal({
   const totalAcquisitionValue = filteredClosed.reduce((acc, c) => acc + (c.buyPrice !== undefined ? c.buyPrice * c.shares : Math.max(0, (c.salePrice * c.shares) - (c.resultEUR || 0))), 0);
   // Coste real invertido en euros en la cartera (exacto valor actual - plusvalía)
   const totalInvested = positions.reduce((acc, p) => acc + (p.currentValueEUR - (p.gainLossEUR || 0)), 0);
+
+  // Diversificación sectorial calculada dinámicamente para la sección de gráficos
+  const sectorData = useMemo(() => {
+    const map = new Map<string, number>();
+    positions.forEach(p => {
+      const sec = p.sector || 'Otros';
+      map.set(sec, (map.get(sec) || 0) + (p.currentValueEUR || 0));
+    });
+    return Array.from(map.entries())
+      .map(([name, totalEUR]) => ({
+        name,
+        totalEUR,
+        percent: totalValue > 0 ? (totalEUR / totalValue) * 100 : 0,
+      }))
+      .sort((a, b) => b.totalEUR - a.totalEUR);
+  }, [positions, totalValue]);
+
+  // Numeración secuencial y dinámica de secciones que nunca salta números
+  const sectionTitles = useMemo(() => {
+    let counter = 1;
+    const isFull = activeReportType === 'full';
+    const isAnnual = activeReportType === 'annual';
+    const isTax = activeReportType === 'tax';
+
+    const chartsNum = (includeCharts && (isFull || activeReportType === 'portfolio' || isAnnual) && positions.length > 0)
+      ? `${counter++}. `
+      : '';
+
+    const posNum = (activeReportType === 'portfolio' || isFull || isAnnual)
+      ? (isFull ? `${counter++}. ` : '')
+      : '';
+
+    const opsNum = (activeReportType === 'operations' || isFull)
+      ? (isFull ? `${counter++}. ` : '')
+      : '';
+
+    const closedNum = (includeClosed && (activeReportType === 'closed' || isFull || isAnnual || isTax))
+      ? (isFull ? `${counter++}. ` : isTax ? '1. ' : '')
+      : '';
+
+    const divNum = (includeDividends && (activeReportType === 'dividends' || isFull || isAnnual || isTax))
+      ? (isFull ? `${counter++}. ` : isTax ? (includeClosed ? '2. ' : '1. ') : '')
+      : '';
+
+    return { chartsNum, posNum, opsNum, closedNum, divNum };
+  }, [activeReportType, includeCharts, includeClosed, includeDividends, positions.length]);
 
   const handlePrint = () => {
     window.print();
@@ -346,69 +406,105 @@ export function PrintReportModal({
             </div>
           </div>
 
-          {/* Selector de Tipo de Informe para cambiar al vuelo sin salir */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-800 text-[11px]">
-            <span className="text-slate-400 mr-1 font-semibold">Tipo de informe:</span>
-            <button
-              onClick={() => setActiveReportType('operations')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeReportType === 'operations'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              Operaciones (Compras/Ventas)
-            </button>
-            <button
-              onClick={() => setActiveReportType('portfolio')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeReportType === 'portfolio'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              Cartera Actual (Activos Vivos)
-            </button>
-            <button
-              onClick={() => setActiveReportType('closed')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeReportType === 'closed'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              Cerradas (FIFO)
-            </button>
-            <button
-              onClick={() => setActiveReportType('dividends')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeReportType === 'dividends'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              Dividendos
-            </button>
-            <button
-              onClick={() => setActiveReportType('tax')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeReportType === 'tax'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              Fiscal IRPF
-            </button>
-            <button
-              onClick={() => setActiveReportType('full')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeReportType === 'full'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              Completo
-            </button>
+          {/* Selector de Tipo de Informe y Opciones Interactivas de Impresión */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-2 border-t border-slate-800 text-[11px]">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-slate-400 mr-1 font-semibold">Tipo de informe:</span>
+              <button
+                onClick={() => setActiveReportType('operations')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeReportType === 'operations'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                Operaciones (Compras/Ventas)
+              </button>
+              <button
+                onClick={() => setActiveReportType('portfolio')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeReportType === 'portfolio'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                Cartera Actual (Activos Vivos)
+              </button>
+              <button
+                onClick={() => setActiveReportType('closed')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeReportType === 'closed'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                Cerradas (FIFO)
+              </button>
+              <button
+                onClick={() => setActiveReportType('dividends')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeReportType === 'dividends'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                Dividendos
+              </button>
+              <button
+                onClick={() => setActiveReportType('tax')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeReportType === 'tax'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                Fiscal IRPF
+              </button>
+              <button
+                onClick={() => setActiveReportType('full')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeReportType === 'full'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                Completo
+              </button>
+            </div>
+
+            {/* Opciones de Impresión Interactivas (visibles y sincronizadas con la vista previa) */}
+            <div className="flex items-center gap-3 bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-xl text-xs text-slate-200 shrink-0">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Opciones:</span>
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
+                <input
+                  type="checkbox"
+                  checked={includeCharts}
+                  onChange={e => setIncludeCharts(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-0 cursor-pointer"
+                />
+                <span className="font-semibold text-xs">Gráficos</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
+                <input
+                  type="checkbox"
+                  checked={includeDividends}
+                  onChange={e => setIncludeDividends(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-0 cursor-pointer"
+                />
+                <span className="font-semibold text-xs">Dividendos</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
+                <input
+                  type="checkbox"
+                  checked={includeClosed}
+                  onChange={e => setIncludeClosed(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-0 cursor-pointer"
+                />
+                <span className="font-semibold text-xs">Cerradas</span>
+              </label>
+            </div>
           </div>
 
           {/* Aviso práctico para quitar el enlace web y la fecha del navegador al imprimir */}
@@ -584,29 +680,178 @@ export function PrintReportModal({
                   {totalInvested > 0 ? formatPercent((totalGain / totalInvested) * 100) : '0%'}
                 </span>
               </div>
-              <div className="border-r border-slate-200 last:border-none p-1">
-                <span className="text-[9px] text-slate-500 uppercase block font-bold">
-                  {closedGains < 0 ? `Pérdidas Cerradas (${isAllYears ? 'Total' : selectedYear})` : `Ganancias Cerradas (${isAllYears ? 'Total' : selectedYear})`}
-                </span>
-                <span
-                  className={`text-sm font-extrabold font-mono ${
-                    closedGains < 0 ? 'text-red-700 font-bold' : closedGains > 0 ? 'text-emerald-700' : 'text-slate-700'
-                  }`}
-                >
-                  {closedGains > 0 ? `+${formatEUR(closedGains)}` : formatEUR(closedGains)}
-                </span>
-                <span className="text-[9px] text-slate-400 block">
-                  {filteredClosed.length} transmisiones
+
+              {/* Tarjeta 3: Condicional a la opción de Operaciones Cerradas */}
+              {includeClosed ? (
+                <div className="border-r border-slate-200 last:border-none p-1">
+                  <span className="text-[9px] text-slate-500 uppercase block font-bold">
+                    {closedGains < 0 ? `Pérdidas Cerradas (${isAllYears ? 'Total' : selectedYear})` : `Ganancias Cerradas (${isAllYears ? 'Total' : selectedYear})`}
+                  </span>
+                  <span
+                    className={`text-sm font-extrabold font-mono ${
+                      closedGains < 0 ? 'text-red-700 font-bold' : closedGains > 0 ? 'text-emerald-700' : 'text-slate-700'
+                    }`}
+                  >
+                    {closedGains > 0 ? `+${formatEUR(closedGains)}` : formatEUR(closedGains)}
+                  </span>
+                  <span className="text-[9px] text-slate-400 block font-mono">
+                    {filteredClosed.length} transmisiones
+                  </span>
+                </div>
+              ) : (
+                <div className="border-r border-slate-200 last:border-none p-1">
+                  <span className="text-[9px] text-slate-500 uppercase block font-bold">Activos en Custodia</span>
+                  <span className="text-sm font-extrabold text-slate-900 font-mono">{positions.length} Valores</span>
+                  <span className="text-[9px] text-slate-400 block font-mono">
+                    {positions.reduce((acc, p) => acc + (p.shares || 0), 0)} títulos totales
+                  </span>
+                </div>
+              )}
+
+              {/* Tarjeta 4: Condicional a la opción de Dividendos */}
+              {includeDividends ? (
+                <div className="p-1">
+                  <span className="text-[9px] text-slate-500 uppercase block font-bold">
+                    Dividendos Brutos ({isAllYears ? 'Total' : selectedYear})
+                  </span>
+                  <span className="text-sm font-extrabold text-blue-800 font-mono">{formatEUR(totalDividends)}</span>
+                  <span className="text-[9px] text-rose-700 block font-mono">
+                    Retención: -{formatEUR(totalWithholding)}
+                  </span>
+                </div>
+              ) : (
+                <div className="p-1">
+                  <span className="text-[9px] text-slate-500 uppercase block font-bold">Operaciones Realizadas</span>
+                  <span className="text-sm font-extrabold text-slate-900 font-mono">{filteredOperations.length}</span>
+                  <span className="text-[9px] text-slate-400 block font-mono">
+                    Volumen: {formatEUR(totalVolumeEUR)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SECCIÓN VECTORIAL DE GRÁFICOS (Cuando 'Incluir gráficos' está activo en las opciones) */}
+          {includeCharts && (activeReportType === 'full' || activeReportType === 'portfolio' || activeReportType === 'annual') && positions.length > 0 && (
+            <div className="space-y-3 p-3.5 border border-slate-300 rounded bg-slate-50/60 report-avoid-break">
+              <div className="flex items-center justify-between border-b border-slate-300 pb-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
+                  {sectionTitles.chartsNum}Análisis Gráfico y Distribución de la Cartera
+                </h3>
+                <span className="text-[10px] text-slate-600 font-mono">
+                  Total Cartera: <strong className="text-slate-900">{formatEUR(totalValue)}</strong> · {positions.length} Activos
                 </span>
               </div>
-              <div className="p-1">
-                <span className="text-[9px] text-slate-500 uppercase block font-bold">
-                  Dividendos Brutos ({isAllYears ? 'Total' : selectedYear})
-                </span>
-                <span className="text-sm font-extrabold text-blue-800 font-mono">{formatEUR(totalDividends)}</span>
-                <span className="text-[9px] text-rose-700 block font-mono">
-                  Retención: -{formatEUR(totalWithholding)}
-                </span>
+
+              {/* 1. Barra segmentada horizontal de asignación de capital */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[10px] text-slate-600 font-medium">
+                  <span>Distribución Porcentual del Capital por Valor:</span>
+                  <span className="font-mono text-slate-800 font-bold">100% Cartera</span>
+                </div>
+
+                <div className="h-6 w-full rounded overflow-hidden flex border border-slate-300 shadow-xs">
+                  {positions.map((p, idx) => {
+                    const pct = totalValue > 0 ? (p.currentValueEUR / totalValue) * 100 : 0;
+                    const colors = ['#2563eb', '#dc2626', '#0284c7', '#d97706', '#059669', '#7c3aed', '#0891b2', '#ea580c'];
+                    const barColor = colors[idx % colors.length];
+                    return (
+                      <div
+                        key={p.symbol}
+                        style={{ width: `${pct}%`, backgroundColor: barColor }}
+                        className="h-full flex items-center justify-center text-white text-[10px] font-bold font-mono truncate px-1 transition-all"
+                        title={`${p.symbol} (${p.company}): ${formatEUR(p.currentValueEUR)} (${pct.toFixed(1)}%)`}
+                      >
+                        {pct >= 6 ? `${p.symbol} ${pct.toFixed(0)}%` : pct >= 4 ? p.symbol : ''}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Tarjetas resumen de cada posición */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
+                  {positions.map((p, idx) => {
+                    const pct = totalValue > 0 ? (p.currentValueEUR / totalValue) * 100 : 0;
+                    const colors = ['#2563eb', '#dc2626', '#0284c7', '#d97706', '#059669', '#7c3aed', '#0891b2', '#ea580c'];
+                    const barColor = colors[idx % colors.length];
+                    return (
+                      <div key={p.symbol} className="bg-white border border-slate-200 rounded p-1.5 text-[10px] shadow-2xs">
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: barColor }}></span>
+                          <span className="font-black text-slate-900 font-mono">{p.symbol}</span>
+                          <span className="ml-auto font-mono text-slate-500 font-bold">{pct.toFixed(1)}%</span>
+                        </div>
+                        <div className="text-slate-800 font-mono font-bold">{formatEUR(p.currentValueEUR)}</div>
+                        <div className={`font-mono text-[9px] ${p.gainLossPercent >= 0 ? 'text-emerald-700 font-semibold' : 'text-red-700 font-semibold'}`}>
+                          {p.gainLossPercent >= 0 ? `+${formatPercent(p.gainLossPercent)}` : formatPercent(p.gainLossPercent)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Diversificación por Sectores y Comparativa Coste vs Mercado */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-200">
+                {/* Diversificación Sectorial */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Diversificación Sectorial:
+                  </span>
+                  <div className="space-y-1 text-[10px]">
+                    {sectorData.map(sec => (
+                      <div key={sec.name} className="space-y-0.5">
+                        <div className="flex justify-between text-slate-700 font-medium">
+                          <span className="truncate">{sec.name}</span>
+                          <span className="font-mono font-bold text-slate-900">{formatEUR(sec.totalEUR)} ({sec.percent.toFixed(1)}%)</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded overflow-hidden">
+                          <div
+                            className="h-full bg-blue-600 rounded"
+                            style={{ width: `${sec.percent}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Comparativa Coste Invertido vs Valor Actual de Mercado */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Coste de Adquisición vs Valor a Mercado:
+                  </span>
+                  <div className="space-y-2 text-[10px] bg-white border border-slate-200 p-2 rounded">
+                    <div>
+                      <div className="flex justify-between text-slate-600 mb-0.5">
+                        <span>Coste Total Invertido (PMC + Comisiones):</span>
+                        <strong className="font-mono text-slate-900">{formatEUR(totalInvested)}</strong>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-200 rounded overflow-hidden">
+                        <div className="h-full bg-slate-700 rounded" style={{ width: '100%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-slate-600 mb-0.5">
+                        <span>Valoración Actual a Mercado:</span>
+                        <strong className="font-mono text-slate-900">{formatEUR(totalValue)}</strong>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-200 rounded overflow-hidden">
+                        <div
+                          className={`h-full rounded ${totalValue >= totalInvested ? 'bg-emerald-600' : 'bg-amber-600'}`}
+                          style={{ width: `${Math.min(100, (totalValue / totalInvested) * 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="pt-1 border-t border-slate-100 flex justify-between items-center text-[10px]">
+                      <span className="text-slate-500">Rentabilidad no realizada:</span>
+                      <span className={`font-mono font-bold ${totalGain >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                        {totalGain >= 0 ? `+${formatEUR(totalGain)}` : formatEUR(totalGain)} ({totalInvested > 0 ? formatPercent((totalGain / totalInvested) * 100) : '0%'})
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -633,58 +878,66 @@ export function PrintReportModal({
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="p-1.5 font-bold font-mono border border-slate-300 bg-slate-50">Casilla 0029</td>
-                    <td className="p-1.5 border border-slate-300">
-                      <span className="font-semibold block text-slate-900">Rendimientos del Capital Mobiliario: Dividendos</span>
-                      <span className="text-[10px] text-slate-500">Cobros íntegros por participaciones en fondos propios</span>
-                    </td>
-                    <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(totalDividends)}</td>
-                    <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300">
-                      {totalWithholding > 0 ? `-${formatEUR(totalWithholding)}` : '0,00 €'}
-                    </td>
-                    <td className="p-1.5 text-right font-mono font-bold border border-slate-300 text-slate-900">
-                      {formatEUR(netDividends)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-1.5 font-bold font-mono border border-slate-300 bg-slate-50">Casilla 0588</td>
-                    <td className="p-1.5 border border-slate-300">
-                      <span className="font-semibold block text-slate-900">Doble Imposición Internacional / Retenciones Deducibles</span>
-                      <span className="text-[10px] text-slate-500">Retención en origen y España a deducir de la cuota líquida</span>
-                    </td>
-                    <td className="p-1.5 text-right font-mono border border-slate-300">—</td>
-                    <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300 font-bold">
-                      {formatEUR(totalWithholding)}
-                    </td>
-                    <td className="p-1.5 text-right font-mono border border-slate-300 text-slate-500">—</td>
-                  </tr>
-                  <tr>
-                    <td className="p-1.5 font-bold font-mono border border-slate-300 bg-slate-50">Casillas 0326 - 0338</td>
-                    <td className="p-1.5 border border-slate-300">
-                      <span className="font-semibold block text-slate-900">Ganancias y Pérdidas Patrimoniales: Transmisiones</span>
-                      <span className="text-[10px] text-slate-500">Cálculo FIFO homogéneo (Transmisión: {formatEUR(totalSaleValue)} · Adquisición: {formatEUR(totalAcquisitionValue)})</span>
-                    </td>
-                    <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(totalSaleValue)}</td>
-                    <td className="p-1.5 text-right font-mono border border-slate-300 text-slate-500">—</td>
-                    <td className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${closedGains < 0 ? 'text-red-700' : 'text-emerald-800'}`}>
-                      {closedGains > 0 ? `+${formatEUR(closedGains)}` : formatEUR(closedGains)}
-                    </td>
-                  </tr>
+                  {includeDividends && (
+                    <>
+                      <tr>
+                        <td className="p-1.5 font-bold font-mono border border-slate-300 bg-slate-50">Casilla 0029</td>
+                        <td className="p-1.5 border border-slate-300">
+                          <span className="font-semibold block text-slate-900">Rendimientos del Capital Mobiliario: Dividendos</span>
+                          <span className="text-[10px] text-slate-500">Cobros íntegros por participaciones en fondos propios</span>
+                        </td>
+                        <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(totalDividends)}</td>
+                        <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300">
+                          {totalWithholding > 0 ? `-${formatEUR(totalWithholding)}` : '0,00 €'}
+                        </td>
+                        <td className="p-1.5 text-right font-mono font-bold border border-slate-300 text-slate-900">
+                          {formatEUR(netDividends)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-1.5 font-bold font-mono border border-slate-300 bg-slate-50">Casilla 0588</td>
+                        <td className="p-1.5 border border-slate-300">
+                          <span className="font-semibold block text-slate-900">Doble Imposición Internacional / Retenciones Deducibles</span>
+                          <span className="text-[10px] text-slate-500">Retención en origen y España a deducir de la cuota líquida</span>
+                        </td>
+                        <td className="p-1.5 text-right font-mono border border-slate-300">—</td>
+                        <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300 font-bold">
+                          {formatEUR(totalWithholding)}
+                        </td>
+                        <td className="p-1.5 text-right font-mono border border-slate-300 text-slate-500">—</td>
+                      </tr>
+                    </>
+                  )}
+                  {includeClosed && (
+                    <tr>
+                      <td className="p-1.5 font-bold font-mono border border-slate-300 bg-slate-50">Casillas 0326 - 0338</td>
+                      <td className="p-1.5 border border-slate-300">
+                        <span className="font-semibold block text-slate-900">Ganancias y Pérdidas Patrimoniales: Transmisiones</span>
+                        <span className="text-[10px] text-slate-500">Cálculo FIFO homogéneo (Transmisión: {formatEUR(totalSaleValue)} · Adquisición: {formatEUR(totalAcquisitionValue)})</span>
+                      </td>
+                      <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(totalSaleValue)}</td>
+                      <td className="p-1.5 text-right font-mono border border-slate-300 text-slate-500">—</td>
+                      <td className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${closedGains < 0 ? 'text-red-700' : 'text-emerald-800'}`}>
+                        {closedGains > 0 ? `+${formatEUR(closedGains)}` : formatEUR(closedGains)}
+                      </td>
+                    </tr>
+                  )}
                   <tr className="bg-slate-100 font-bold border-t-2 border-slate-400">
                     <td colSpan={2} className="p-1.5 border border-slate-300 text-right uppercase">
                       Total Saldo Neto Rentas del Ahorro ({yearLabel}):
                     </td>
                     <td className="p-1.5 border border-slate-300 text-right font-mono">
-                      {formatEUR(totalDividends + totalSaleValue)}
+                      {formatEUR((includeDividends ? totalDividends : 0) + (includeClosed ? totalSaleValue : 0))}
                     </td>
                     <td className="p-1.5 border border-slate-300 text-right font-mono text-rose-700">
-                      -{formatEUR(totalWithholding)}
+                      {includeDividends && totalWithholding > 0 ? `-${formatEUR(totalWithholding)}` : '0,00 €'}
                     </td>
                     <td className={`p-1.5 border border-slate-300 text-right font-mono text-xs ${
-                      (closedGains + netDividends) < 0 ? 'text-red-700' : 'text-emerald-800'
+                      ((includeClosed ? closedGains : 0) + (includeDividends ? netDividends : 0)) < 0 ? 'text-red-700' : 'text-emerald-800'
                     }`}>
-                      {(closedGains + netDividends) > 0 ? `+${formatEUR(closedGains + netDividends)}` : formatEUR(closedGains + netDividends)}
+                      {((includeClosed ? closedGains : 0) + (includeDividends ? netDividends : 0)) > 0
+                        ? `+${formatEUR((includeClosed ? closedGains : 0) + (includeDividends ? netDividends : 0))}`
+                        : formatEUR((includeClosed ? closedGains : 0) + (includeDividends ? netDividends : 0))}
                     </td>
                   </tr>
                 </tbody>
@@ -696,7 +949,7 @@ export function PrintReportModal({
           {(activeReportType === 'portfolio' || activeReportType === 'full' || activeReportType === 'annual') && (
             <div className="space-y-1.5 report-avoid-break">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
-                {activeReportType === 'full' ? '1. ' : ''}Posiciones Vivas en Cartera ({positions.length} Activos en Custodia)
+                {sectionTitles.posNum}Posiciones Vivas en Cartera ({positions.length} Activos en Custodia)
               </h3>
               <table className="w-full text-[11px] text-left border-collapse border border-slate-300">
                 <thead>
@@ -774,7 +1027,7 @@ export function PrintReportModal({
             <div className="space-y-1.5 report-avoid-break">
               <div className="flex items-center justify-between border-b border-slate-300 pb-1">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  {activeReportType === 'full' ? '2. ' : ''}Registro de Operaciones de Compra y Venta ({filteredOperations.length} Transacciones)
+                  {sectionTitles.opsNum}Registro de Operaciones de Compra y Venta ({filteredOperations.length} Transacciones)
                 </h3>
                 <span className="text-[10px] text-slate-600 font-mono">
                   Volumen: <strong className="text-slate-900">{formatEUR(totalVolumeEUR)}</strong> · Comisiones: <strong className="text-rose-700">{formatEUR(totalCommissionsEUR)}</strong>
@@ -861,10 +1114,10 @@ export function PrintReportModal({
           )}
 
           {/* Section: Operaciones Cerradas / Transmisiones FIFO */}
-          {(activeReportType === 'closed' || activeReportType === 'full' || activeReportType === 'annual' || activeReportType === 'tax') && options.closed && (
+          {(activeReportType === 'closed' || activeReportType === 'full' || activeReportType === 'annual' || activeReportType === 'tax') && includeClosed && (
             <div className="space-y-1.5 report-avoid-break">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
-                {activeReportType === 'full' ? '3. ' : activeReportType === 'tax' ? '1. ' : ''}Transmisiones Realizadas y Ganancias/Pérdidas FIFO ({yearLabel})
+                {sectionTitles.closedNum}Transmisiones Realizadas y Ganancias/Pérdidas FIFO ({yearLabel})
               </h3>
               <table className="w-full text-[11px] text-left border-collapse border border-slate-300">
                 <thead>
@@ -925,11 +1178,11 @@ export function PrintReportModal({
           )}
 
           {/* Section: Dividendos Cobrados */}
-          {(activeReportType === 'dividends' || activeReportType === 'full' || activeReportType === 'annual' || activeReportType === 'tax') && options.dividends && (
+          {(activeReportType === 'dividends' || activeReportType === 'full' || activeReportType === 'annual' || activeReportType === 'tax') && includeDividends && (
             <div className="space-y-1.5 report-avoid-break">
               <div className="flex items-center justify-between border-b border-slate-300 pb-1">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  {activeReportType === 'full' ? '4. ' : activeReportType === 'tax' ? '2. ' : ''}Rendimientos de Dividendos y Retenciones Fiscales ({yearExerciseLabel})
+                  {sectionTitles.divNum}Rendimientos de Dividendos y Retenciones Fiscales ({yearExerciseLabel})
                 </h3>
                 {activeReportType === 'dividends' && (
                   <span className="text-[10px] text-slate-600 font-mono">
