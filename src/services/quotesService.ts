@@ -31,6 +31,9 @@ const SYMBOL_MAP: Record<string, { yahooSymbol: string; company: string; country
   'COL': { yahooSymbol: 'COL.MC', company: 'Inmobiliaria Colonial', country: 'España', region: 'ESPAÑA', currency: 'EUR', exchange: 'BME (Madrid)' },
   'MRL': { yahooSymbol: 'MRL.MC', company: 'Merlin Properties', country: 'España', region: 'ESPAÑA', currency: 'EUR', exchange: 'BME (Madrid)' },
   // Europa
+  'NOVO': { yahooSymbol: 'NOVO-B.CO', company: 'Novo Nordisk', country: 'Dinamarca', region: 'EUROPA', currency: 'EUR', exchange: 'Nasdaq Copenhagen' },
+  'NOVO-B': { yahooSymbol: 'NOVO-B.CO', company: 'Novo Nordisk', country: 'Dinamarca', region: 'EUROPA', currency: 'EUR', exchange: 'Nasdaq Copenhagen' },
+  'NOVO-B.CO': { yahooSymbol: 'NOVO-B.CO', company: 'Novo Nordisk', country: 'Dinamarca', region: 'EUROPA', currency: 'EUR', exchange: 'Nasdaq Copenhagen' },
   'ASML': { yahooSymbol: 'ASML.AS', company: 'ASML Holding', country: 'Países Bajos', region: 'EUROPA', currency: 'EUR', exchange: 'Euronext Amsterdam' },
   'MC': { yahooSymbol: 'MC.PA', company: 'LVMH', country: 'Francia', region: 'EUROPA', currency: 'EUR', exchange: 'Euronext Paris' },
   'SAP': { yahooSymbol: 'SAP.DE', company: 'SAP SE', country: 'Alemania', region: 'EUROPA', currency: 'EUR', exchange: 'XETRA' },
@@ -232,8 +235,9 @@ export async function fetchQuoteOnline(symbol: string): Promise<MarketQuote | nu
         if (data && data.price) {
           const isUSD = data.currency === 'USD';
           const isGBP = data.currency === 'GBP';
-          const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
-          const priceEUR = isUSD || isGBP ? data.price / fxRate : data.price;
+          const isDKK = data.currency === 'DKK';
+          const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : isDKK ? 7.4604 : 1.0;
+          const priceEUR = isUSD || isGBP || isDKK ? data.price / fxRate : data.price;
 
           const known = SYMBOL_MAP[symbol.toUpperCase()];
           const country = known ? known.country : (isUSD ? 'USA' : (yahooSym.includes('.MC') ? 'España' : 'Europa'));
@@ -345,8 +349,9 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
             const origSym = symbolMapToOriginal[q.symbol.toUpperCase()] || q.symbol.toUpperCase();
             const isUSD = q.currency === 'USD';
             const isGBP = q.currency === 'GBP';
-            const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
-            const priceEUR = isUSD || isGBP ? q.price / fxRate : q.price;
+            const isDKK = q.currency === 'DKK';
+            const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : isDKK ? 7.4604 : 1.0;
+            const priceEUR = isUSD || isGBP || isDKK ? q.price / fxRate : q.price;
             resultMap[origSym] = {
               price: q.price,
               priceEUR: Number(priceEUR.toFixed(2)),
@@ -382,8 +387,9 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
               const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
               const isUSD = meta.currency === 'USD';
               const isGBP = meta.currency === 'GBP';
-              const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
-              const priceEUR = isUSD || isGBP ? curPrice / fxRate : curPrice;
+              const isDKK = meta.currency === 'DKK';
+              const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : isDKK ? 7.4604 : 1.0;
+              const priceEUR = isUSD || isGBP || isDKK ? curPrice / fxRate : curPrice;
 
               resultMap[s.toUpperCase()] = {
                 price: curPrice,

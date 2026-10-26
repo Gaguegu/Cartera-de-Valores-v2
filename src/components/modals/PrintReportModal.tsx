@@ -224,7 +224,7 @@ export function PrintReportModal({
   const totalInvested = positions.reduce((acc, p) => acc + (p.currentValueEUR - (p.gainLossEUR || 0)), 0);
 
   // Diversificación sectorial calculada dinámicamente para la sección de gráficos
-  const sectorData = useMemo(() => {
+  const sectorData = (() => {
     const map = new Map<string, number>();
     positions.forEach(p => {
       const sec = p.sector || 'Otros';
@@ -237,10 +237,10 @@ export function PrintReportModal({
         percent: totalValue > 0 ? (totalEUR / totalValue) * 100 : 0,
       }))
       .sort((a, b) => b.totalEUR - a.totalEUR);
-  }, [positions, totalValue]);
+  })();
 
   // Numeración secuencial y dinámica de secciones que nunca salta números
-  const sectionTitles = useMemo(() => {
+  const sectionTitles = (() => {
     let counter = 1;
     const isFull = activeReportType === 'full';
     const isAnnual = activeReportType === 'annual';
@@ -267,7 +267,7 @@ export function PrintReportModal({
       : '';
 
     return { chartsNum, posNum, opsNum, closedNum, divNum };
-  }, [activeReportType, includeCharts, includeClosed, includeDividends, positions.length]);
+  })();
 
   const handlePrint = () => {
     window.print();

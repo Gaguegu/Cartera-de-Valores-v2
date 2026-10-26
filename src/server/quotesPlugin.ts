@@ -27,6 +27,9 @@ async function fetchFromYahoo(url: string, retries = 2): Promise<any> {
       });
 
       if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error(`Yahoo returned status 404`);
+        }
         if (attempt < retries) {
           await new Promise(r => setTimeout(r, 120 * (attempt + 1)));
           continue;
@@ -55,6 +58,40 @@ async function fetchFromYahoo(url: string, retries = 2): Promise<any> {
     }
   }
 }
+
+const YAHOO_SYMBOL_OVERRIDES: Record<string, string> = {
+  'NOVO': 'NOVO-B.CO',
+  'NOVO-B': 'NOVO-B.CO',
+  'NOVO-B.CO': 'NOVO-B.CO',
+  'SAN': 'SAN.MC',
+  'ITX': 'ITX.MC',
+  'IBE': 'IBE.MC',
+  'BBVA': 'BBVA.MC',
+  'CABK': 'CABK.MC',
+  'REP': 'REP.MC',
+  'TEF': 'TEF.MC',
+  'ELE': 'ELE.MC',
+  'NTGY': 'NTGY.MC',
+  'ACS': 'ACS.MC',
+  'FER': 'FER.MC',
+  'AMS': 'AMS.MC',
+  'IAG': 'IAG.MC',
+  'GRF': 'GRF.MC',
+  'MAP': 'MAP.MC',
+  'SAB': 'SAB.MC',
+  'RED': 'RED.MC',
+  'COL': 'COL.MC',
+  'MRL': 'MRL.MC',
+  'ASML': 'ASML.AS',
+  'MC': 'MC.PA',
+  'SAP': 'SAP.DE',
+  'TTE': 'TTE.PA',
+  'OR': 'OR.PA',
+  'SIE': 'SIE.DE',
+  'ALV': 'ALV.DE',
+  'RMS': 'RMS.PA',
+  'SU': 'SU.PA',
+};
 
 export function quotesApiPlugin(): Plugin {
   return {
@@ -138,16 +175,24 @@ export function quotesApiPlugin(): Plugin {
 
           // 2. Cotización detallada de un solo símbolo
           if (pathname === '/api/quotes/quote') {
-            const symbol = urlObj.searchParams.get('symbol');
-            if (!symbol) {
+            const rawSymbol = (urlObj.searchParams.get('symbol') || '').trim();
+            if (!rawSymbol) {
               res.statusCode = 400;
               res.end(JSON.stringify({ error: 'Missing symbol parameter' }));
               return;
             }
 
-            const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
-            const yData = await fetchFromYahoo(yUrl);
-            const meta = yData.chart?.result?.[0]?.meta;
+            const querySymbol = YAHOO_SYMBOL_OVERRIDES[rawSymbol.toUpperCase()] || rawSymbol;
+
+            let yData: any = null;
+            try {
+              const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=1d&range=1d`;
+              yData = await fetchFromYahoo(yUrl);
+            } catch (err: any) {
+              console.info(`[Quotes Plugin] Single quote lookup for ${rawSymbol} (${querySymbol}): ${err?.message || 'not found'}`);
+            }
+
+            const meta = yData?.chart?.result?.[0]?.meta;
 
             if (!meta) {
               res.statusCode = 404;
@@ -161,7 +206,8 @@ export function quotesApiPlugin(): Plugin {
             const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
             res.end(JSON.stringify({
-              symbol: meta.symbol,
+              symbol: rawSymbol.toUpperCase(),
+              yahooSymbol: meta.symbol,
               company: meta.shortName || meta.symbol,
               currency: meta.currency || 'USD',
               price: curPrice,
@@ -193,8 +239,9 @@ export function quotesApiPlugin(): Plugin {
             const quotes: any[] = [];
             for (let i = 0; i < symbols.length; i++) {
               const s = symbols[i];
+              const querySymbol = YAHOO_SYMBOL_OVERRIDES[s] || s;
               try {
-                const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`;
+                const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=1d&range=1d`;
                 const yData = await fetchFromYahoo(yUrl);
                 const meta = yData?.chart?.result?.[0]?.meta;
                 if (meta && meta.regularMarketPrice > 0) {
@@ -205,6 +252,7 @@ export function quotesApiPlugin(): Plugin {
 
                   quotes.push({
                     symbol: s,
+                    querySymbol,
                     company: meta.shortName || s,
                     currency: meta.currency || 'USD',
                     price: curPrice,
@@ -217,8 +265,8 @@ export function quotesApiPlugin(): Plugin {
                     volume: meta.regularMarketVolume,
                   });
                 }
-              } catch (err) {
-                console.warn(`[Quotes Plugin] Failed symbol ${s}:`, err);
+              } catch (err: any) {
+                console.info(`[Quotes Plugin] Symbol ${s} not resolved: ${err?.message || 'unknown'}`);
               }
               if (i < symbols.length - 1) {
                 await new Promise(r => setTimeout(r, 60));
