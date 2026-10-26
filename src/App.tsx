@@ -528,12 +528,16 @@ export default function App() {
     charts: boolean;
     dividends: boolean;
     closed: boolean;
+    portfolio?: boolean;
+    operations?: boolean;
     country?: string;
     withholdingType?: string;
   }>({
     charts: true,
     dividends: true,
     closed: true,
+    portfolio: true,
+    operations: true,
   });
   const [printYear, setPrintYear] = useState<number | string | undefined>(undefined);
 
@@ -1173,6 +1177,8 @@ export default function App() {
       charts?: boolean;
       dividends?: boolean;
       closed?: boolean;
+      portfolio?: boolean;
+      operations?: boolean;
       year?: number | string;
       country?: string;
       withholdingType?: string;
@@ -1184,6 +1190,8 @@ export default function App() {
         charts: options.charts ?? true,
         dividends: options.dividends ?? true,
         closed: options.closed ?? true,
+        portfolio: options.portfolio ?? true,
+        operations: options.operations ?? true,
         country: options.country,
         withholdingType: options.withholdingType,
       });

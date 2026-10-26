@@ -21,9 +21,11 @@ interface PrintReportModalProps {
   dividends: DividendRecord[];
   initialYear?: number | string;
   options?: {
-    charts: boolean;
-    dividends: boolean;
-    closed: boolean;
+    charts?: boolean;
+    dividends?: boolean;
+    closed?: boolean;
+    portfolio?: boolean;
+    operations?: boolean;
     country?: string;
     withholdingType?: string;
   };
@@ -38,7 +40,7 @@ export function PrintReportModal({
   closedPositions,
   dividends,
   initialYear,
-  options = { charts: true, dividends: true, closed: true },
+  options = { charts: true, dividends: true, closed: true, portfolio: true, operations: true },
 }: PrintReportModalProps) {
   // Helper para extraer el año numérico de forma robusta de cualquier registro
   const getRecordYear = (rec: { year?: number | string; saleDate?: string; date?: string }) => {
@@ -76,6 +78,8 @@ export function PrintReportModal({
   const [activeReportType, setActiveReportType] = useState<PrintReportModalProps['reportType']>(reportType);
 
   // Opciones reactivas de impresión vinculadas a la selección del usuario y modificables en la vista previa
+  const [includePortfolio, setIncludePortfolio] = useState<boolean>(() => options?.portfolio ?? true);
+  const [includeOperations, setIncludeOperations] = useState<boolean>(() => options?.operations ?? true);
   const [includeCharts, setIncludeCharts] = useState<boolean>(() => options?.charts ?? true);
   const [includeDividends, setIncludeDividends] = useState<boolean>(() => options?.dividends ?? true);
   const [includeClosed, setIncludeClosed] = useState<boolean>(() => options?.closed ?? true);
@@ -110,6 +114,12 @@ export function PrintReportModal({
       }
       if (options?.withholdingType !== undefined) {
         setSelectedWithholdingType(options.withholdingType);
+      }
+      if (options?.portfolio !== undefined) {
+        setIncludePortfolio(options.portfolio);
+      }
+      if (options?.operations !== undefined) {
+        setIncludeOperations(options.operations);
       }
       if (options?.charts !== undefined) {
         setIncludeCharts(options.charts);
@@ -250,23 +260,47 @@ export function PrintReportModal({
       ? `${counter++}. `
       : '';
 
-    const posNum = (activeReportType === 'portfolio' || isFull || isAnnual)
-      ? (isFull ? `${counter++}. ` : '')
+    const posNum = (activeReportType === 'portfolio' || ((isFull || isAnnual) && includePortfolio))
+      ? (isFull || isAnnual ? `${counter++}. ` : '')
       : '';
 
-    const opsNum = (activeReportType === 'operations' || isFull)
+    const opsNum = (activeReportType === 'operations' || (isFull && includeOperations))
       ? (isFull ? `${counter++}. ` : '')
       : '';
 
     const closedNum = (includeClosed && (activeReportType === 'closed' || isFull || isAnnual || isTax))
-      ? (isFull ? `${counter++}. ` : isTax ? '1. ' : '')
+      ? (isFull || isAnnual ? `${counter++}. ` : isTax ? '1. ' : '')
       : '';
 
     const divNum = (includeDividends && (activeReportType === 'dividends' || isFull || isAnnual || isTax))
-      ? (isFull ? `${counter++}. ` : isTax ? (includeClosed ? '2. ' : '1. ') : '')
+      ? (isFull || isAnnual ? `${counter++}. ` : isTax ? (includeClosed ? '2. ' : '1. ') : '')
       : '';
 
     return { chartsNum, posNum, opsNum, closedNum, divNum };
+  })();
+
+  // Agrupación de rendimientos por empresa para el Resumen Anual
+  const annualCompanySummary = (() => {
+    if (activeReportType !== 'annual') return [];
+    const compMap = new Map<string, { symbol: string; company: string; closedGain: number; dividendGross: number; dividendWithholding: number; dividendNet: number }>();
+
+    filteredClosed.forEach(c => {
+      const key = c.symbol.toUpperCase();
+      const existing = compMap.get(key) || { symbol: c.symbol, company: c.company, closedGain: 0, dividendGross: 0, dividendWithholding: 0, dividendNet: 0 };
+      existing.closedGain += (c.resultEUR || 0);
+      compMap.set(key, existing);
+    });
+
+    filteredDividends.forEach(d => {
+      const key = d.symbol.toUpperCase();
+      const existing = compMap.get(key) || { symbol: d.symbol, company: d.company, closedGain: 0, dividendGross: 0, dividendWithholding: 0, dividendNet: 0 };
+      existing.dividendGross += (d.grossEUR || 0);
+      existing.dividendWithholding += (d.withholdingEUR || 0);
+      existing.dividendNet += ((d.grossEUR || 0) - (d.withholdingEUR || 0));
+      compMap.set(key, existing);
+    });
+
+    return Array.from(compMap.values()).sort((a, b) => (b.closedGain + b.dividendNet) - (a.closedGain + a.dividendNet));
   })();
 
   const handlePrint = () => {
@@ -305,6 +339,8 @@ export function PrintReportModal({
         return 'Detalle de Cobros, Rendimientos Íntegros y Retenciones IRPF';
       case 'tax':
         return 'Informe Fiscal Conforme al Modelo D-100 de la AEAT';
+      case 'annual':
+        return 'Consolidado Anual de Rendimientos por Empresa (Ventas y Cobros)';
       default:
         return 'Informe Contable y Fiscal de Inversiones Patrimoniales';
     }
@@ -461,6 +497,16 @@ export function PrintReportModal({
                 Fiscal IRPF
               </button>
               <button
+                onClick={() => setActiveReportType('annual')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeReportType === 'annual'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                Resumen Anual
+              </button>
+              <button
                 onClick={() => setActiveReportType('full')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                   activeReportType === 'full'
@@ -473,16 +519,36 @@ export function PrintReportModal({
             </div>
 
             {/* Opciones de Impresión Interactivas (visibles y sincronizadas con la vista previa) */}
-            <div className="flex items-center gap-3 bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-xl text-xs text-slate-200 shrink-0">
+            <div className="flex items-center gap-2.5 bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-xl text-xs text-slate-200 shrink-0 flex-wrap">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Opciones:</span>
               <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
                 <input
                   type="checkbox"
-                  checked={includeCharts}
-                  onChange={e => setIncludeCharts(e.target.checked)}
+                  checked={includePortfolio}
+                  onChange={e => setIncludePortfolio(e.target.checked)}
                   className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-0 cursor-pointer"
                 />
-                <span className="font-semibold text-xs">Gráficos</span>
+                <span className="font-semibold text-xs">Cartera</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
+                <input
+                  type="checkbox"
+                  checked={includeOperations}
+                  onChange={e => setIncludeOperations(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-0 cursor-pointer"
+                />
+                <span className="font-semibold text-xs">Operaciones</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
+                <input
+                  type="checkbox"
+                  checked={includeClosed}
+                  onChange={e => setIncludeClosed(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-0 cursor-pointer"
+                />
+                <span className="font-semibold text-xs">Cerradas</span>
               </label>
 
               <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
@@ -498,11 +564,11 @@ export function PrintReportModal({
               <label className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
                 <input
                   type="checkbox"
-                  checked={includeClosed}
-                  onChange={e => setIncludeClosed(e.target.checked)}
+                  checked={includeCharts}
+                  onChange={e => setIncludeCharts(e.target.checked)}
                   className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-0 cursor-pointer"
                 />
-                <span className="font-semibold text-xs">Cerradas</span>
+                <span className="font-semibold text-xs">Gráficos</span>
               </label>
             </div>
           </div>
@@ -945,8 +1011,92 @@ export function PrintReportModal({
             </div>
           )}
 
+          {/* CUADRO ESPECIAL RESUMEN ANUAL POR EMPRESA (Si es activeReportType === 'annual') */}
+          {activeReportType === 'annual' && (
+            <div className="space-y-2 report-avoid-break">
+              <div className="flex items-center justify-between border-b-2 border-emerald-800 pb-1">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  Resumen Anual de Rendimientos por Empresa ({yearLabel})
+                </h3>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300">
+                  Ventas Cerradas + Cobros de Dividendos
+                </span>
+              </div>
+              <table className="w-full text-[11px] text-left border-collapse border border-slate-300">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                    <th className="p-1.5 border border-slate-300 w-20">Ticker</th>
+                    <th className="p-1.5 border border-slate-300">Empresa / Activo</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Plusvalías Ventas (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Dividendos Brutos (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Retenciones (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Rendimiento Neto Total (€)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {annualCompanySummary.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-3 text-center text-slate-500 italic border border-slate-300">
+                        No hay transmisiones ni cobros de dividendos registrados en {yearLabel.toLowerCase()}.
+                      </td>
+                    </tr>
+                  ) : (
+                    annualCompanySummary.map((item, idx) => {
+                      const totalNet = item.closedGain + item.dividendNet;
+                      return (
+                        <tr key={idx} className="border-b border-slate-300 even:bg-slate-50">
+                          <td className="p-1.5 font-bold font-mono border border-slate-300">{item.symbol}</td>
+                          <td className="p-1.5 border border-slate-300 font-medium">{item.company}</td>
+                          <td className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${
+                            item.closedGain < 0 ? 'text-red-700' : item.closedGain > 0 ? 'text-emerald-700' : 'text-slate-500'
+                          }`}>
+                            {item.closedGain !== 0 ? (item.closedGain > 0 ? `+${formatEUR(item.closedGain)}` : formatEUR(item.closedGain)) : '—'}
+                          </td>
+                          <td className="p-1.5 text-right font-mono border border-slate-300 text-blue-800">
+                            {item.dividendGross > 0 ? formatEUR(item.dividendGross) : '—'}
+                          </td>
+                          <td className="p-1.5 text-right font-mono text-rose-700 border border-slate-300">
+                            {item.dividendWithholding > 0 ? `-${formatEUR(item.dividendWithholding)}` : '—'}
+                          </td>
+                          <td className={`p-1.5 text-right font-mono font-extrabold border border-slate-300 ${
+                            totalNet < 0 ? 'text-red-700' : totalNet > 0 ? 'text-emerald-800' : 'text-slate-700'
+                          }`}>
+                            {totalNet > 0 ? `+${formatEUR(totalNet)}` : formatEUR(totalNet)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                  {annualCompanySummary.length > 0 && (
+                    <tr className="bg-slate-100 font-bold border-t-2 border-slate-400">
+                      <td colSpan={2} className="p-1.5 border border-slate-300 text-right uppercase">
+                        TOTALES CONSOLIDADOS ANUALES ({yearLabel.toUpperCase()}):
+                      </td>
+                      <td className={`p-1.5 border border-slate-300 text-right font-mono font-bold ${
+                        closedGains < 0 ? 'text-red-700' : closedGains > 0 ? 'text-emerald-800' : 'text-slate-700'
+                      }`}>
+                        {closedGains > 0 ? `+${formatEUR(closedGains)}` : formatEUR(closedGains)}
+                      </td>
+                      <td className="p-1.5 border border-slate-300 text-right font-mono font-bold text-blue-800">
+                        {formatEUR(totalDividends)}
+                      </td>
+                      <td className="p-1.5 border border-slate-300 text-right font-mono font-bold text-rose-700">
+                        {totalWithholding > 0 ? `-${formatEUR(totalWithholding)}` : '0,00 €'}
+                      </td>
+                      <td className={`p-1.5 border border-slate-300 text-right font-mono font-black text-xs ${
+                        (closedGains + netDividends) < 0 ? 'text-red-700' : 'text-emerald-800'
+                      }`}>
+                        {(closedGains + netDividends) > 0 ? `+${formatEUR(closedGains + netDividends)}` : formatEUR(closedGains + netDividends)}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {/* Section: Posiciones Abiertas */}
-          {(activeReportType === 'portfolio' || activeReportType === 'full' || activeReportType === 'annual') && (
+          {(activeReportType === 'portfolio' || ((activeReportType === 'full' || activeReportType === 'annual') && includePortfolio)) && (
             <div className="space-y-1.5 report-avoid-break">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
                 {sectionTitles.posNum}Posiciones Vivas en Cartera ({positions.length} Activos en Custodia)
@@ -1023,7 +1173,7 @@ export function PrintReportModal({
           )}
 
           {/* Section: Registro de Operaciones de Compra y Venta (Específico para pantalla Operaciones y full) */}
-          {(activeReportType === 'operations' || activeReportType === 'full') && (
+          {(activeReportType === 'operations' || (activeReportType === 'full' && includeOperations)) && (
             <div className="space-y-1.5 report-avoid-break">
               <div className="flex items-center justify-between border-b border-slate-300 pb-1">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
