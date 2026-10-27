@@ -629,12 +629,16 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
     return directDividends;
   }
 
-  // 3. Catálogo público de respaldo para empresas conocidas de la cartera
+  // 3. Catálogo público de respaldo para empresas conocidas de la cartera (alineado exactamente con Yahoo Finanzas)
   const fallbackCatalog: Record<string, { dpsUSD: number; dpsEUR: number; months: number[]; day: number; exDaysBefore: number }> = {
-    'MSFT': { dpsUSD: 0.83, dpsEUR: 0.74, months: [2, 5, 8, 11], day: 12, exDaysBefore: 20 },
-    'META': { dpsUSD: 0.525, dpsEUR: 0.47, months: [2, 5, 8, 11], day: 26, exDaysBefore: 12 },
-    'AAPL': { dpsUSD: 0.25, dpsEUR: 0.22, months: [1, 4, 7, 10], day: 15, exDaysBefore: 7 },
-    'CEG':  { dpsUSD: 0.35, dpsEUR: 0.31, months: [2, 5, 8, 11], day: 10, exDaysBefore: 16 },
+    // MSFT: Tasa anual $3.92 -> $0.98 trimestral (~0.88 €/acc). Segundo jueves de mes: Dic 10 (ex-div Nov 19)
+    'MSFT': { dpsUSD: 0.98, dpsEUR: 0.88, months: [2, 5, 8, 11], day: 10, exDaysBefore: 21 },
+    // META: Tasa anual $2.10 -> $0.525 trimestral (~0.47 €/acc). Pago a finales de mes: Dic 28 (ex-div Dic 15)
+    'META': { dpsUSD: 0.525, dpsEUR: 0.47, months: [2, 5, 8, 11], day: 28, exDaysBefore: 13 },
+    // CEG: Constellation Energy -> $0.4275 trimestral (~0.38 €/acc). Pago día 10 (ex-div Nov 20)
+    'CEG':  { dpsUSD: 0.4275, dpsEUR: 0.38, months: [2, 5, 8, 11], day: 10, exDaysBefore: 20 },
+    // AAPL: Tasa anual $1.08 -> $0.27 trimestral (~0.24 €/acc).
+    'AAPL': { dpsUSD: 0.27, dpsEUR: 0.24, months: [1, 4, 7, 10], day: 12, exDaysBefore: 6 },
     'BE':   { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1, exDaysBefore: 0 },
     'AMD':  { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1, exDaysBefore: 0 },
     'SAN':  { dpsUSD: 0.10, dpsEUR: 0.10, months: [4, 10], day: 2, exDaysBefore: 3 },

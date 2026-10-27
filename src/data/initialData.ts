@@ -558,39 +558,39 @@ export const INITIAL_DIVIDENDS: DividendRecord[] = [
 export const INITIAL_UPCOMING_DIVIDENDS: UpcomingDividend[] = [
   {
     id: 'up-1',
-    date: '15/09/2026',
-    exDividendDate: '21/08/2026',
+    date: '10/12/2026',
+    exDividendDate: '19/11/2026',
     company: 'Microsoft',
     symbol: 'MSFT',
-    dividendPerShareEUR: 0.83,
-    estimatedTotalEUR: 83.00
+    dividendPerShareEUR: 0.88,
+    estimatedTotalEUR: 47.52
   },
   {
     id: 'up-2',
-    date: '30/09/2026',
-    exDividendDate: '12/09/2026',
+    date: '28/12/2026',
+    exDividendDate: '15/12/2026',
+    company: 'Meta Platforms',
+    symbol: 'META',
+    dividendPerShareEUR: 0.47,
+    estimatedTotalEUR: 7.05
+  },
+  {
+    id: 'up-3',
+    date: '10/12/2026',
+    exDividendDate: '20/11/2026',
+    company: 'Constellation Energy Corp.',
+    symbol: 'CEG',
+    dividendPerShareEUR: 0.38,
+    estimatedTotalEUR: 10.26
+  },
+  {
+    id: 'up-4',
+    date: '12/11/2026',
+    exDividendDate: '06/11/2026',
     company: 'Apple',
     symbol: 'AAPL',
     dividendPerShareEUR: 0.24,
     estimatedTotalEUR: 19.20
-  },
-  {
-    id: 'up-3',
-    date: '12/10/2026',
-    exDividendDate: '22/09/2026',
-    company: 'Meta',
-    symbol: 'META',
-    dividendPerShareEUR: 0.42,
-    estimatedTotalEUR: 25.20
-  },
-  {
-    id: 'up-4',
-    date: '20/11/2026',
-    exDividendDate: '04/11/2026',
-    company: 'Amazon',
-    symbol: 'AMZN',
-    dividendPerShareEUR: 0.33,
-    estimatedTotalEUR: 16.50
   },
   {
     id: 'up-5',

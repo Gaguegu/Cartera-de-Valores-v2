@@ -59,6 +59,50 @@ async function fetchFromYahoo(url: string, retries = 2): Promise<any> {
   }
 }
 
+let cachedYahooCookie = '';
+let cachedYahooCrumb = '';
+let cachedYahooCrumbExpiry = 0;
+
+async function getYahooCrumb(): Promise<{ cookie: string; crumb: string } | null> {
+  if (cachedYahooCookie && cachedYahooCrumb && Date.now() < cachedYahooCrumbExpiry) {
+    return { cookie: cachedYahooCookie, crumb: cachedYahooCrumb };
+  }
+
+  try {
+    const fcRes = await fetch('https://fc.yahoo.com', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+      signal: AbortSignal.timeout(4000),
+    });
+    const rawCookie = fcRes.headers.get('set-cookie');
+    if (!rawCookie) return null;
+
+    const match = rawCookie.match(/(A3=[^;]+)/);
+    const cookie = match ? match[1] : rawCookie.split(';')[0];
+
+    const crumbRes = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Cookie': cookie,
+      },
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (!crumbRes.ok) return null;
+    const crumb = (await crumbRes.text()).trim();
+    if (!crumb || crumb.length > 50 || crumb.includes('<')) return null;
+
+    cachedYahooCookie = cookie;
+    cachedYahooCrumb = crumb;
+    cachedYahooCrumbExpiry = Date.now() + 60 * 60 * 1000;
+    return { cookie, crumb };
+  } catch (err) {
+    console.warn('[Quotes Plugin] Failed to get Yahoo crumb:', err);
+    return null;
+  }
+}
+
 const YAHOO_SYMBOL_OVERRIDES: Record<string, string> = {
   'NOVO': 'NOVO-B.CO',
   'NOVO-B': 'NOVO-B.CO',
@@ -416,12 +460,91 @@ export function quotesApiPlugin(): Plugin {
               // fallback
             }
 
+            let yahooAuth: { cookie: string; crumb: string } | null = null;
+            try {
+              yahooAuth = await getYahooCrumb();
+            } catch {
+              // fallback
+            }
+
             const allDividends: any[] = [];
+            const seenKeys = new Set<string>();
 
             for (let i = 0; i < symbols.length; i++) {
               const s = symbols[i];
               const querySymbol = YAHOO_SYMBOL_OVERRIDES[s] || s;
 
+              // 1. Obtener próximo dividendo oficial anunciado desde quoteSummary (calendarEvents)
+              if (yahooAuth?.crumb && yahooAuth?.cookie) {
+                try {
+                  const summaryUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(querySymbol)}?crumb=${encodeURIComponent(yahooAuth.crumb)}&modules=calendarEvents,defaultKeyStatistics,summaryDetail`;
+                  const sumRes = await fetch(summaryUrl, {
+                    headers: {
+                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                      'Cookie': yahooAuth.cookie,
+                    },
+                    signal: AbortSignal.timeout(4000),
+                  });
+
+                  if (sumRes.ok) {
+                    const sumData = await sumRes.json();
+                    const quoteSum = sumData?.quoteSummary?.result?.[0];
+                    const cal = quoteSum?.calendarEvents;
+                    const sd = quoteSum?.summaryDetail;
+                    const dRate = sd?.dividendRate?.raw || 0;
+                    const trailingRate = sd?.trailingAnnualDividendRate?.raw || 0;
+                    const annualRate = dRate > 0 ? dRate : trailingRate;
+
+                    if (cal?.dividendDate && cal.dividendDate.fmt) {
+                      const payFmt = cal.dividendDate.fmt; // "YYYY-MM-DD"
+                      const [pY, pM, pD] = payFmt.split('-');
+                      const year = parseInt(pY, 10);
+                      const month = parseInt(pM, 10) - 1; // 0-indexed
+                      const day = parseInt(pD, 10);
+                      const formattedDate = `${pD}/${pM}/${pY}`;
+
+                      // Fecha ex-dividendo anunciada
+                      let exFormatted = '';
+                      if (cal?.exDividendDate && cal.exDividendDate.fmt) {
+                        const [exY, exM, exD] = cal.exDividendDate.fmt.split('-');
+                        exFormatted = `${exD}/${exM}/${exY}`;
+                      }
+
+                      // Dividendo trimestral bruto (tasa anual / 4)
+                      const rawQuarterlyAmount = annualRate > 0 ? annualRate / 4 : (sd?.lastDividendValue?.raw || 0.83);
+                      const currency = (sd?.currency || 'USD').toUpperCase();
+
+                      let amountEUR = rawQuarterlyAmount;
+                      if (currency === 'USD') amountEUR = rawQuarterlyAmount * fxUSDtoEUR;
+                      else if (currency === 'DKK') amountEUR = rawQuarterlyAmount / 7.46;
+                      else if (currency === 'GBP') amountEUR = rawQuarterlyAmount / 0.84;
+
+                      const key = `${s}-${year}-${month}`;
+                      seenKeys.add(key);
+
+                      allDividends.push({
+                        id: `div-yahoo-upcoming-${s}-${year}${pM}${pD}`,
+                        symbol: s,
+                        company: sd?.shortName || s,
+                        date: formattedDate,
+                        exDividendDate: exFormatted,
+                        rawDate: `${payFmt}T12:00:00.000Z`,
+                        timestamp: cal.dividendDate.raw ? cal.dividendDate.raw * 1000 : Date.now(),
+                        currency,
+                        rawAmount: Number(rawQuarterlyAmount.toFixed(4)),
+                        dividendPerShareEUR: Number(amountEUR.toFixed(4)),
+                        year,
+                        month,
+                        day,
+                      });
+                    }
+                  }
+                } catch (calErr: any) {
+                  console.info(`[Quotes Plugin] Calendar events lookup for ${s}: ${calErr?.message || 'failed'}`);
+                }
+              }
+
+              // 2. Obtener historial y eventos de gráfico
               try {
                 const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=1mo&range=2y&events=div`;
                 const yData = await fetchFromYahoo(yUrl);
