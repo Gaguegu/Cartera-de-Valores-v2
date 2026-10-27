@@ -1119,6 +1119,28 @@ export default function App() {
     setDividends(prev => prev.filter(d => d.id !== id));
   };
 
+  const handleAddUpcomingDividend = (item: Omit<UpcomingDividend, 'id'>) => {
+    const newUpcoming: UpcomingDividend = {
+      id: `up-${Date.now()}`,
+      ...item,
+    };
+    setUpcomingDividends(prev => [...prev, newUpcoming]);
+    setGlobalToast({
+      title: 'Previsión guardada',
+      message: `Dividendo previsto de ${item.company} (${item.symbol}) añadido al calendario.`,
+      type: 'success',
+    });
+  };
+
+  const handleDeleteUpcomingDividend = (id: string) => {
+    setUpcomingDividends(prev => prev.filter(d => d.id !== id));
+    setGlobalToast({
+      title: 'Previsión eliminada',
+      message: 'La previsión de dividendo ha sido eliminada del calendario.',
+      type: 'info',
+    });
+  };
+
   const handleAddBroker = (brokerData: Omit<Broker, 'id'>) => {
     const newBrk: Broker = {
       id: `brk-${Date.now()}`,
@@ -1660,6 +1682,12 @@ export default function App() {
                 upcomingDividends={upcomingDividends}
                 dividends={dividends}
                 positions={positions}
+                onAddUpcomingDividend={handleAddUpcomingDividend}
+                onDeleteUpcomingDividend={handleDeleteUpcomingDividend}
+                onOpenNewPaidDividend={() => {
+                  setPrefilledDividendData(null);
+                  setIsNewDivOpen(true);
+                }}
               />
             )}
 

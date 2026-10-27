@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { UpcomingDividend, DividendRecord, StockPosition } from '../types/portfolio';
 import { formatEUR, formatNumber, getAvailableFiscalYears } from '../utils/formatters';
-import { Calendar, ChevronLeft, ChevronRight, DollarSign, CheckCircle2, Coins, Clock } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, DollarSign, CheckCircle2, Coins, Clock, Plus, Trash2, X, AlertCircle } from 'lucide-react';
 
 interface DividendCalendarViewProps {
   upcomingDividends: UpcomingDividend[];
   dividends?: DividendRecord[];
   positions?: StockPosition[];
+  onAddUpcomingDividend?: (dividend: Omit<UpcomingDividend, 'id'>) => void;
+  onDeleteUpcomingDividend?: (id: string) => void;
+  onOpenNewPaidDividend?: () => void;
 }
 
 const MONTH_NAMES = [
@@ -43,6 +46,9 @@ export function DividendCalendarView({
   upcomingDividends,
   dividends = [],
   positions = [],
+  onAddUpcomingDividend,
+  onDeleteUpcomingDividend,
+  onOpenNewPaidDividend,
 }: DividendCalendarViewProps) {
   const today = new Date();
   const initialYear = today.getFullYear() >= 2026 ? today.getFullYear() : 2026;
@@ -51,6 +57,17 @@ export function DividendCalendarView({
   const [currentYear, setCurrentYear] = useState<number>(initialYear);
   const [currentMonth, setCurrentMonth] = useState<number>(initialMonth);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  // Estados del modal "+ Añadir previsión / pago"
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<'upcoming' | 'paid'>('upcoming');
+  const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('');
+  const [forecastCompany, setForecastCompany] = useState<string>('');
+  const [forecastSymbol, setForecastSymbol] = useState<string>('');
+  const [forecastDate, setForecastDate] = useState<string>('');
+  const [forecastDividendPerShare, setForecastDividendPerShare] = useState<string>('');
+  const [forecastShares, setForecastShares] = useState<number>(1);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // Años dinámicos disponibles
   const availableYears = useMemo(() => {
@@ -227,6 +244,108 @@ export function DividendCalendarView({
     return total > 0 ? total : 83.82;
   }, [dividends, upcomingDividends, positions, currentYear]);
 
+  // Abre el modal de añadir previsión / pago con datos inicializados
+  const handleOpenAddModal = () => {
+    const defaultDay = selectedDay || Math.min(today.getDate(), daysInCurrentMonth);
+    const initialDayStr = String(defaultDay).padStart(2, '0');
+    const initialMonthStr = String(currentMonth + 1).padStart(2, '0');
+    setForecastDate(`${currentYear}-${initialMonthStr}-${initialDayStr}`);
+
+    if (positions.length > 0) {
+      const first = positions[0];
+      setSelectedStockSymbol(first.symbol);
+      setForecastCompany(first.company);
+      setForecastSymbol(first.symbol);
+      setForecastShares(first.shares);
+    } else {
+      setSelectedStockSymbol('CUSTOM');
+      setForecastCompany('');
+      setForecastSymbol('');
+      setForecastShares(1);
+    }
+    setForecastDividendPerShare('');
+    setModalError(null);
+    setModalTab('upcoming');
+    setIsAddModalOpen(true);
+  };
+
+  // Cambio de selección de activo en el modal
+  const handleStockSelectChange = (val: string) => {
+    setSelectedStockSymbol(val);
+    if (val === 'CUSTOM') {
+      setForecastCompany('');
+      setForecastSymbol('');
+      setForecastShares(1);
+    } else {
+      const pos = positions.find(p => p.symbol === val);
+      if (pos) {
+        setForecastCompany(pos.company);
+        setForecastSymbol(pos.symbol);
+        setForecastShares(pos.shares);
+      }
+    }
+  };
+
+  // Cálculo del total estimado en el modal
+  const calculatedForecastTotal = useMemo(() => {
+    const dps = parseFloat(forecastDividendPerShare) || 0;
+    return Number((forecastShares * dps).toFixed(2));
+  }, [forecastShares, forecastDividendPerShare]);
+
+  // Guardar la nueva previsión de dividendo
+  const handleSaveForecast = (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+
+    if (!forecastSymbol.trim()) {
+      setModalError('Introduce el símbolo o ticker de la empresa.');
+      return;
+    }
+    if (!forecastCompany.trim()) {
+      setModalError('Introduce el nombre de la empresa.');
+      return;
+    }
+    if (!forecastDate) {
+      setModalError('Introduce la fecha estimada del dividendo.');
+      return;
+    }
+    const dps = parseFloat(forecastDividendPerShare);
+    if (isNaN(dps) || dps <= 0) {
+      setModalError('Introduce un dividendo bruto por acción válido mayor que 0.');
+      return;
+    }
+    if (forecastShares <= 0) {
+      setModalError('El número de acciones debe ser mayor que 0.');
+      return;
+    }
+
+    // Convertir de YYYY-MM-DD a DD/MM/YYYY
+    const parts = forecastDate.split('-');
+    if (parts.length !== 3) {
+      setModalError('Formato de fecha inválido.');
+      return;
+    }
+    const [y, m, d] = parts;
+    const formattedDate = `${d}/${m}/${y}`;
+    const targetMonth = parseInt(m, 10) - 1;
+    const targetYear = parseInt(y, 10);
+    const targetDay = parseInt(d, 10);
+
+    onAddUpcomingDividend?.({
+      date: formattedDate,
+      company: forecastCompany.trim(),
+      symbol: forecastSymbol.trim().toUpperCase(),
+      dividendPerShareEUR: dps,
+      estimatedTotalEUR: Number((forecastShares * dps).toFixed(2)),
+    });
+
+    // Desplazar el calendario al mes y día del dividendo programado
+    setCurrentYear(targetYear);
+    setCurrentMonth(targetMonth);
+    setSelectedDay(targetDay);
+    setIsAddModalOpen(false);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Filter Bar */}
@@ -253,6 +372,16 @@ export function DividendCalendarView({
               </option>
             ))}
           </select>
+
+          {/* Botón "+ Añadir previsión / pago" */}
+          <button
+            onClick={handleOpenAddModal}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            title="Añadir una nueva previsión o registrar dividendo cobrado"
+          >
+            <Plus className="w-4 h-4 text-emerald-200" />
+            <span>+ Añadir previsión / pago</span>
+          </button>
         </div>
       </div>
 
@@ -334,18 +463,36 @@ export function DividendCalendarView({
                               </span>
                             )}
                           </td>
-                          <td className="py-3 px-3 text-center">
-                            {item.type === 'paid' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                <CheckCircle2 className="w-2.5 h-2.5" />
-                                Cobrado
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                <Clock className="w-2.5 h-2.5" />
-                                Previsto
-                              </span>
-                            )}
+                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {item.type === 'paid' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  <CheckCircle2 className="w-2.5 h-2.5" />
+                                  Cobrado
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  Previsto
+                                </span>
+                              )}
+
+                              {item.type === 'upcoming' && onDeleteUpcomingDividend && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`¿Eliminar la previsión de dividendo de ${item.company} (${item.symbol}) para el ${item.date}?`)) {
+                                      onDeleteUpcomingDividend(item.id);
+                                    }
+                                  }}
+                                  className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  title="Eliminar esta previsión"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -508,6 +655,237 @@ export function DividendCalendarView({
           )}
         </div>
       </div>
+
+      {/* MODAL: Añadir previsión de dividendo / Registrar pago cobrado */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0e1a2f] border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative text-slate-200">
+            {/* Header del modal */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Añadir dividendo al calendario</h3>
+                  <p className="text-[11px] text-slate-400">Registra una previsión futura o abre el formulario oficial de cobro</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Pestañas de modo */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900/90 rounded-xl mb-5 border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setModalTab('upcoming')}
+                className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  modalTab === 'upcoming'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Previsión futura (Calendario)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalTab('paid')}
+                className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  modalTab === 'paid'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-950/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Dividendo ya cobrado</span>
+              </button>
+            </div>
+
+            {modalTab === 'upcoming' ? (
+              /* TAB 1: FORMULARIO DE PREVISIÓN FUTURA */
+              <form onSubmit={handleSaveForecast} className="space-y-4">
+                {modalError && (
+                  <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
+
+                {/* Seleccionar activo de la cartera */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Activo de tu cartera
+                  </label>
+                  <select
+                    value={selectedStockSymbol}
+                    onChange={(e) => handleStockSelectChange(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    {positions.map(p => (
+                      <option key={p.symbol} value={p.symbol}>
+                        {p.symbol} - {p.company} ({p.shares} acciones en cartera)
+                      </option>
+                    ))}
+                    <option value="CUSTOM">+ Otro activo / Ticker personalizado</option>
+                  </select>
+                </div>
+
+                {/* Empresa y Símbolo */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Empresa
+                    </label>
+                    <input
+                      type="text"
+                      value={forecastCompany}
+                      onChange={(e) => setForecastCompany(e.target.value)}
+                      placeholder="Ej. Microsoft"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Ticker / Símbolo
+                    </label>
+                    <input
+                      type="text"
+                      value={forecastSymbol}
+                      onChange={(e) => setForecastSymbol(e.target.value.toUpperCase())}
+                      placeholder="Ej. MSFT"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-blue-400 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Fecha prevista */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Fecha estimada de corte o cobro
+                  </label>
+                  <input
+                    type="date"
+                    value={forecastDate}
+                    onChange={(e) => setForecastDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Se colocará en el calendario del mes correspondiente.
+                  </p>
+                </div>
+
+                {/* Dividendo por acción y Acciones */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Dividendo bruto (€ / acción)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      value={forecastDividendPerShare}
+                      onChange={(e) => setForecastDividendPerShare(e.target.value)}
+                      placeholder="Ej. 0.83"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold font-mono placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Acciones a cobrar
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="1"
+                      value={forecastShares}
+                      onChange={(e) => setForecastShares(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Recuadro de resumen calculado */}
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Total bruto estimado:</span>
+                    <span className="text-sm font-bold text-emerald-400 font-mono">
+                      {formatEUR(calculatedForecastTotal)}
+                    </span>
+                  </div>
+                  <div className="text-right text-[11px] text-slate-400">
+                    <span>{forecastShares} acciones × {forecastDividendPerShare ? `${forecastDividendPerShare} €` : '0,00 €'}</span>
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-950/40 cursor-pointer"
+                  >
+                    Guardar previsión en el calendario
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* TAB 2: DIVIDENDO YA COBRADO */
+              <div className="space-y-4 py-2">
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-2">
+                  <p className="font-semibold text-white flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Registro oficial de dividendo cobrado</span>
+                  </p>
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    Si ya has recibido el abono en tu cuenta y dispones del comprobante o extracto del broker (Trade Republic, IBKR, ClickTrade, etc.), utiliza el formulario fiscal completo.
+                  </p>
+                  <ul className="list-disc list-inside text-[11px] text-slate-400 space-y-1 pt-1">
+                    <li>Retención en origen (ej. 15% EE.UU., 26.375% Alemania)</li>
+                    <li>Retención en destino AEAT (19% España)</li>
+                    <li>Conversión de divisa USD/EUR y comisiones</li>
+                    <li>Actualización automática del calendario con estado <strong>«Cobrado»</strong></li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddModalOpen(false);
+                      onOpenNewPaidDividend?.();
+                    }}
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg shadow-blue-950/40 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Abrir formulario oficial de cobro</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
