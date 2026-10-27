@@ -373,14 +373,14 @@ export function DividendCalendarView({
             ))}
           </select>
 
-          {/* Botón "+ Añadir previsión / pago" */}
+          {/* Botón "+ Añadir previsión / dividendo" */}
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             title="Añadir una nueva previsión o registrar dividendo cobrado"
           >
             <Plus className="w-4 h-4 text-emerald-200" />
-            <span>+ Añadir previsión / pago</span>
+            <span>Añadir previsión / dividendo</span>
           </button>
         </div>
       </div>
@@ -403,14 +403,24 @@ export function DividendCalendarView({
                   Pagos y previsiones del mes en curso ({MONTH_NAMES[currentMonth]} {currentYear})
                 </p>
               </div>
-              {selectedDay !== null && (
+              <div className="flex items-center gap-2">
+                {selectedDay !== null && (
+                  <button
+                    onClick={() => setSelectedDay(null)}
+                    className="text-[11px] text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                  >
+                    Ver todo el mes
+                  </button>
+                )}
                 <button
-                  onClick={() => setSelectedDay(null)}
-                  className="text-[11px] text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                  onClick={handleOpenAddModal}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs border border-emerald-500/40 shadow-sm transition-all cursor-pointer"
+                  title="Añadir previsión o pago para este mes"
                 >
-                  Ver todo el mes
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Añadir previsión</span>
                 </button>
-              )}
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -428,7 +438,16 @@ export function DividendCalendarView({
                   {monthDividendsList.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-slate-500">
-                        No hay pagos de dividendos programados ni registrados en {MONTH_NAMES[currentMonth]} de {currentYear}.
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <p>No hay pagos de dividendos programados ni registrados en {MONTH_NAMES[currentMonth]} de {currentYear}.</p>
+                          <button
+                            onClick={handleOpenAddModal}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02]"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>+ Añadir previsión para {MONTH_NAMES[currentMonth]}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -629,7 +648,7 @@ export function DividendCalendarView({
                   )}
                 </p>
               </div>
-              {selectedDayEvents.length > 0 && (
+              {selectedDayEvents.length > 0 ? (
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                   selectedDayEvents.some(e => e.type === 'paid')
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -637,6 +656,21 @@ export function DividendCalendarView({
                 }`}>
                   {selectedDayEvents.some(e => e.type === 'paid') ? 'Cobrado' : 'Confirmado'}
                 </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const initialDayStr = String(selectedDay).padStart(2, '0');
+                    const initialMonthStr = String(currentMonth + 1).padStart(2, '0');
+                    setForecastDate(`${currentYear}-${initialMonthStr}-${initialDayStr}`);
+                    setModalTab('upcoming');
+                    setIsAddModalOpen(true);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-[11px] shadow-sm transition-all cursor-pointer flex items-center gap-1 shrink-0 ml-2"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Programar aquí</span>
+                </button>
               )}
             </div>
           ) : (
