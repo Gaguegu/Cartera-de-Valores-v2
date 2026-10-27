@@ -139,66 +139,82 @@ export function DividendCalendarView({
       type: 'upcoming' | 'paid';
     }> = [];
 
-    // 1. Dividendos previstos para este mes
-    upcomingDividends.forEach(d => {
+    // 1. Dividendos cobrados para este mes (registro real y efectivo)
+    const paidList: Array<{
+      id: string;
+      day: number;
+      date: string;
+      symbol: string;
+      company: string;
+      amountPerShareEUR: number;
+      totalEUR: number;
+      shares: number;
+      type: 'paid';
+    }> = [];
+
+    dividends.forEach(d => {
       const parsed = parseDateParts(d.date);
       if (parsed && parsed.month === currentMonth && parsed.year === currentYear) {
-        const pos = positions.find(p => p.symbol.toUpperCase() === d.symbol.toUpperCase());
-        const shares = pos ? pos.shares : 1;
-        const total = d.estimatedTotalEUR ?? (d.dividendPerShareEUR * shares);
-        list.push({
+        const shares = d.shares || positions.find(p => p.symbol.toUpperCase() === d.symbol.toUpperCase())?.shares || 1;
+        const amountPerShare = shares > 0 ? (d.grossEUR / shares) : d.grossEUR;
+
+        paidList.push({
           id: d.id,
           day: parsed.day,
           date: d.date,
           symbol: d.symbol,
           company: d.company,
-          amountPerShareEUR: d.dividendPerShareEUR,
-          totalEUR: total,
+          amountPerShareEUR: amountPerShare,
+          totalEUR: d.grossEUR,
           shares,
-          type: 'upcoming',
+          type: 'paid',
         });
       }
     });
 
-    // 2. Dividendos cobrados para este mes
-    dividends.forEach(d => {
+    // 2. Dividendos previstos/anunciados
+    // Regla de conciliación: si ya se ha cobrado un dividendo de esta misma empresa en este mes
+    // (o ya se procesó otra previsión para el mismo símbolo en este mes), la previsión queda saldada y no se duplica.
+    const upcomingList: Array<{
+      id: string;
+      day: number;
+      date: string;
+      symbol: string;
+      company: string;
+      amountPerShareEUR: number;
+      totalEUR: number;
+      shares: number;
+      type: 'upcoming';
+    }> = [];
+
+    upcomingDividends.forEach(d => {
       const parsed = parseDateParts(d.date);
       if (parsed && parsed.month === currentMonth && parsed.year === currentYear) {
-        const existingIdx = list.findIndex(
-          item => item.symbol.toUpperCase() === d.symbol.toUpperCase() && item.day === parsed.day
-        );
-        const shares = d.shares || positions.find(p => p.symbol.toUpperCase() === d.symbol.toUpperCase())?.shares || 1;
-        const amountPerShare = shares > 0 ? (d.grossEUR / shares) : d.grossEUR;
+        const sym = d.symbol.trim().toUpperCase();
+        const alreadyPaid = paidList.some(p => p.symbol.trim().toUpperCase() === sym);
+        const alreadyInUpcoming = upcomingList.some(u => u.symbol.trim().toUpperCase() === sym);
 
-        if (existingIdx >= 0) {
-          list[existingIdx] = {
+        if (!alreadyPaid && !alreadyInUpcoming) {
+          const pos = positions.find(p => p.symbol.toUpperCase() === sym);
+          const shares = pos ? pos.shares : 1;
+          const total = d.estimatedTotalEUR ?? (d.dividendPerShareEUR * shares);
+          upcomingList.push({
             id: d.id,
             day: parsed.day,
             date: d.date,
             symbol: d.symbol,
             company: d.company,
-            amountPerShareEUR: amountPerShare,
-            totalEUR: d.grossEUR,
+            amountPerShareEUR: d.dividendPerShareEUR,
+            totalEUR: total,
             shares,
-            type: 'paid',
-          };
-        } else {
-          list.push({
-            id: d.id,
-            day: parsed.day,
-            date: d.date,
-            symbol: d.symbol,
-            company: d.company,
-            amountPerShareEUR: amountPerShare,
-            totalEUR: d.grossEUR,
-            shares,
-            type: 'paid',
+            type: 'upcoming',
           });
         }
       }
     });
 
-    return list.sort((a, b) => a.day - b.day);
+    const combined = [...paidList, ...upcomingList];
+    return combined.sort((a, b) => a.day - b.day);
   }, [upcomingDividends, dividends, positions, currentMonth, currentYear]);
 
   // Mapeo de dividendos por día para el calendario
@@ -242,7 +258,26 @@ export function DividendCalendarView({
       .reduce((acc, d) => acc + d.grossEUR, 0);
 
     const upcomingTotal = upcomingDividends.reduce((acc, d) => {
-      const pos = positions.find(p => p.symbol.toUpperCase() === d.symbol.toUpperCase());
+      const parsed = parseDateParts(d.date);
+      const isThisYear = parsed ? parsed.year === currentYear : true;
+      if (!isThisYear) return acc;
+
+      const sym = d.symbol.trim().toUpperCase();
+      // Si ya hay un dividendo cobrado de esta empresa en el mismo mes, no duplicar en la estimación
+      const alreadyPaidInSameMonth = dividends.some(paid => {
+        const pParsed = parseDateParts(paid.date);
+        return (
+          paid.symbol.trim().toUpperCase() === sym &&
+          pParsed &&
+          parsed &&
+          pParsed.month === parsed.month &&
+          pParsed.year === parsed.year
+        );
+      });
+
+      if (alreadyPaidInSameMonth) return acc;
+
+      const pos = positions.find(p => p.symbol.toUpperCase() === sym);
       const shares = pos ? pos.shares : 1;
       return acc + (d.dividendPerShareEUR * shares);
     }, 0);
