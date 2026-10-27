@@ -381,6 +381,99 @@ export function quotesApiPlugin(): Plugin {
             return;
           }
 
+          // 6. Dividendos históricos y anunciados para una lista de símbolos
+          if (pathname === '/api/quotes/dividends') {
+            const symbolsParam = urlObj.searchParams.get('symbols') || '';
+            const symbols = symbolsParam
+              .split(',')
+              .map(s => s.trim().toUpperCase())
+              .filter(Boolean);
+
+            if (symbols.length === 0) {
+              res.end(JSON.stringify({ dividends: [] }));
+              return;
+            }
+
+            // FX Rate de USD a EUR
+            let fxUSDtoEUR = 1 / 1.1204;
+            try {
+              const fxUrl = 'https://query2.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1d';
+              const fxData = await fetchFromYahoo(fxUrl);
+              const curRate = fxData?.chart?.result?.[0]?.meta?.regularMarketPrice;
+              if (curRate && curRate > 0) {
+                fxUSDtoEUR = 1 / curRate;
+              }
+            } catch {
+              // fallback
+            }
+
+            const allDividends: any[] = [];
+
+            for (let i = 0; i < symbols.length; i++) {
+              const s = symbols[i];
+              const querySymbol = YAHOO_SYMBOL_OVERRIDES[s] || s;
+
+              try {
+                const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=1mo&range=2y&events=div`;
+                const yData = await fetchFromYahoo(yUrl);
+                const meta = yData?.chart?.result?.[0]?.meta;
+                const divsObj = yData?.chart?.result?.[0]?.events?.dividends;
+
+                if (meta && divsObj && typeof divsObj === 'object') {
+                  const companyName = meta.shortName || s;
+                  const currency = (meta.currency || 'USD').toUpperCase();
+
+                  for (const [exTimestampStr, divInfo] of Object.entries(divsObj as Record<string, any>)) {
+                    const rawAmount = typeof divInfo.amount === 'number' ? divInfo.amount : parseFloat(divInfo.amount);
+                    if (isNaN(rawAmount) || rawAmount <= 0) continue;
+
+                    // Preferir fecha de pago (divInfo.date), fallback a ex-dividend date
+                    const payTimestamp = divInfo.date ? Number(divInfo.date) * 1000 : Number(exTimestampStr) * 1000;
+                    const dateObj = new Date(payTimestamp);
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const year = dateObj.getFullYear();
+                    const formattedDate = `${day}/${month}/${year}`;
+
+                    // Conversión a EUR si la acción cotiza en divisa extranjera
+                    let amountEUR = rawAmount;
+                    if (currency === 'USD') {
+                      amountEUR = rawAmount * fxUSDtoEUR;
+                    } else if (currency === 'DKK') {
+                      amountEUR = rawAmount / 7.46;
+                    } else if (currency === 'GBP') {
+                      amountEUR = rawAmount / 0.84;
+                    }
+
+                    allDividends.push({
+                      id: `div-auto-${s}-${year}${month}${day}`,
+                      symbol: s,
+                      company: companyName,
+                      date: formattedDate,
+                      rawDate: dateObj.toISOString(),
+                      timestamp: payTimestamp,
+                      currency,
+                      rawAmount: Number(rawAmount.toFixed(4)),
+                      dividendPerShareEUR: Number(amountEUR.toFixed(4)),
+                      year,
+                      month: dateObj.getMonth(), // 0-indexed
+                      day: dateObj.getDate(),
+                    });
+                  }
+                }
+              } catch (err: any) {
+                console.info(`[Quotes Plugin] Dividend search for ${s} (${querySymbol}): ${err?.message || 'failed'}`);
+              }
+
+              if (i < symbols.length - 1) {
+                await new Promise(r => setTimeout(r, 60));
+              }
+            }
+
+            res.end(JSON.stringify({ dividends: allDividends }));
+            return;
+          }
+
           res.statusCode = 404;
           res.end(JSON.stringify({ error: 'Endpoint not found' }));
         } catch (err: any) {

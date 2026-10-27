@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { UpcomingDividend, DividendRecord, StockPosition } from '../types/portfolio';
 import { formatEUR, formatNumber, getAvailableFiscalYears } from '../utils/formatters';
-import { Calendar, ChevronLeft, ChevronRight, DollarSign, CheckCircle2, Coins, Clock, Plus, Trash2, X, AlertCircle } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, DollarSign, CheckCircle2, Coins, Clock, Plus, Trash2, X, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface DividendCalendarViewProps {
   upcomingDividends: UpcomingDividend[];
@@ -9,6 +9,7 @@ interface DividendCalendarViewProps {
   positions?: StockPosition[];
   onAddUpcomingDividend?: (dividend: Omit<UpcomingDividend, 'id'>) => void;
   onDeleteUpcomingDividend?: (id: string) => void;
+  onSyncUpcomingDividends?: (items: UpcomingDividend[]) => void;
   onOpenNewPaidDividend?: () => void;
 }
 
@@ -48,6 +49,7 @@ export function DividendCalendarView({
   positions = [],
   onAddUpcomingDividend,
   onDeleteUpcomingDividend,
+  onSyncUpcomingDividends,
   onOpenNewPaidDividend,
 }: DividendCalendarViewProps) {
   const today = new Date();
@@ -58,7 +60,11 @@ export function DividendCalendarView({
   const [currentMonth, setCurrentMonth] = useState<number>(initialMonth);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  // Estados del modal "+ Añadir previsión / pago"
+  // Estados de sincronización automática de dividendos de cartera
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncFeedback, setSyncFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+
+  // Estados del modal manual "+ Añadir previsión / pago"
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<'upcoming' | 'paid'>('upcoming');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('');
@@ -244,6 +250,65 @@ export function DividendCalendarView({
     return total > 0 ? total : 83.82;
   }, [dividends, upcomingDividends, positions, currentYear]);
 
+  // Búsqueda y sincronización automática de dividendos anunciados/públicos para las acciones de la Cartera actual
+  const handleFetchPortfolioDividends = async () => {
+    if (positions.length === 0) {
+      setSyncFeedback({
+        type: 'error',
+        text: 'No tienes acciones en la Cartera actual para consultar dividendos.',
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncFeedback(null);
+
+    try {
+      const symbols = positions.map(p => p.symbol).join(',');
+      const res = await fetch(`/api/quotes/dividends?symbols=${encodeURIComponent(symbols)}`);
+      if (!res.ok) throw new Error(`Error en servidor (${res.status})`);
+      const data = await res.json();
+      const fetched: any[] = data.dividends || [];
+
+      if (fetched.length === 0) {
+        setSyncFeedback({
+          type: 'info',
+          text: 'No se encontraron nuevos anuncios de dividendos para las acciones de tu cartera viva.',
+        });
+        setIsSyncing(false);
+        return;
+      }
+
+      // Mapear al tipo UpcomingDividend calculando el total con las acciones en custodia
+      const mappedUpcoming: UpcomingDividend[] = fetched.map(item => {
+        const pos = positions.find(p => p.symbol.toUpperCase() === item.symbol.toUpperCase());
+        const shares = pos ? pos.shares : 1;
+        const total = Number((shares * item.dividendPerShareEUR).toFixed(2));
+        return {
+          id: item.id || `div-auto-${item.symbol}-${item.date.replace(/\//g, '')}`,
+          date: item.date,
+          company: pos?.company || item.company,
+          symbol: item.symbol,
+          dividendPerShareEUR: item.dividendPerShareEUR,
+          estimatedTotalEUR: total,
+        };
+      });
+
+      onSyncUpcomingDividends?.(mappedUpcoming);
+      setSyncFeedback({
+        type: 'success',
+        text: `¡Completado! Se han sincronizado ${mappedUpcoming.length} dividendos anunciados y públicos para las acciones de tu cartera (${positions.map(p => p.symbol).join(', ')}).`,
+      });
+    } catch (err: any) {
+      setSyncFeedback({
+        type: 'error',
+        text: `Error al consultar dividendos: ${err?.message || 'Error de conexión'}`,
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Abre el modal de añadir previsión / pago con datos inicializados
   const handleOpenAddModal = () => {
     const defaultDay = selectedDay || Math.min(today.getDate(), daysInCurrentMonth);
@@ -373,17 +438,46 @@ export function DividendCalendarView({
             ))}
           </select>
 
-          {/* Botón "+ Añadir previsión / dividendo" */}
+          {/* Botón principal: Buscar y actualizar dividendos de las acciones de la cartera */}
+          <button
+            onClick={handleFetchPortfolioDividends}
+            disabled={isSyncing}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+            title="Buscar y actualizar automáticamente los dividendos anunciados y públicos de las acciones de tu Cartera actual"
+          >
+            <RefreshCw className={`w-4 h-4 text-emerald-200 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Buscando dividendos...' : 'Actualizar dividendos de cartera'}</span>
+          </button>
+
+          {/* Botón secundario discreto para añadir previsión manual */}
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-            title="Añadir una nueva previsión o registrar dividendo cobrado"
+            className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="Añadir dividendo manualmente..."
           >
-            <Plus className="w-4 h-4 text-emerald-200" />
-            <span>Añadir previsión / dividendo</span>
+            <Plus className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {/* Banner de feedback de sincronización */}
+      {syncFeedback && (
+        <div className={`p-3 rounded-xl border text-xs flex items-center justify-between transition-all ${
+          syncFeedback.type === 'success'
+            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+            : syncFeedback.type === 'error'
+            ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+            : 'bg-blue-500/15 border-blue-500/40 text-blue-300'
+        }`}>
+          <span>{syncFeedback.text}</span>
+          <button
+            onClick={() => setSyncFeedback(null)}
+            className="text-slate-400 hover:text-white text-xs underline ml-3 cursor-pointer"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* 2 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -403,24 +497,14 @@ export function DividendCalendarView({
                   Pagos y previsiones del mes en curso ({MONTH_NAMES[currentMonth]} {currentYear})
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {selectedDay !== null && (
-                  <button
-                    onClick={() => setSelectedDay(null)}
-                    className="text-[11px] text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
-                  >
-                    Ver todo el mes
-                  </button>
-                )}
+              {selectedDay !== null && (
                 <button
-                  onClick={handleOpenAddModal}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs border border-emerald-500/40 shadow-sm transition-all cursor-pointer"
-                  title="Añadir previsión o pago para este mes"
+                  onClick={() => setSelectedDay(null)}
+                  className="text-[11px] text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Añadir previsión</span>
+                  Ver todo el mes
                 </button>
-              </div>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -438,16 +522,7 @@ export function DividendCalendarView({
                   {monthDividendsList.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-slate-500">
-                        <div className="flex flex-col items-center justify-center gap-3">
-                          <p>No hay pagos de dividendos programados ni registrados en {MONTH_NAMES[currentMonth]} de {currentYear}.</p>
-                          <button
-                            onClick={handleOpenAddModal}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02]"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span>+ Añadir previsión para {MONTH_NAMES[currentMonth]}</span>
-                          </button>
-                        </div>
+                        No hay pagos de dividendos programados ni registrados en {MONTH_NAMES[currentMonth]} de {currentYear}.
                       </td>
                     </tr>
                   ) : (
@@ -489,12 +564,23 @@ export function DividendCalendarView({
                                   <CheckCircle2 className="w-2.5 h-2.5" />
                                   Cobrado
                                 </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                  <Clock className="w-2.5 h-2.5" />
-                                  Previsto
-                                </span>
-                              )}
+                              ) : (() => {
+                                const parts = parseDateParts(item.date);
+                                const isPast = parts
+                                  ? new Date(parts.year, parts.month, parts.day) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+                                  : false;
+                                return isPast ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-500/20 text-slate-300 border border-slate-500/30" title="Dividendo publicado en fecha pasada">
+                                    <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                    Vencido
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    <Clock className="w-2.5 h-2.5" />
+                                    Previsto
+                                  </span>
+                                );
+                              })()}
 
                               {item.type === 'upcoming' && onDeleteUpcomingDividend && (
                                 <button
@@ -648,7 +734,7 @@ export function DividendCalendarView({
                   )}
                 </p>
               </div>
-              {selectedDayEvents.length > 0 ? (
+              {selectedDayEvents.length > 0 && (
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                   selectedDayEvents.some(e => e.type === 'paid')
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -656,21 +742,6 @@ export function DividendCalendarView({
                 }`}>
                   {selectedDayEvents.some(e => e.type === 'paid') ? 'Cobrado' : 'Confirmado'}
                 </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const initialDayStr = String(selectedDay).padStart(2, '0');
-                    const initialMonthStr = String(currentMonth + 1).padStart(2, '0');
-                    setForecastDate(`${currentYear}-${initialMonthStr}-${initialDayStr}`);
-                    setModalTab('upcoming');
-                    setIsAddModalOpen(true);
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-[11px] shadow-sm transition-all cursor-pointer flex items-center gap-1 shrink-0 ml-2"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Programar aquí</span>
-                </button>
               )}
             </div>
           ) : (

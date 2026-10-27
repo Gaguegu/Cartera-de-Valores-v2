@@ -1141,6 +1141,29 @@ export default function App() {
     });
   };
 
+  const handleSyncUpcomingDividends = (items: UpcomingDividend[]) => {
+    setUpcomingDividends(prev => {
+      const map = new Map<string, UpcomingDividend>();
+      prev.forEach(d => {
+        const key = `${d.symbol.toUpperCase()}-${d.date}`;
+        map.set(key, d);
+      });
+      items.forEach(d => {
+        const key = `${d.symbol.toUpperCase()}-${d.date}`;
+        map.set(key, d);
+      });
+      const merged = Array.from(map.values());
+      localStorage.setItem('cartera_upcoming_dividends', JSON.stringify(merged));
+      return merged;
+    });
+
+    setGlobalToast({
+      title: 'Dividendos sincronizados',
+      message: `Se han actualizado ${items.length} dividendos públicos de tus acciones en cartera.`,
+      type: 'success',
+    });
+  };
+
   const handleAddBroker = (brokerData: Omit<Broker, 'id'>) => {
     const newBrk: Broker = {
       id: `brk-${Date.now()}`,
@@ -1684,6 +1707,7 @@ export default function App() {
                 positions={positions}
                 onAddUpcomingDividend={handleAddUpcomingDividend}
                 onDeleteUpcomingDividend={handleDeleteUpcomingDividend}
+                onSyncUpcomingDividends={handleSyncUpcomingDividends}
                 onOpenNewPaidDividend={() => {
                   setPrefilledDividendData(null);
                   setIsNewDivOpen(true);
