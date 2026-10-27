@@ -98,19 +98,28 @@ export function quotesApiPlugin(): Plugin {
     name: 'quotes-api-plugin',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if (!req.url?.startsWith('/api/quotes')) {
+        if (!req.url || !req.url.includes('/api/quotes')) {
           return next();
         }
 
-        const urlObj = new URL(req.url, 'http://localhost:3000');
-        const pathname = urlObj.pathname;
+        let urlObj: URL;
+        try {
+          urlObj = new URL(req.url, 'http://localhost:3000');
+        } catch {
+          urlObj = new URL(`http://localhost:3000${req.url.startsWith('/') ? '' : '/'}${req.url}`);
+        }
+        const pathname = urlObj.pathname.replace(/\/+$/, '');
+        const isRoute = (route: string) =>
+          pathname === route ||
+          pathname.endsWith(route) ||
+          pathname.endsWith(route.replace('/api', ''));
 
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Access-Control-Allow-Origin', '*');
 
         try {
           // 1. Buscar cotizaciones por texto o ticker
-          if (pathname === '/api/quotes/search') {
+          if (isRoute('/api/quotes/search')) {
             const query = urlObj.searchParams.get('q') || '';
             if (!query.trim()) {
               res.end(JSON.stringify({ quotes: [] }));
@@ -174,7 +183,7 @@ export function quotesApiPlugin(): Plugin {
           }
 
           // 2. Cotización detallada de un solo símbolo
-          if (pathname === '/api/quotes/quote') {
+          if (isRoute('/api/quotes/quote')) {
             const rawSymbol = (urlObj.searchParams.get('symbol') || '').trim();
             if (!rawSymbol) {
               res.statusCode = 400;
@@ -224,7 +233,7 @@ export function quotesApiPlugin(): Plugin {
           }
 
           // 3. Batch de múltiples cotizaciones (para actualizar toda la cartera/watchlist)
-          if (pathname === '/api/quotes/batch') {
+          if (isRoute('/api/quotes/batch')) {
             const symbolsParam = urlObj.searchParams.get('symbols') || '';
             const symbols = symbolsParam
               .split(',')
@@ -278,7 +287,7 @@ export function quotesApiPlugin(): Plugin {
           }
 
           // 4. Índices principales y tipo de cambio EUR/USD y EUR/GBP
-          if (pathname === '/api/quotes/indices') {
+          if (isRoute('/api/quotes/indices')) {
             const indexSymbols = ['^GSPC', '^NDX', '^IBEX', '^STOXX50E', 'EURUSD=X', 'EURGBP=X'];
             const names: Record<string, string> = {
               '^GSPC': 'S&P 500',
@@ -323,7 +332,7 @@ export function quotesApiPlugin(): Plugin {
           }
 
           // 5. Tipos de cambio en tiempo real EUR/USD y EUR/GBP (Fuente principal: Yahoo Finance EURUSD=X)
-          if (pathname === '/api/quotes/fx') {
+          if (isRoute('/api/quotes/fx')) {
             let usdEurRate = 1.1204;
             let gbpEurRate = 0.8376;
             let success = false;
@@ -382,7 +391,7 @@ export function quotesApiPlugin(): Plugin {
           }
 
           // 6. Dividendos históricos y anunciados para una lista de símbolos
-          if (pathname === '/api/quotes/dividends') {
+          if (isRoute('/api/quotes/dividends')) {
             const symbolsParam = urlObj.searchParams.get('symbols') || '';
             const symbols = symbolsParam
               .split(',')

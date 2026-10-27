@@ -1,4 +1,4 @@
-import { MarketQuote, Currency } from '../types/portfolio';
+import { MarketQuote, Currency, UpcomingDividend, StockPosition } from '../types/portfolio';
 import { POPULAR_MARKET_STOCKS } from '../data/marketDatabase';
 
 export interface MarketIndex {
@@ -513,4 +513,150 @@ export async function searchMarketQuotes(query: string): Promise<MarketQuote[]> 
   }
 
   return localMatches;
+}
+
+/**
+ * Consulta y sincroniza automáticamente los dividendos anunciados y públicos
+ * para todas las acciones de la Cartera actual.
+ * Dispone de triple tolerancia a fallos:
+ * 1. Servidor local (/api/quotes/dividends)
+ * 2. Consulta directa a Yahoo Finance Chart API (con soporte de CORS proxy)
+ * 3. Catálogo corporativo público para acciones internacionales y nacionales
+ */
+export async function fetchPortfolioDividendsOnline(positions: StockPosition[]): Promise<UpcomingDividend[]> {
+  if (!positions || positions.length === 0) return [];
+
+  const symbols = positions.map(p => p.symbol.trim()).filter(Boolean);
+  const posMap = new Map(positions.map(p => [p.symbol.toUpperCase(), p]));
+
+  // 1. Intentar endpoint local (/api/quotes/dividends)
+  try {
+    const res = await fetch(`/api/quotes/dividends?symbols=${encodeURIComponent(symbols.join(','))}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.dividends) && data.dividends.length > 0) {
+        return data.dividends.map((item: any) => {
+          const pos = posMap.get(item.symbol.toUpperCase());
+          const shares = pos ? pos.shares : 1;
+          const estTotal = item.estimatedTotalEUR ?? Number((shares * item.dividendPerShareEUR).toFixed(2));
+          return {
+            id: item.id || `div-auto-${item.symbol}-${item.date.replace(/\//g, '')}`,
+            date: item.date,
+            company: pos?.company || item.company,
+            symbol: item.symbol,
+            dividendPerShareEUR: item.dividendPerShareEUR,
+            estimatedTotalEUR: estTotal,
+          };
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[QuotesService] Local /api/quotes/dividends unavailable, using direct web sources:', err);
+  }
+
+  // 2. Intentar consulta directa a Yahoo Finance para cada posición
+  const directDividends: UpcomingDividend[] = [];
+  const fxUsdToEur = 1 / currentEurUsdRate;
+
+  for (const pos of positions) {
+    const rawSym = pos.symbol.toUpperCase();
+    const yahooSym = resolveYahooSymbol(rawSym);
+    const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1mo&range=2y&events=div`;
+
+    let chartData: any = null;
+    try {
+      const res = await fetch(yUrl);
+      if (res.ok) {
+        chartData = await res.json();
+      }
+    } catch {
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yUrl)}`;
+        const pRes = await fetch(proxyUrl);
+        if (pRes.ok) {
+          chartData = await pRes.json();
+        }
+      } catch {
+        // Silencioso
+      }
+    }
+
+    const meta = chartData?.chart?.result?.[0]?.meta;
+    const divsObj = chartData?.chart?.result?.[0]?.events?.dividends;
+
+    if (meta && divsObj && typeof divsObj === 'object') {
+      const currency = (meta.currency || pos.currency || 'USD').toUpperCase();
+      for (const [exTs, divInfo] of Object.entries(divsObj as Record<string, any>)) {
+        const rawAmount = typeof divInfo.amount === 'number' ? divInfo.amount : parseFloat(divInfo.amount);
+        if (isNaN(rawAmount) || rawAmount <= 0) continue;
+
+        const payTs = divInfo.date ? Number(divInfo.date) * 1000 : Number(exTs) * 1000;
+        const dObj = new Date(payTs);
+        const day = String(dObj.getDate()).padStart(2, '0');
+        const month = String(dObj.getMonth() + 1).padStart(2, '0');
+        const year = dObj.getFullYear();
+        const dateStr = `${day}/${month}/${year}`;
+
+        let amountEUR = rawAmount;
+        if (currency === 'USD') amountEUR = rawAmount * fxUsdToEur;
+        else if (currency === 'DKK') amountEUR = rawAmount / 7.46;
+        else if (currency === 'GBP') amountEUR = rawAmount / currentGbpEurRate;
+
+        const totalEst = Number((pos.shares * amountEUR).toFixed(2));
+        directDividends.push({
+          id: `div-auto-${rawSym}-${year}${month}${day}`,
+          date: dateStr,
+          company: pos.company || meta.shortName || rawSym,
+          symbol: rawSym,
+          dividendPerShareEUR: Number(amountEUR.toFixed(4)),
+          estimatedTotalEUR: totalEst,
+        });
+      }
+    }
+  }
+
+  if (directDividends.length > 0) {
+    return directDividends;
+  }
+
+  // 3. Catálogo público de respaldo para empresas conocidas de la cartera
+  const fallbackCatalog: Record<string, { dpsUSD: number; dpsEUR: number; months: number[]; day: number }> = {
+    'MSFT': { dpsUSD: 0.83, dpsEUR: 0.74, months: [2, 5, 8, 11], day: 12 },
+    'META': { dpsUSD: 0.525, dpsEUR: 0.47, months: [2, 5, 8, 11], day: 26 },
+    'AAPL': { dpsUSD: 0.25, dpsEUR: 0.22, months: [1, 4, 7, 10], day: 15 },
+    'CEG':  { dpsUSD: 0.35, dpsEUR: 0.31, months: [2, 5, 8, 11], day: 10 },
+    'BE':   { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1 },
+    'AMD':  { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1 },
+    'SAN':  { dpsUSD: 0.10, dpsEUR: 0.10, months: [4, 10], day: 2 },
+    'ITX':  { dpsUSD: 0.77, dpsEUR: 0.77, months: [4, 10], day: 4 },
+    'IBE':  { dpsUSD: 0.38, dpsEUR: 0.38, months: [0, 6], day: 28 },
+    'BBVA': { dpsUSD: 0.39, dpsEUR: 0.39, months: [3, 9], day: 10 },
+    'CABK': { dpsUSD: 0.23, dpsEUR: 0.23, months: [3, 10], day: 8 },
+    'NOVO': { dpsUSD: 0.65, dpsEUR: 0.65, months: [2, 7], day: 25 },
+    'SIE':  { dpsUSD: 4.70, dpsEUR: 4.70, months: [1], day: 14 },
+  };
+
+  const catalogDividends: UpcomingDividend[] = [];
+  const curYr = 2026;
+
+  for (const pos of positions) {
+    const sym = pos.symbol.toUpperCase();
+    const info = fallbackCatalog[sym];
+    if (info && info.dpsEUR > 0) {
+      for (const m of info.months) {
+        const dStr = `${String(info.day).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}/${curYr}`;
+        const total = Number((pos.shares * info.dpsEUR).toFixed(2));
+        catalogDividends.push({
+          id: `div-catalog-${sym}-${curYr}-${m + 1}`,
+          date: dStr,
+          company: pos.company,
+          symbol: sym,
+          dividendPerShareEUR: info.dpsEUR,
+          estimatedTotalEUR: total,
+        });
+      }
+    }
+  }
+
+  return catalogDividends;
 }

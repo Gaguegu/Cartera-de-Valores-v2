@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { UpcomingDividend, DividendRecord, StockPosition } from '../types/portfolio';
 import { formatEUR, formatNumber, getAvailableFiscalYears } from '../utils/formatters';
+import { fetchPortfolioDividendsOnline } from '../services/quotesService';
 import { Calendar, ChevronLeft, ChevronRight, DollarSign, CheckCircle2, Coins, Clock, Plus, Trash2, X, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface DividendCalendarViewProps {
@@ -264,13 +265,9 @@ export function DividendCalendarView({
     setSyncFeedback(null);
 
     try {
-      const symbols = positions.map(p => p.symbol).join(',');
-      const res = await fetch(`/api/quotes/dividends?symbols=${encodeURIComponent(symbols)}`);
-      if (!res.ok) throw new Error(`Error en servidor (${res.status})`);
-      const data = await res.json();
-      const fetched: any[] = data.dividends || [];
+      const mappedUpcoming = await fetchPortfolioDividendsOnline(positions);
 
-      if (fetched.length === 0) {
+      if (mappedUpcoming.length === 0) {
         setSyncFeedback({
           type: 'info',
           text: 'No se encontraron nuevos anuncios de dividendos para las acciones de tu cartera viva.',
@@ -279,27 +276,13 @@ export function DividendCalendarView({
         return;
       }
 
-      // Mapear al tipo UpcomingDividend calculando el total con las acciones en custodia
-      const mappedUpcoming: UpcomingDividend[] = fetched.map(item => {
-        const pos = positions.find(p => p.symbol.toUpperCase() === item.symbol.toUpperCase());
-        const shares = pos ? pos.shares : 1;
-        const total = Number((shares * item.dividendPerShareEUR).toFixed(2));
-        return {
-          id: item.id || `div-auto-${item.symbol}-${item.date.replace(/\//g, '')}`,
-          date: item.date,
-          company: pos?.company || item.company,
-          symbol: item.symbol,
-          dividendPerShareEUR: item.dividendPerShareEUR,
-          estimatedTotalEUR: total,
-        };
-      });
-
       onSyncUpcomingDividends?.(mappedUpcoming);
       setSyncFeedback({
         type: 'success',
         text: `¡Completado! Se han sincronizado ${mappedUpcoming.length} dividendos anunciados y públicos para las acciones de tu cartera (${positions.map(p => p.symbol).join(', ')}).`,
       });
     } catch (err: any) {
+      console.warn('[DividendCalendarView] Error fetching dividends:', err);
       setSyncFeedback({
         type: 'error',
         text: `Error al consultar dividendos: ${err?.message || 'Error de conexión'}`,
