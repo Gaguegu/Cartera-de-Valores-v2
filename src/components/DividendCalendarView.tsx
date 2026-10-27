@@ -44,6 +44,35 @@ function parseDateParts(dateStr: string): { day: number; month: number; year: nu
   return { day, month, year };
 }
 
+/**
+ * Calcula la fecha ex-dividendo de corte habitual según el mercado y país
+ * Si no está registrada explícitamente:
+ * - Acciones españolas / europeas (.MC / IBEX): 2 a 3 días hábiles antes del abono
+ * - Acciones USA e internacionales (MSFT, META, etc.): 14 a 20 días naturales antes del abono
+ */
+export function calculateDefaultExDividendDate(paymentDate: string, symbol?: string): string {
+  const parts = parseDateParts(paymentDate);
+  if (!parts) return '';
+  const cleanSym = (symbol || '').trim().toUpperCase();
+  const isSpanish = cleanSym.endsWith('.MC') || ['IBE', 'SAN', 'BBVA', 'ITX', 'CABK', 'TEF', 'REP', 'ELE', 'ACS', 'CLNX', 'FER'].includes(cleanSym);
+
+  const daysPrior = isSpanish ? 3 : 18;
+  const payDate = new Date(parts.year, parts.month, parts.day);
+  const exDate = new Date(payDate.getTime() - (daysPrior * 24 * 60 * 60 * 1000));
+
+  // Si cae en fin de semana, retroceder al viernes anterior
+  if (exDate.getDay() === 0) { // Domingo
+    exDate.setDate(exDate.getDate() - 2);
+  } else if (exDate.getDay() === 6) { // Sábado
+    exDate.setDate(exDate.getDate() - 1);
+  }
+
+  const d = String(exDate.getDate()).padStart(2, '0');
+  const m = String(exDate.getMonth() + 1).padStart(2, '0');
+  const y = exDate.getFullYear();
+  return `${d}/${m}/${y}`;
+}
+
 export function DividendCalendarView({
   upcomingDividends,
   dividends = [],
@@ -72,6 +101,7 @@ export function DividendCalendarView({
   const [forecastCompany, setForecastCompany] = useState<string>('');
   const [forecastSymbol, setForecastSymbol] = useState<string>('');
   const [forecastDate, setForecastDate] = useState<string>('');
+  const [forecastExDate, setForecastExDate] = useState<string>('');
   const [forecastDividendPerShare, setForecastDividendPerShare] = useState<string>('');
   const [forecastShares, setForecastShares] = useState<number>(1);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -144,6 +174,7 @@ export function DividendCalendarView({
       id: string;
       day: number;
       date: string;
+      exDividendDate: string;
       symbol: string;
       company: string;
       amountPerShareEUR: number;
@@ -157,11 +188,13 @@ export function DividendCalendarView({
       if (parsed && parsed.month === currentMonth && parsed.year === currentYear) {
         const shares = d.shares || positions.find(p => p.symbol.toUpperCase() === d.symbol.toUpperCase())?.shares || 1;
         const amountPerShare = shares > 0 ? (d.grossEUR / shares) : d.grossEUR;
+        const exDate = d.exDividendDate || calculateDefaultExDividendDate(d.date, d.symbol);
 
         paidList.push({
           id: d.id,
           day: parsed.day,
           date: d.date,
+          exDividendDate: exDate,
           symbol: d.symbol,
           company: d.company,
           amountPerShareEUR: amountPerShare,
@@ -179,6 +212,7 @@ export function DividendCalendarView({
       id: string;
       day: number;
       date: string;
+      exDividendDate: string;
       symbol: string;
       company: string;
       amountPerShareEUR: number;
@@ -198,10 +232,13 @@ export function DividendCalendarView({
           const pos = positions.find(p => p.symbol.toUpperCase() === sym);
           const shares = pos ? pos.shares : 1;
           const total = d.estimatedTotalEUR ?? (d.dividendPerShareEUR * shares);
+          const exDate = d.exDividendDate || calculateDefaultExDividendDate(d.date, d.symbol);
+
           upcomingList.push({
             id: d.id,
             day: parsed.day,
             date: d.date,
+            exDividendDate: exDate,
             symbol: d.symbol,
             company: d.company,
             amountPerShareEUR: d.dividendPerShareEUR,
@@ -224,6 +261,7 @@ export function DividendCalendarView({
       company: string;
       amountEUR: number;
       type: 'upcoming' | 'paid';
+      exDividendDate: string;
     }>>();
 
     monthDividendsList.forEach(item => {
@@ -233,6 +271,7 @@ export function DividendCalendarView({
         company: item.company,
         amountEUR: item.amountPerShareEUR,
         type: item.type,
+        exDividendDate: item.exDividendDate,
       });
       map.set(item.day, list);
     });
@@ -332,10 +371,13 @@ export function DividendCalendarView({
     const defaultDay = selectedDay || Math.min(today.getDate(), daysInCurrentMonth);
     const initialDayStr = String(defaultDay).padStart(2, '0');
     const initialMonthStr = String(currentMonth + 1).padStart(2, '0');
-    setForecastDate(`${currentYear}-${initialMonthStr}-${initialDayStr}`);
+    const initialPayDateStr = `${currentYear}-${initialMonthStr}-${initialDayStr}`;
+    setForecastDate(initialPayDateStr);
 
+    let initialSym = '';
     if (positions.length > 0) {
       const first = positions[0];
+      initialSym = first.symbol;
       setSelectedStockSymbol(first.symbol);
       setForecastCompany(first.company);
       setForecastSymbol(first.symbol);
@@ -346,6 +388,16 @@ export function DividendCalendarView({
       setForecastSymbol('');
       setForecastShares(1);
     }
+
+    // Auto-completar fecha ex-dividendo de corte calculada
+    const defaultExDate = calculateDefaultExDividendDate(`${initialDayStr}/${initialMonthStr}/${currentYear}`, initialSym);
+    const exParts = parseDateParts(defaultExDate);
+    if (exParts) {
+      setForecastExDate(`${exParts.year}-${String(exParts.month + 1).padStart(2, '0')}-${String(exParts.day).padStart(2, '0')}`);
+    } else {
+      setForecastExDate('');
+    }
+
     setForecastDividendPerShare('');
     setModalError(null);
     setModalTab('upcoming');
@@ -365,6 +417,17 @@ export function DividendCalendarView({
         setForecastCompany(pos.company);
         setForecastSymbol(pos.symbol);
         setForecastShares(pos.shares);
+        // Si hay una fecha de abono puesta, recalcular la fecha ex-dividendo por país
+        if (forecastDate) {
+          const p = forecastDate.split('-');
+          if (p.length === 3) {
+            const defEx = calculateDefaultExDividendDate(`${p[2]}/${p[1]}/${p[0]}`, pos.symbol);
+            const exParts = parseDateParts(defEx);
+            if (exParts) {
+              setForecastExDate(`${exParts.year}-${String(exParts.month + 1).padStart(2, '0')}-${String(exParts.day).padStart(2, '0')}`);
+            }
+          }
+        }
       }
     }
   };
@@ -389,7 +452,7 @@ export function DividendCalendarView({
       return;
     }
     if (!forecastDate) {
-      setModalError('Introduce la fecha estimada del dividendo.');
+      setModalError('Introduce la fecha de abono del dividendo.');
       return;
     }
     const dps = parseFloat(forecastDividendPerShare);
@@ -405,7 +468,7 @@ export function DividendCalendarView({
     // Convertir de YYYY-MM-DD a DD/MM/YYYY
     const parts = forecastDate.split('-');
     if (parts.length !== 3) {
-      setModalError('Formato de fecha inválido.');
+      setModalError('Formato de fecha de abono inválido.');
       return;
     }
     const [y, m, d] = parts;
@@ -414,8 +477,20 @@ export function DividendCalendarView({
     const targetYear = parseInt(y, 10);
     const targetDay = parseInt(d, 10);
 
+    let formattedExDate: string | undefined = undefined;
+    if (forecastExDate) {
+      const exParts = forecastExDate.split('-');
+      if (exParts.length === 3) {
+        formattedExDate = `${exParts[2]}/${exParts[1]}/${exParts[0]}`;
+      }
+    }
+    if (!formattedExDate) {
+      formattedExDate = calculateDefaultExDividendDate(formattedDate, forecastSymbol);
+    }
+
     onAddUpcomingDividend?.({
       date: formattedDate,
+      exDividendDate: formattedExDate,
       company: forecastCompany.trim(),
       symbol: forecastSymbol.trim().toUpperCase(),
       dividendPerShareEUR: dps,
@@ -529,7 +604,10 @@ export function DividendCalendarView({
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-900/60 text-slate-400 font-semibold border-b border-slate-800">
                   <tr>
-                    <th className="py-2.5 px-3">Fecha</th>
+                    <th className="py-2.5 px-3">
+                      <div>Fecha abono</div>
+                      <div className="text-[10px] text-slate-500 font-normal">Ex-dividendo</div>
+                    </th>
                     <th className="py-2.5 px-3">Empresa</th>
                     <th className="py-2.5 px-3">Símbolo</th>
                     <th className="py-2.5 px-3 text-right">Dividendo (€)</th>
@@ -556,8 +634,18 @@ export function DividendCalendarView({
                               : 'hover:bg-slate-800/40'
                           }`}
                         >
-                          <td className="py-3 px-3 text-slate-300 font-mono font-medium">
-                            {item.date}
+                          <td className="py-3 px-3 font-mono">
+                            <div className="text-white font-medium text-xs">
+                              {item.date}
+                            </div>
+                            <div className="text-[11px] font-mono text-slate-400 mt-0.5 flex items-center gap-1">
+                              <span className="text-[9px] uppercase tracking-wider text-slate-500 font-sans font-semibold">
+                                Ex-div:
+                              </span>
+                              <span className="text-blue-300 font-medium">
+                                {item.exDividendDate}
+                              </span>
+                            </div>
                           </td>
                           <td className="py-3 px-3 text-white font-medium">
                             {item.company}
@@ -746,7 +834,7 @@ export function DividendCalendarView({
                 </span>
                 <p className="text-slate-400 text-[11px] mt-0.5">
                   {selectedDayEvents.length > 0 ? (
-                    selectedDayEvents.map(e => `${e.company} (${e.symbol}) · ${formatNumber(e.amountEUR)} €/acción (${e.type === 'paid' ? 'cobrado' : 'previsto'})`).join(' | ')
+                    selectedDayEvents.map(e => `${e.company} (${e.symbol}) · ${formatNumber(e.amountEUR)} €/acción (${e.type === 'paid' ? 'cobrado' : 'previsto'})${e.exDividendDate ? ` · Ex-div: ${e.exDividendDate}` : ''}`).join(' | ')
                   ) : (
                     'Sin pagos programados para este día.'
                   )}
@@ -888,20 +976,49 @@ export function DividendCalendarView({
                   </div>
                 </div>
 
-                {/* Fecha prevista */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Fecha estimada de corte o cobro
-                  </label>
-                  <input
-                    type="date"
-                    value={forecastDate}
-                    onChange={(e) => setForecastDate(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500 cursor-pointer"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Se colocará en el calendario del mes correspondiente.
-                  </p>
+                {/* Fecha de abono y Fecha Ex-dividendo */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Fecha de abono (pago)
+                    </label>
+                    <input
+                      type="date"
+                      value={forecastDate}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForecastDate(val);
+                        if (val) {
+                          const parts = val.split('-');
+                          if (parts.length === 3) {
+                            const defEx = calculateDefaultExDividendDate(`${parts[2]}/${parts[1]}/${parts[0]}`, forecastSymbol);
+                            const exP = parseDateParts(defEx);
+                            if (exP) {
+                              setForecastExDate(`${exP.year}-${String(exP.month + 1).padStart(2, '0')}-${String(exP.day).padStart(2, '0')}`);
+                            }
+                          }
+                        }
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Día de pago en cuenta.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Fecha Ex-dividendo
+                    </label>
+                    <input
+                      type="date"
+                      value={forecastExDate}
+                      onChange={(e) => setForecastExDate(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-blue-300 font-mono focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Corte con derecho a cobro.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Dividendo por acción y Acciones */}

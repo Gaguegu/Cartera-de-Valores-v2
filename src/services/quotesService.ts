@@ -542,6 +542,7 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
           return {
             id: item.id || `div-auto-${item.symbol}-${item.date.replace(/\//g, '')}`,
             date: item.date,
+            exDividendDate: item.exDividendDate,
             company: pos?.company || item.company,
             symbol: item.symbol,
             dividendPerShareEUR: item.dividendPerShareEUR,
@@ -590,6 +591,14 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
         const rawAmount = typeof divInfo.amount === 'number' ? divInfo.amount : parseFloat(divInfo.amount);
         if (isNaN(rawAmount) || rawAmount <= 0) continue;
 
+        // Fecha Ex-dividendo
+        const exTimestamp = Number(exTs) * 1000;
+        const exDObj = new Date(exTimestamp);
+        const exDay = String(exDObj.getDate()).padStart(2, '0');
+        const exMonth = String(exDObj.getMonth() + 1).padStart(2, '0');
+        const exYear = exDObj.getFullYear();
+        const exDateStr = `${exDay}/${exMonth}/${exYear}`;
+
         const payTs = divInfo.date ? Number(divInfo.date) * 1000 : Number(exTs) * 1000;
         const dObj = new Date(payTs);
         const day = String(dObj.getDate()).padStart(2, '0');
@@ -606,6 +615,7 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
         directDividends.push({
           id: `div-auto-${rawSym}-${year}${month}${day}`,
           date: dateStr,
+          exDividendDate: exDateStr,
           company: pos.company || meta.shortName || rawSym,
           symbol: rawSym,
           dividendPerShareEUR: Number(amountEUR.toFixed(4)),
@@ -620,20 +630,20 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
   }
 
   // 3. Catálogo público de respaldo para empresas conocidas de la cartera
-  const fallbackCatalog: Record<string, { dpsUSD: number; dpsEUR: number; months: number[]; day: number }> = {
-    'MSFT': { dpsUSD: 0.83, dpsEUR: 0.74, months: [2, 5, 8, 11], day: 12 },
-    'META': { dpsUSD: 0.525, dpsEUR: 0.47, months: [2, 5, 8, 11], day: 26 },
-    'AAPL': { dpsUSD: 0.25, dpsEUR: 0.22, months: [1, 4, 7, 10], day: 15 },
-    'CEG':  { dpsUSD: 0.35, dpsEUR: 0.31, months: [2, 5, 8, 11], day: 10 },
-    'BE':   { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1 },
-    'AMD':  { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1 },
-    'SAN':  { dpsUSD: 0.10, dpsEUR: 0.10, months: [4, 10], day: 2 },
-    'ITX':  { dpsUSD: 0.77, dpsEUR: 0.77, months: [4, 10], day: 4 },
-    'IBE':  { dpsUSD: 0.38, dpsEUR: 0.38, months: [0, 6], day: 28 },
-    'BBVA': { dpsUSD: 0.39, dpsEUR: 0.39, months: [3, 9], day: 10 },
-    'CABK': { dpsUSD: 0.23, dpsEUR: 0.23, months: [3, 10], day: 8 },
-    'NOVO': { dpsUSD: 0.65, dpsEUR: 0.65, months: [2, 7], day: 25 },
-    'SIE':  { dpsUSD: 4.70, dpsEUR: 4.70, months: [1], day: 14 },
+  const fallbackCatalog: Record<string, { dpsUSD: number; dpsEUR: number; months: number[]; day: number; exDaysBefore: number }> = {
+    'MSFT': { dpsUSD: 0.83, dpsEUR: 0.74, months: [2, 5, 8, 11], day: 12, exDaysBefore: 20 },
+    'META': { dpsUSD: 0.525, dpsEUR: 0.47, months: [2, 5, 8, 11], day: 26, exDaysBefore: 12 },
+    'AAPL': { dpsUSD: 0.25, dpsEUR: 0.22, months: [1, 4, 7, 10], day: 15, exDaysBefore: 7 },
+    'CEG':  { dpsUSD: 0.35, dpsEUR: 0.31, months: [2, 5, 8, 11], day: 10, exDaysBefore: 16 },
+    'BE':   { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1, exDaysBefore: 0 },
+    'AMD':  { dpsUSD: 0.0, dpsEUR: 0.0, months: [], day: 1, exDaysBefore: 0 },
+    'SAN':  { dpsUSD: 0.10, dpsEUR: 0.10, months: [4, 10], day: 2, exDaysBefore: 3 },
+    'ITX':  { dpsUSD: 0.77, dpsEUR: 0.77, months: [4, 10], day: 4, exDaysBefore: 3 },
+    'IBE':  { dpsUSD: 0.38, dpsEUR: 0.38, months: [0, 6], day: 28, exDaysBefore: 2 },
+    'BBVA': { dpsUSD: 0.39, dpsEUR: 0.39, months: [3, 9], day: 10, exDaysBefore: 2 },
+    'CABK': { dpsUSD: 0.23, dpsEUR: 0.23, months: [3, 10], day: 8, exDaysBefore: 2 },
+    'NOVO': { dpsUSD: 0.65, dpsEUR: 0.65, months: [2, 7], day: 25, exDaysBefore: 4 },
+    'SIE':  { dpsUSD: 4.70, dpsEUR: 4.70, months: [1], day: 14, exDaysBefore: 2 },
   };
 
   const catalogDividends: UpcomingDividend[] = [];
@@ -644,11 +654,15 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
     const info = fallbackCatalog[sym];
     if (info && info.dpsEUR > 0) {
       for (const m of info.months) {
-        const dStr = `${String(info.day).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}/${curYr}`;
+        const payDateObj = new Date(curYr, m, info.day);
+        const exDateObj = new Date(curYr, m, info.day - info.exDaysBefore);
+        const dStr = `${String(payDateObj.getDate()).padStart(2, '0')}/${String(payDateObj.getMonth() + 1).padStart(2, '0')}/${payDateObj.getFullYear()}`;
+        const exDStr = `${String(exDateObj.getDate()).padStart(2, '0')}/${String(exDateObj.getMonth() + 1).padStart(2, '0')}/${exDateObj.getFullYear()}`;
         const total = Number((pos.shares * info.dpsEUR).toFixed(2));
         catalogDividends.push({
           id: `div-catalog-${sym}-${curYr}-${m + 1}`,
           date: dStr,
+          exDividendDate: exDStr,
           company: pos.company,
           symbol: sym,
           dividendPerShareEUR: info.dpsEUR,

@@ -88,7 +88,8 @@ export interface ClosedPosition {
 
 export interface DividendRecord {
   id: string;
-  date: string; // DD/MM/YYYY
+  date: string; // DD/MM/YYYY (Fecha de abono/cobro)
+  exDividendDate?: string; // DD/MM/YYYY (Fecha ex-dividendo de corte)
   year: number;
   company: string;
   symbol: string;
@@ -114,7 +115,8 @@ export interface DividendRecord {
 
 export interface UpcomingDividend {
   id: string;
-  date: string; // DD/MM/YYYY
+  date: string; // DD/MM/YYYY (Fecha de abono/cobro)
+  exDividendDate?: string; // DD/MM/YYYY (Fecha ex-dividendo de corte)
   company: string;
   symbol: string;
   dividendPerShareEUR: number;

@@ -436,6 +436,14 @@ export function quotesApiPlugin(): Plugin {
                     const rawAmount = typeof divInfo.amount === 'number' ? divInfo.amount : parseFloat(divInfo.amount);
                     if (isNaN(rawAmount) || rawAmount <= 0) continue;
 
+                    // Fecha Ex-dividendo (clave del evento en Yahoo Finance)
+                    const exTimestamp = Number(exTimestampStr) * 1000;
+                    const exDateObj = new Date(exTimestamp);
+                    const exDay = String(exDateObj.getDate()).padStart(2, '0');
+                    const exMonth = String(exDateObj.getMonth() + 1).padStart(2, '0');
+                    const exYear = exDateObj.getFullYear();
+                    const exDividendDate = `${exDay}/${exMonth}/${exYear}`;
+
                     // Preferir fecha de pago (divInfo.date), fallback a ex-dividend date
                     const payTimestamp = divInfo.date ? Number(divInfo.date) * 1000 : Number(exTimestampStr) * 1000;
                     const dateObj = new Date(payTimestamp);
@@ -459,6 +467,7 @@ export function quotesApiPlugin(): Plugin {
                       symbol: s,
                       company: companyName,
                       date: formattedDate,
+                      exDividendDate,
                       rawDate: dateObj.toISOString(),
                       timestamp: payTimestamp,
                       currency,

@@ -559,6 +559,7 @@ export const INITIAL_UPCOMING_DIVIDENDS: UpcomingDividend[] = [
   {
     id: 'up-1',
     date: '15/09/2026',
+    exDividendDate: '21/08/2026',
     company: 'Microsoft',
     symbol: 'MSFT',
     dividendPerShareEUR: 0.83,
@@ -567,6 +568,7 @@ export const INITIAL_UPCOMING_DIVIDENDS: UpcomingDividend[] = [
   {
     id: 'up-2',
     date: '30/09/2026',
+    exDividendDate: '12/09/2026',
     company: 'Apple',
     symbol: 'AAPL',
     dividendPerShareEUR: 0.24,
@@ -575,6 +577,7 @@ export const INITIAL_UPCOMING_DIVIDENDS: UpcomingDividend[] = [
   {
     id: 'up-3',
     date: '12/10/2026',
+    exDividendDate: '22/09/2026',
     company: 'Meta',
     symbol: 'META',
     dividendPerShareEUR: 0.42,
@@ -583,6 +586,7 @@ export const INITIAL_UPCOMING_DIVIDENDS: UpcomingDividend[] = [
   {
     id: 'up-4',
     date: '20/11/2026',
+    exDividendDate: '04/11/2026',
     company: 'Amazon',
     symbol: 'AMZN',
     dividendPerShareEUR: 0.33,
@@ -591,6 +595,7 @@ export const INITIAL_UPCOMING_DIVIDENDS: UpcomingDividend[] = [
   {
     id: 'up-5',
     date: '15/12/2026',
+    exDividendDate: '11/12/2026',
     company: 'Iberdrola',
     symbol: 'IBE',
     dividendPerShareEUR: 0.22,
