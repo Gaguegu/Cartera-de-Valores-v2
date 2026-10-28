@@ -691,6 +691,32 @@ export function CurrentPortfolio({
               </span>
             </div>
 
+            {/* Beneficio o Pérdida de la cartera */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-semibold">
+                {selectedYear !== 'TODOS'
+                  ? totalGainEUR >= 0 ? `Beneficio (${selectedYear}):` : `Pérdida (${selectedYear}):`
+                  : totalGainEUR >= 0 ? 'Beneficio cartera:' : 'Pérdida cartera:'}
+              </span>
+              <span
+                className={`text-base font-extrabold font-mono ${
+                  totalGainEUR >= 0 ? 'text-emerald-400' : 'text-red-500'
+                }`}
+              >
+                {totalGainEUR >= 0 ? `+${formatEUR(totalGainEUR)}` : formatEUR(totalGainEUR)}
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-md font-bold text-xs font-mono border ${
+                  totalGainEUR >= 0
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : 'bg-red-500/20 text-red-500 border-red-500/30'
+                }`}
+                title={`Rentabilidad total latente: ${formatPercent(totalPercent)}`}
+              >
+                {formatPercent(totalPercent)}
+              </span>
+            </div>
+
             {/* Total Valoración Actual Cartera */}
             <div className="flex items-center gap-2">
               <span className="text-slate-400 font-semibold">
@@ -698,14 +724,6 @@ export function CurrentPortfolio({
               </span>
               <span className="text-xl font-extrabold text-white font-mono">
                 {formatEUR(totalValueEUR)}
-              </span>
-              <span
-                className={`px-2.5 py-0.5 rounded-md font-bold text-xs font-mono ${
-                  totalPercent >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-500'
-                }`}
-                title={`Plusvalía latente total: ${totalGainEUR > 0 ? `+${formatEUR(totalGainEUR)}` : formatEUR(totalGainEUR)}`}
-              >
-                {formatPercent(totalPercent)}
               </span>
             </div>
           </div>
