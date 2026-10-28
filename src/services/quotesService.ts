@@ -188,19 +188,15 @@ export async function fetchLiveIndices(): Promise<MarketIndex[]> {
         const data = await res.json();
         if (data.indices && Array.isArray(data.indices)) {
           const fxUsd = data.indices.find((i: any) => i.symbol === 'EURUSD=X');
-          const fxGbp = data.indices.find((i: any) => i.symbol === 'EURGBP=X');
           if (fxUsd && fxUsd.price > 0) {
             currentEurUsdRate = fxUsd.price;
-          }
-          if (fxGbp && fxGbp.price > 0) {
-            currentGbpEurRate = fxGbp.price;
           }
           saveStoredFxRates({
             usdEur: currentEurUsdRate,
             gbpEur: currentGbpEurRate,
             updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
           });
-          return data.indices;
+          return data.indices.filter((i: any) => i.symbol !== 'EURGBP=X' && !i.name?.includes('GBP'));
         }
       }
     }
@@ -210,14 +206,13 @@ export async function fetchLiveIndices(): Promise<MarketIndex[]> {
 
   getStoredFxRates();
 
-  // Fallback con datos realistas
+  // Fallback con datos realistas (5 índices/divisas principales para 1 sola fila limpia)
   return [
     { symbol: '^GSPC', name: 'S&P 500', price: 7623.68, change: -39.75, changePercent: -0.52 },
     { symbol: '^NDX', name: 'Nasdaq 100', price: 28957.53, change: -1.16, changePercent: 0.00 },
     { symbol: '^IBEX', name: 'IBEX 35', price: 18989.80, change: 76.30, changePercent: 0.40 },
     { symbol: '^STOXX50E', name: 'EuroStoxx 50', price: 6068.22, change: -18.79, changePercent: -0.31 },
     { symbol: 'EURUSD=X', name: 'EUR / USD', price: currentEurUsdRate, change: 0.002, changePercent: 0.18 },
-    { symbol: 'EURGBP=X', name: 'EUR / GBP', price: currentGbpEurRate, change: -0.001, changePercent: -0.12 },
   ];
 }
 

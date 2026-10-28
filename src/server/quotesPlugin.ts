@@ -330,16 +330,15 @@ export function quotesApiPlugin(): Plugin {
             return;
           }
 
-          // 4. Índices principales y tipo de cambio EUR/USD y EUR/GBP
+          // 4. Índices principales y tipo de cambio EUR/USD
           if (isRoute('/api/quotes/indices')) {
-            const indexSymbols = ['^GSPC', '^NDX', '^IBEX', '^STOXX50E', 'EURUSD=X', 'EURGBP=X'];
+            const indexSymbols = ['^GSPC', '^NDX', '^IBEX', '^STOXX50E', 'EURUSD=X'];
             const names: Record<string, string> = {
               '^GSPC': 'S&P 500',
               '^NDX': 'Nasdaq 100',
               '^IBEX': 'IBEX 35',
               '^STOXX50E': 'EuroStoxx 50',
               'EURUSD=X': 'EUR / USD',
-              'EURGBP=X': 'EUR / GBP',
             };
 
             const indices: any[] = [];
