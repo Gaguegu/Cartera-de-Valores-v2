@@ -494,7 +494,30 @@ export default function App() {
 
   const [upcomingDividends, setUpcomingDividends] = useState<UpcomingDividend[]>(() => {
     const saved = localStorage.getItem('cartera_upcoming_dividends');
-    return saved ? JSON.parse(saved) : INITIAL_UPCOMING_DIVIDENDS;
+    const raw: UpcomingDividend[] = saved ? JSON.parse(saved) : INITIAL_UPCOMING_DIVIDENDS;
+    return raw.map(d => {
+      const sym = (d.symbol || '').toUpperCase();
+      // Corregir fecha de Microsoft en diciembre 2026 según Yahoo Finanzas oficial
+      if (sym === 'MSFT' && (d.date === '12/12/2026' || d.exDividendDate === '24/11/2026' || d.dividendPerShareEUR === 0.74)) {
+        return {
+          ...d,
+          date: '10/12/2026',
+          exDividendDate: '19/11/2026',
+          dividendPerShareEUR: 0.88,
+          estimatedTotalEUR: 47.52,
+        };
+      }
+      if (sym === 'META' && (d.date === '26/12/2026' || d.exDividendDate === '08/12/2026')) {
+        return {
+          ...d,
+          date: '28/12/2026',
+          exDividendDate: '15/12/2026',
+          dividendPerShareEUR: 0.47,
+          estimatedTotalEUR: 7.05,
+        };
+      }
+      return d;
+    });
   });
 
   const [brokers, setBrokers] = useState<Broker[]>(() => {
@@ -659,6 +682,58 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('cartera_upcoming_dividends', JSON.stringify(upcomingDividends));
   }, [upcomingDividends]);
+
+  // Migración automática inmediata para sanear cualquier previsión obsoleta persistida en localStorage
+  useEffect(() => {
+    const hasStale = upcomingDividends.some(d => {
+      const sym = (d.symbol || '').toUpperCase();
+      return (
+        (sym === 'MSFT' && (d.date === '12/12/2026' || d.exDividendDate === '24/11/2026' || d.dividendPerShareEUR === 0.74)) ||
+        (sym === 'META' && (d.date === '26/12/2026' || d.exDividendDate === '08/12/2026'))
+      );
+    });
+
+    if (hasStale) {
+      const msftShares = positions.find(p => p.symbol.toUpperCase() === 'MSFT')?.shares || 54;
+      const metaShares = positions.find(p => p.symbol.toUpperCase() === 'META')?.shares || 15;
+
+      const corrected = upcomingDividends.map(d => {
+        const sym = (d.symbol || '').toUpperCase();
+        if (sym === 'MSFT' && (d.date === '12/12/2026' || d.exDividendDate === '24/11/2026' || d.dividendPerShareEUR === 0.74)) {
+          return {
+            ...d,
+            date: '10/12/2026',
+            exDividendDate: '19/11/2026',
+            dividendPerShareEUR: 0.88,
+            estimatedTotalEUR: Number((msftShares * 0.88).toFixed(2)),
+          };
+        }
+        if (sym === 'META' && (d.date === '26/12/2026' || d.exDividendDate === '08/12/2026')) {
+          return {
+            ...d,
+            date: '28/12/2026',
+            exDividendDate: '15/12/2026',
+            dividendPerShareEUR: 0.47,
+            estimatedTotalEUR: Number((metaShares * 0.47).toFixed(2)),
+          };
+        }
+        return d;
+      });
+
+      // Deduplicar por símbolo y mes/año
+      const map = new Map<string, UpcomingDividend>();
+      corrected.forEach(d => {
+        const parts = d.date.trim().split(/[/-]/);
+        const m = parts.length === 3 ? (parts[0].length === 4 ? parts[1] : parts[1]) : d.date;
+        const y = parts.length === 3 ? (parts[0].length === 4 ? parts[0] : parts[2]) : '';
+        map.set(`${d.symbol.toUpperCase()}-${m}-${y}`, d);
+      });
+
+      const cleaned = Array.from(map.values());
+      setUpcomingDividends(cleaned);
+      localStorage.setItem('cartera_upcoming_dividends', JSON.stringify(cleaned));
+    }
+  }, [upcomingDividends, positions]);
 
   useEffect(() => {
     localStorage.setItem('cartera_brokers', JSON.stringify(brokers));
@@ -1144,14 +1219,29 @@ export default function App() {
   const handleSyncUpcomingDividends = (items: UpcomingDividend[]) => {
     setUpcomingDividends(prev => {
       const map = new Map<string, UpcomingDividend>();
+
+      const getKey = (d: UpcomingDividend) => {
+        const parts = d.date.trim().split(/[/-]/);
+        if (parts.length === 3) {
+          const m = parts[0].length === 4 ? parts[1] : parts[1];
+          const y = parts[0].length === 4 ? parts[0] : parts[2];
+          return `${d.symbol.toUpperCase()}-${m}-${y}`;
+        }
+        return `${d.symbol.toUpperCase()}-${d.date}`;
+      };
+
       prev.forEach(d => {
-        const key = `${d.symbol.toUpperCase()}-${d.date}`;
-        map.set(key, d);
+        // Ignorar entradas obsoletas de MSFT en diciembre si tuvieran fecha 12/12/2026
+        if (d.symbol.toUpperCase() === 'MSFT' && (d.date === '12/12/2026' || d.exDividendDate === '24/11/2026' || d.dividendPerShareEUR === 0.74)) {
+          return;
+        }
+        map.set(getKey(d), d);
       });
+
       items.forEach(d => {
-        const key = `${d.symbol.toUpperCase()}-${d.date}`;
-        map.set(key, d);
+        map.set(getKey(d), d);
       });
+
       const merged = Array.from(map.values());
       localStorage.setItem('cartera_upcoming_dividends', JSON.stringify(merged));
       return merged;

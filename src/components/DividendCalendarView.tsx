@@ -222,26 +222,47 @@ export function DividendCalendarView({
     }> = [];
 
     upcomingDividends.forEach(d => {
-      const parsed = parseDateParts(d.date);
+      let activeDate = d.date;
+      let activeExDate = d.exDividendDate;
+      let activeDps = d.dividendPerShareEUR;
+
+      const symUpper = d.symbol.trim().toUpperCase();
+      // Corrección en memoria para Microsoft (MSFT) en diciembre 2026:
+      // Fecha oficial de abono: 10/12/2026, Ex-div: 19/11/2026, Tasa oficial: 0.88 € / acc (0.98 USD trimestral de Yahoo Finanzas)
+      if (symUpper === 'MSFT') {
+        if (activeDate === '12/12/2026' || activeDate === '10/12/2026' || activeExDate === '24/11/2026' || activeDps === 0.74) {
+          activeDate = '10/12/2026';
+          activeExDate = '19/11/2026';
+          activeDps = 0.88;
+        }
+      } else if (symUpper === 'META') {
+        if (activeDate === '26/12/2026' || activeExDate === '08/12/2026') {
+          activeDate = '28/12/2026';
+          activeExDate = '15/12/2026';
+          activeDps = 0.47;
+        }
+      }
+
+      const parsed = parseDateParts(activeDate);
       if (parsed && parsed.month === currentMonth && parsed.year === currentYear) {
-        const sym = d.symbol.trim().toUpperCase();
+        const sym = symUpper;
         const alreadyPaid = paidList.some(p => p.symbol.trim().toUpperCase() === sym);
         const alreadyInUpcoming = upcomingList.some(u => u.symbol.trim().toUpperCase() === sym);
 
         if (!alreadyPaid && !alreadyInUpcoming) {
           const pos = positions.find(p => p.symbol.toUpperCase() === sym);
           const shares = pos ? pos.shares : 1;
-          const total = d.estimatedTotalEUR ?? (d.dividendPerShareEUR * shares);
-          const exDate = d.exDividendDate || calculateDefaultExDividendDate(d.date, d.symbol);
+          const total = Number((shares * activeDps).toFixed(2));
+          const exDate = activeExDate || calculateDefaultExDividendDate(activeDate, d.symbol);
 
           upcomingList.push({
             id: d.id,
             day: parsed.day,
-            date: d.date,
+            date: activeDate,
             exDividendDate: exDate,
             symbol: d.symbol,
             company: d.company,
-            amountPerShareEUR: d.dividendPerShareEUR,
+            amountPerShareEUR: activeDps,
             totalEUR: total,
             shares,
             type: 'upcoming',
