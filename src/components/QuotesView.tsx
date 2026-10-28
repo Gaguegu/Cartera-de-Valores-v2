@@ -52,9 +52,10 @@ export function QuotesView({
   const [sortField, setSortField] = useState<'changePercent' | 'price' | 'company'>('changePercent');
   const [sortAsc, setSortAsc] = useState(false);
 
-  // Cargar índices al iniciar
+  // Cargar índices y cotizaciones en vivo al iniciar
   useEffect(() => {
     loadIndices();
+    refreshTopQuotes();
   }, []);
 
   const loadIndices = async () => {
@@ -62,11 +63,43 @@ export function QuotesView({
     setIndices(data);
   };
 
+  const refreshTopQuotes = async () => {
+    try {
+      const topSymbols = ['SAN', 'ITX', 'IBE', 'BBVA', 'CABK', 'REP', 'TEF', 'RED', 'NTGY', 'GRF', 'BKT', 'VIS', 'AAPL', 'MSFT', 'NVDA', 'AMZN', 'META', 'GOOGL'];
+      const batch = await fetchBatchQuotes(topSymbols);
+      if (batch && Object.keys(batch).length > 0) {
+        setQuotes(prev =>
+          prev.map(q => {
+            const clean = (q.displaySymbol || q.symbol).replace(/\.[A-Z]+$/, '').toUpperCase();
+            const live = batch[clean] || batch[q.symbol.toUpperCase()];
+            if (live && live.price > 0) {
+              const livePriceEUR = live.priceEUR > 0 ? live.priceEUR : live.price;
+              const chg = livePriceEUR - (livePriceEUR / (1 + (live.changePercent || 0) / 100));
+              return {
+                ...q,
+                price: live.price,
+                priceEUR: livePriceEUR,
+                changePercent: live.changePercent,
+                change: Number(chg.toFixed(2)),
+              };
+            }
+            return q;
+          })
+        );
+      }
+    } catch (err) {
+      console.warn('Error refreshing top quotes in QuotesView:', err);
+    }
+  };
+
   const performSearch = async (query: string) => {
     setIsLoading(true);
     try {
       const results = await searchMarketQuotes(query);
       setQuotes(results);
+      if (!query.trim()) {
+        refreshTopQuotes();
+      }
     } catch (err) {
       console.error(err);
     } finally {
