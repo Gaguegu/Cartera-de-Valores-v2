@@ -541,6 +541,8 @@ export default function App() {
   const [initialOpType, setInitialOpType] = useState<'Compra' | 'Venta'>('Compra');
   const [editingOperation, setEditingOperation] = useState<Operation | null>(null);
   const [prefilledSymbol, setPrefilledSymbol] = useState<string | undefined>(undefined);
+  const [prefilledCompany, setPrefilledCompany] = useState<string | undefined>(undefined);
+  const [prefilledPrice, setPrefilledPrice] = useState<number | undefined>(undefined);
   const [isNewDivOpen, setIsNewDivOpen] = useState(false);
   const [prefilledDividendData, setPrefilledDividendData] = useState<PrefilledDividendInfo | null>(null);
   const [editingDividend, setEditingDividend] = useState<DividendRecord | null>(null);
@@ -757,21 +759,30 @@ export default function App() {
     }
   };
 
-  const handleOpenNewOperation = (symbol?: string, type: 'Compra' | 'Venta' = 'Compra') => {
+  const handleOpenNewOperation = (
+    symbol?: string,
+    type: 'Compra' | 'Venta' = 'Compra',
+    company?: string,
+    price?: number
+  ) => {
     setEditingOperation(null);
     setPrefilledSymbol(symbol);
+    setPrefilledCompany(company);
+    setPrefilledPrice(price);
     setInitialOpType(type);
     setIsNewOpOpen(true);
   };
 
   const handleSellStock = (stock: StockPosition) => {
     setSelectedStock(null);
-    handleOpenNewOperation(stock.symbol, 'Venta');
+    handleOpenNewOperation(stock.symbol, 'Venta', stock.company, stock.currentPrice);
   };
 
   const handleStartEditOperation = (op: Operation) => {
     setEditingOperation(op);
     setPrefilledSymbol(undefined);
+    setPrefilledCompany(undefined);
+    setPrefilledPrice(undefined);
     setIsNewOpOpen(true);
   };
 
@@ -1815,7 +1826,7 @@ export default function App() {
                 watchlist={watchlist}
                 onUpdatePortfolioPrices={handleUpdatePortfolioPrices}
                 onUpdateWatchlistPrices={handleUpdateWatchlistPrices}
-                onOpenNewOperation={symbol => handleOpenNewOperation(symbol)}
+                onOpenNewOperation={(symbol, type, company, price) => handleOpenNewOperation(symbol, type, company, price)}
                 onAddToWatchlist={handleAddWatchlist}
               />
             )}
@@ -1825,7 +1836,7 @@ export default function App() {
                 watchlist={watchlist}
                 onAddWatchlist={handleAddWatchlist}
                 onRemoveWatchlist={handleRemoveWatchlist}
-                onOpenBuyOperation={symbol => handleOpenNewOperation(symbol)}
+                onOpenBuyOperation={(symbol, company, price) => handleOpenNewOperation(symbol, 'Compra', company, price)}
               />
             )}
 
@@ -1905,12 +1916,16 @@ export default function App() {
         onClose={() => {
           setIsNewOpOpen(false);
           setPrefilledSymbol(undefined);
+          setPrefilledCompany(undefined);
+          setPrefilledPrice(undefined);
           setEditingOperation(null);
         }}
         onSubmit={handleSaveOperation}
         availablePositions={positions}
         brokers={brokers}
         prefilledSymbol={prefilledSymbol}
+        prefilledCompany={prefilledCompany}
+        prefilledPrice={prefilledPrice}
         initialType={initialOpType}
         operationToEdit={editingOperation}
         onRegisterDividend={handleRegisterDividendForOperation}

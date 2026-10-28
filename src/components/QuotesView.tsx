@@ -29,7 +29,7 @@ interface QuotesViewProps {
   watchlist: WatchlistItem[];
   onUpdatePortfolioPrices: (quotesMap: Record<string, { currentPriceEUR: number; priceUSD?: number; dayChangePercent?: number }>) => void;
   onUpdateWatchlistPrices: (quotesMap: Record<string, { currentPrice: number }>) => void;
-  onOpenNewOperation: (symbol?: string) => void;
+  onOpenNewOperation: (symbol?: string, type?: 'Compra' | 'Venta', company?: string, price?: number) => void;
   onAddToWatchlist: (item: Omit<WatchlistItem, 'id'>) => void;
 }
 
@@ -615,7 +615,7 @@ export function QuotesView({
                             </button>
                           ) : (
                             <button
-                              onClick={() => onOpenNewOperation(cleanSym)}
+                              onClick={() => onOpenNewOperation(cleanSym, 'Compra', q.company, q.priceEUR || q.price)}
                               className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-all cursor-pointer flex items-center gap-1"
                               title="Registrar operación de compra con esta cotización"
                             >

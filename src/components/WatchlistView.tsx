@@ -7,7 +7,7 @@ interface WatchlistViewProps {
   watchlist: WatchlistItem[];
   onAddWatchlist: (item: Omit<WatchlistItem, 'id'>) => void;
   onRemoveWatchlist: (id: string) => void;
-  onOpenBuyOperation: (symbol: string) => void;
+  onOpenBuyOperation: (symbol: string, company?: string, price?: number) => void;
 }
 
 export function WatchlistView({
@@ -221,7 +221,7 @@ export function WatchlistView({
                   Distancia a precio de compra: <strong className="text-amber-400">{discountPercent}%</strong>
                 </span>
                 <button
-                  onClick={() => onOpenBuyOperation(item.symbol)}
+                  onClick={() => onOpenBuyOperation(item.symbol, item.company, item.currentPrice)}
                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow"
                 >
                   <TrendingUp className="w-3.5 h-3.5" />

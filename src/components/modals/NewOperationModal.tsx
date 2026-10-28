@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Operation, StockPosition, Broker } from '../../types/portfolio';
 import { formatEUR, formatNumber } from '../../utils/formatters';
+import { POPULAR_MARKET_STOCKS } from '../../data/marketDatabase';
 import {
   X,
   PlusCircle,
@@ -32,6 +33,8 @@ interface NewOperationModalProps {
   availablePositions: StockPosition[];
   brokers: Broker[];
   prefilledSymbol?: string;
+  prefilledCompany?: string;
+  prefilledPrice?: number;
   initialType?: 'Compra' | 'Venta';
   operationToEdit?: Operation | null;
   onRegisterDividend?: (op: Operation) => void;
@@ -45,12 +48,21 @@ export function NewOperationModal({
   availablePositions,
   brokers,
   prefilledSymbol,
+  prefilledCompany,
+  prefilledPrice,
   initialType = 'Compra',
   operationToEdit,
   onRegisterDividend,
   allOperations = [],
 }: NewOperationModalProps) {
   const isEditing = Boolean(operationToEdit);
+
+  // Helper para obtener siempre el broker ACTIVO del usuario
+  const getActiveBrokerName = () => {
+    const active = brokers.find(b => b.active);
+    return active ? active.name : (brokers[0]?.name || 'Trade Republic');
+  };
+
   const [type, setType] = useState<'Compra' | 'Venta'>(initialType);
   const [symbol, setSymbol] = useState('');
   const [company, setCompany] = useState('');
@@ -58,7 +70,7 @@ export function NewOperationModal({
   const [price, setPrice] = useState('');
   const [commissionEUR, setCommissionEUR] = useState('');
   const [date, setDate] = useState(new Date().toLocaleDateString('es-ES'));
-  const [broker, setBroker] = useState(brokers[0]?.name || 'Interactive Brokers');
+  const [broker, setBroker] = useState(getActiveBrokerName());
 
   // Función para limpiar completamente el formulario y dejarlo sin datos
   const handleClearForm = () => {
@@ -68,7 +80,7 @@ export function NewOperationModal({
     setPrice('');
     setCommissionEUR('');
     setDate(new Date().toLocaleDateString('es-ES'));
-    setBroker(brokers[0]?.name || 'Interactive Brokers');
+    setBroker(getActiveBrokerName());
   };
 
   // Helper para admitir decimales libres con coma o punto sin bloqueos del navegador
@@ -92,24 +104,37 @@ export function NewOperationModal({
           operationToEdit.commissionEUR !== undefined ? String(operationToEdit.commissionEUR) : ''
         );
         setDate(operationToEdit.date || new Date().toLocaleDateString('es-ES'));
-        setBroker(operationToEdit.broker || brokers[0]?.name || 'Interactive Brokers');
+        setBroker(operationToEdit.broker || getActiveBrokerName());
       } else if (prefilledSymbol) {
+        const cleanSym = prefilledSymbol.trim().toUpperCase();
         setType(initialType || 'Compra');
-        setSymbol(prefilledSymbol);
-        const match = availablePositions.find(p => p.symbol.toUpperCase() === prefilledSymbol.toUpperCase());
-        setCompany(match ? match.company : '');
-        setPrice(match ? String(match.currentPrice) : '');
+        setSymbol(cleanSym);
+
+        // Buscar primero en cartera, y si es nueva compra buscar en catálogo de cotizaciones
+        const posMatch = availablePositions.find(p => p.symbol.toUpperCase() === cleanSym);
+        const marketMatch = POPULAR_MARKET_STOCKS.find(
+          m => (m.displaySymbol || m.symbol).toUpperCase() === cleanSym ||
+               m.symbol.toUpperCase().startsWith(`${cleanSym}.`)
+        );
+
+        const resolvedCompany = prefilledCompany || posMatch?.company || marketMatch?.company || '';
+        const resolvedPrice = prefilledPrice !== undefined && prefilledPrice > 0
+          ? String(prefilledPrice)
+          : (posMatch ? String(posMatch.currentPrice) : marketMatch ? String(marketMatch.priceEUR || marketMatch.price) : '');
+
+        setCompany(resolvedCompany);
+        setPrice(resolvedPrice);
         setShares('');
         setCommissionEUR('');
         setDate(new Date().toLocaleDateString('es-ES'));
-        setBroker(brokers[0]?.name || 'Interactive Brokers');
+        setBroker(getActiveBrokerName());
       } else {
         // SIN DATOS: Pantalla limpia sin datos de sesiones anteriores
         handleClearForm();
         setType(initialType || 'Compra');
       }
     }
-  }, [isOpen, operationToEdit, prefilledSymbol, initialType, availablePositions, brokers]);
+  }, [isOpen, operationToEdit, prefilledSymbol, prefilledCompany, prefilledPrice, initialType, availablePositions, brokers]);
 
   if (!isOpen) return null;
 
@@ -134,11 +159,22 @@ export function NewOperationModal({
 
   const handleSymbolChange = (sym: string) => {
     setSymbol(sym);
-    const match = availablePositions.find(p => p.symbol.toUpperCase() === sym.trim().toUpperCase());
-    if (match) {
-      setCompany(match.company);
+    const clean = sym.trim().toUpperCase();
+    const posMatch = availablePositions.find(p => p.symbol.toUpperCase() === clean);
+    const marketMatch = POPULAR_MARKET_STOCKS.find(
+      m => (m.displaySymbol || m.symbol).toUpperCase() === clean ||
+           m.symbol.toUpperCase().startsWith(`${clean}.`)
+    );
+
+    if (posMatch) {
+      setCompany(posMatch.company);
       if (!price) {
-        setPrice(String(match.currentPrice));
+        setPrice(String(posMatch.currentPrice));
+      }
+    } else if (marketMatch) {
+      setCompany(marketMatch.company);
+      if (!price) {
+        setPrice(String(marketMatch.priceEUR || marketMatch.price));
       }
     }
   };
@@ -467,11 +503,11 @@ export function NewOperationModal({
               <select
                 value={broker}
                 onChange={e => setBroker(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-medium"
               >
-                {brokers.map(b => (
+                {[...brokers].sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0)).map(b => (
                   <option key={b.id} value={b.name}>
-                    {b.name} ({b.type})
+                    {b.name} ({b.type}){b.active ? ' — [ACTIVO]' : ''}
                   </option>
                 ))}
               </select>
