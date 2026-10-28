@@ -1681,8 +1681,12 @@ export default function App() {
           />
 
           {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424]">
-          <div className="max-w-7xl mx-auto">
+          <main className={`flex-1 min-h-0 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424] ${
+            currentTab === 'quotes'
+              ? 'overflow-hidden p-3 sm:p-4 lg:p-5 flex flex-col no-scrollbar'
+              : 'overflow-y-auto p-4 sm:p-6 lg:p-8'
+          }`}>
+          <div className={`max-w-7xl mx-auto w-full ${currentTab === 'quotes' ? 'flex-1 flex flex-col min-h-0 h-full overflow-hidden' : ''}`}>
             {/* View Switching */}
             {currentTab === 'dashboard' && (
               <Dashboard

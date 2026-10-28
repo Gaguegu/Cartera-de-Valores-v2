@@ -254,7 +254,7 @@ export function QuotesView({
   }, [indices]);
 
   return (
-    <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-300">
+    <div className="h-full flex flex-col min-h-0 space-y-2.5 animate-in fade-in duration-300">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-blue-500/50 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 max-w-md">
@@ -271,194 +271,197 @@ export function QuotesView({
         </div>
       )}
 
-      {/* Main Header Card - Compacto */}
-      <div className="bg-[#12233f] border border-slate-700/70 p-3.5 sm:p-4 rounded-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
-              <Globe className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                Cotizaciones de Mercado (EE.UU. y Europa)
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  En vivo
-                </span>
-              </h1>
-              <p className="text-[11px] sm:text-xs text-slate-400">
-                Consulta cotizaciones en tiempo real por ticker o empresa y sincroniza automáticamente tu cartera de valores y lista de seguimiento.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <button
-            onClick={handleUpdateAllPortfolio}
-            disabled={isUpdatingPortfolio}
-            className="flex-1 md:flex-none px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Actualiza los precios actuales de todas las acciones de tu cartera abierta"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isUpdatingPortfolio ? 'animate-spin' : ''}`} />
-            <span>{isUpdatingPortfolio ? 'Actualizando Cartera...' : 'Actualizar mi Cartera'}</span>
-          </button>
-
-          <button
-            onClick={handleUpdateAllWatchlist}
-            disabled={isUpdatingWatchlist}
-            className="flex-1 md:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs rounded-lg shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Actualiza los precios de todos los valores de tu lista de seguimiento"
-          >
-            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
-            <span>{isUpdatingWatchlist ? 'Actualizando...' : 'Actualizar Seguimiento'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Indices Bar - Exactamente 5 índices en 1 sola fila limpia */}
-      {displayIndices.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-          {displayIndices.map(idx => (
-            <div
-              key={idx.symbol}
-              className="bg-[#0e1b30] border border-slate-800 py-2 px-3 rounded-xl shadow flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-0.5">
-                <span className="font-semibold text-slate-300">{idx.name}</span>
-                <span
-                  className={`text-[11px] font-bold flex items-center gap-0.5 ${
-                    idx.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                  }`}
-                >
-                  {idx.changePercent >= 0 ? '+' : ''}{idx.changePercent.toFixed(2)}%
-                </span>
+      {/* Cabecera Fija de la captura (Título + 5 Índices + Búsqueda y Filtros) */}
+      <div className="shrink-0 space-y-2.5">
+        {/* Main Header Card - Compacto */}
+        <div className="bg-[#12233f] border border-slate-700/70 p-3.5 sm:p-4 rounded-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
+                <Globe className="w-4 h-4 text-blue-400" />
               </div>
-              <div className="text-base font-bold text-white font-mono">
-                {idx.symbol === 'EURUSD=X' ? idx.price.toFixed(4) : formatNumber(idx.price)}
+              <div>
+                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                  Cotizaciones de Mercado (EE.UU. y Europa)
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    En vivo
+                  </span>
+                </h1>
+                <p className="text-[11px] sm:text-xs text-slate-400">
+                  Consulta cotizaciones en tiempo real por ticker o empresa y sincroniza automáticamente tu cartera de valores y lista de seguimiento.
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Search and Filters Toolbar - Compacto */}
-      <div className="sticky top-0 z-20 bg-[#12233f] border border-slate-700/80 p-3 sm:p-3.5 rounded-xl shadow-xl space-y-2.5 backdrop-blur-md">
-        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-2.5">
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => {
-                const val = e.target.value;
-                setSearchQuery(val);
-                if (val.trim() && selectedRegion !== 'TODOS') {
-                  setSelectedRegion('TODOS');
-                }
-              }}
-              placeholder="Buscar por ticker o empresa (ej: SAN, Inditex, AAPL, Oracle, Nvidia, LVMH, Repsol, SAP, Iberdrola...)"
-              className="w-full bg-[#0a1324] border border-slate-700 rounded-lg pl-10 pr-16 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-inner"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  performSearch('');
-                }}
-                className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white px-1 text-xs font-bold cursor-pointer"
-                title="Limpiar búsqueda"
-              >
-                ✕
-              </button>
-            )}
-            {isLoading && (
-              <RefreshCw className="w-4 h-4 text-blue-400 animate-spin absolute right-3.5 top-1/2 -translate-y-1/2" />
-            )}
           </div>
 
-          <button
-            type="submit"
-            className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg shadow transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span>Buscar en Internet</span>
-          </button>
-        </form>
-
-        {/* Feedback de búsqueda activa */}
-        {searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-between text-xs text-blue-300 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg">
-            <span className="flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5 text-blue-400" />
-              {isLoading
-                ? `Buscando «${searchQuery}» en los mercados de España, Europa y EE.UU....`
-                : `Resultados para «${searchQuery}»: ${filteredQuotes.length} empresas encontradas`}
-            </span>
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedRegion('TODOS');
-                performSearch('');
-              }}
-              className="text-slate-400 hover:text-white underline text-[11px] cursor-pointer"
+              onClick={handleUpdateAllPortfolio}
+              disabled={isUpdatingPortfolio}
+              className="flex-1 md:flex-none px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              title="Actualiza los precios actuales de todas las acciones de tu cartera abierta"
             >
-              Ver todas las empresas
+              <RefreshCw className={`w-3.5 h-3.5 ${isUpdatingPortfolio ? 'animate-spin' : ''}`} />
+              <span>{isUpdatingPortfolio ? 'Actualizando Cartera...' : 'Actualizar mi Cartera'}</span>
             </button>
+
+            <button
+              onClick={handleUpdateAllWatchlist}
+              disabled={isUpdatingWatchlist}
+              className="flex-1 md:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs rounded-lg shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              title="Actualiza los precios de todos los valores de tu lista de seguimiento"
+            >
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
+              <span>{isUpdatingWatchlist ? 'Actualizando...' : 'Actualizar Seguimiento'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Indices Bar - Exactamente 5 índices en 1 sola fila limpia */}
+        {displayIndices.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+            {displayIndices.map(idx => (
+              <div
+                key={idx.symbol}
+                className="bg-[#0e1b30] border border-slate-800 py-2 px-3 rounded-xl shadow flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between text-xs text-slate-400 mb-0.5">
+                  <span className="font-semibold text-slate-300">{idx.name}</span>
+                  <span
+                    className={`text-[11px] font-bold flex items-center gap-0.5 ${
+                      idx.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    }`}
+                  >
+                    {idx.changePercent >= 0 ? '+' : ''}{idx.changePercent.toFixed(2)}%
+                  </span>
+                </div>
+                <div className="text-base font-bold text-white font-mono">
+                  {idx.symbol === 'EURUSD=X' ? idx.price.toFixed(4) : formatNumber(idx.price)}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Filter Pills and Sorting */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-800/80">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { id: 'TODOS', label: 'Todos los mercados' },
-              { id: 'ESPAÑA', label: '🇪🇸 España (IBEX 35 completo)' },
-              { id: 'EUROPA', label: '🇪🇺 Europa (DAX, CAC, EuroStoxx)' },
-              { id: 'EEUU', label: '🇺🇸 EE.UU. (NYSE / NASDAQ)' },
-              { id: 'CARTERA', label: `💼 En mi Cartera (${positions.length})` },
-              { id: 'SEGUIMIENTO', label: `⭐ En Seguimiento (${watchlist.length})` },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedRegion(tab.id as any)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  selectedRegion === tab.id
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {/* Search and Filters Toolbar - Compacto */}
+        <div className="bg-[#12233f] border border-slate-700/80 p-3 sm:p-3.5 rounded-xl shadow-lg space-y-2.5">
+          <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-2.5">
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (val.trim() && selectedRegion !== 'TODOS') {
+                    setSelectedRegion('TODOS');
+                  }
+                }}
+                placeholder="Buscar por ticker o empresa (ej: SAN, Inditex, AAPL, Oracle, Nvidia, LVMH, Repsol, SAP, Iberdrola...)"
+                className="w-full bg-[#0a1324] border border-slate-700 rounded-lg pl-10 pr-16 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-inner"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    performSearch('');
+                  }}
+                  className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white px-1 text-xs font-bold cursor-pointer"
+                  title="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+              {isLoading && (
+                <RefreshCw className="w-4 h-4 text-blue-400 animate-spin absolute right-3.5 top-1/2 -translate-y-1/2" />
+              )}
+            </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Ordenar por:</span>
-            <select
-              value={sortField}
-              onChange={e => setSortField(e.target.value as any)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs focus:outline-none"
-            >
-              <option value="changePercent">Variación (%)</option>
-              <option value="price">Precio</option>
-              <option value="company">Empresa</option>
-            </select>
             <button
-              onClick={() => setSortAsc(!sortAsc)}
-              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
-              title="Cambiar orden ascendente/descendente"
+              type="submit"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg shadow transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
             >
-              <ArrowUpDown className="w-3.5 h-3.5" />
+              <Search className="w-3.5 h-3.5" />
+              <span>Buscar en Internet</span>
             </button>
+          </form>
+
+          {/* Feedback de búsqueda activa */}
+          {searchQuery.trim() !== '' && (
+            <div className="flex items-center justify-between text-xs text-blue-300 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg">
+              <span className="flex items-center gap-2">
+                <Globe className="w-3.5 h-3.5 text-blue-400" />
+                {isLoading
+                  ? `Buscando «${searchQuery}» en los mercados de España, Europa y EE.UU....`
+                  : `Resultados para «${searchQuery}»: ${filteredQuotes.length} empresas encontradas`}
+              </span>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedRegion('TODOS');
+                  performSearch('');
+                }}
+                className="text-slate-400 hover:text-white underline text-[11px] cursor-pointer"
+              >
+                Ver todas las empresas
+              </button>
+            </div>
+          )}
+
+          {/* Filter Pills and Sorting */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-800/80">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'TODOS', label: 'Todos los mercados' },
+                { id: 'ESPAÑA', label: '🇪🇸 España (IBEX 35 completo)' },
+                { id: 'EUROPA', label: '🇪🇺 Europa (DAX, CAC, EuroStoxx)' },
+                { id: 'EEUU', label: '🇺🇸 EE.UU. (NYSE / NASDAQ)' },
+                { id: 'CARTERA', label: `💼 En mi Cartera (${positions.length})` },
+                { id: 'SEGUIMIENTO', label: `⭐ En Seguimiento (${watchlist.length})` },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedRegion(tab.id as any)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    selectedRegion === tab.id
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Ordenar por:</span>
+              <select
+                value={sortField}
+                onChange={e => setSortField(e.target.value as any)}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs focus:outline-none"
+              >
+                <option value="changePercent">Variación (%)</option>
+                <option value="price">Precio</option>
+                <option value="company">Empresa</option>
+              </select>
+              <button
+                onClick={() => setSortAsc(!sortAsc)}
+                className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
+                title="Cambiar orden ascendente/descendente"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Quotes Results Table - Elevada hacia arriba */}
-      <div className="bg-[#12233f] border border-slate-700/70 rounded-xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto max-h-[calc(100vh-240px)] overflow-y-auto">
+      {/* Quotes Results Table - Ocupa el resto del alto disponible y hace scroll sin barra desplazadora */}
+      <div className="flex-1 min-h-0 bg-[#12233f] border border-slate-700/70 rounded-xl shadow-xl flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto no-scrollbar">
           <table className="w-full text-xs text-left">
             <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none sticky top-0 z-10 shadow-md">
               <tr>
@@ -640,8 +643,8 @@ export function QuotesView({
           </table>
         </div>
 
-        {/* Footer info */}
-        <div className="p-4 bg-[#0e1b30] border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+        {/* Footer info fijo */}
+        <div className="shrink-0 py-2.5 px-4 bg-[#0e1b30] border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <Info className="w-4 h-4 text-blue-400 shrink-0" />
             <span>
