@@ -227,28 +227,15 @@ export function PrintReportModal({
   }, 0);
 
   // Métricas contables y fiscales unificadas para posiciones cerradas
-  const closedItemsWithMetrics = useMemo(() => {
-    return filteredClosed.map(c => {
-      const m = getClosedItemMetrics(c);
-      return { item: c, metrics: m };
-    });
-  }, [filteredClosed]);
+  const closedItemsWithMetrics = filteredClosed.map(c => {
+    const m = getClosedItemMetrics(c);
+    return { item: c, metrics: m };
+  });
 
-  const closedTotalBuy = useMemo(() => {
-    return Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.totalBuy, 0).toFixed(2));
-  }, [closedItemsWithMetrics]);
-
-  const closedTotalSale = useMemo(() => {
-    return Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.totalSale, 0).toFixed(2));
-  }, [closedItemsWithMetrics]);
-
-  const closedTotalResult = useMemo(() => {
-    return Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.result, 0).toFixed(2));
-  }, [closedItemsWithMetrics]);
-
-  const closedTotalReturnPct = useMemo(() => {
-    return closedTotalBuy > 0 ? Number(((closedTotalResult / closedTotalBuy) * 100).toFixed(2)) : 0;
-  }, [closedTotalResult, closedTotalBuy]);
+  const closedTotalBuy = Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.totalBuy, 0).toFixed(2));
+  const closedTotalSale = Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.totalSale, 0).toFixed(2));
+  const closedTotalResult = Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.result, 0).toFixed(2));
+  const closedTotalReturnPct = closedTotalBuy > 0 ? Number(((closedTotalResult / closedTotalBuy) * 100).toFixed(2)) : 0;
 
   const closedGains = closedTotalResult;
   const netDividends = totalDividends - totalWithholding;
