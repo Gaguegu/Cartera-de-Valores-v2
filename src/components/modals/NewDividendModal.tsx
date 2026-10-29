@@ -111,6 +111,14 @@ export function NewDividendModal({
 
   const isLocked = Boolean(prefilledData?.isLocked) && !isEditing;
 
+  // Helper to identify Spanish stocks
+  const isSpanishStock = (c?: string, s?: string) => {
+    const countryStr = (c || '').toUpperCase();
+    const symStr = (s || '').toUpperCase();
+    const SPANISH_SYMBOLS = ['SAN', 'ITX', 'IBE', 'BBVA', 'CABK', 'REP', 'TEF', 'ELE', 'NTGY', 'ACS', 'FER', 'AMS', 'IAG', 'GRF', 'MAP', 'SAB', 'RED', 'COL', 'MRL', 'BKT'];
+    return SPANISH_SYMBOLS.includes(symStr) || countryStr === 'ESPAÑA' || countryStr === 'ES' || countryStr === 'SPAIN';
+  };
+
   // Helper to find matching position & purchases
   const getSymbolMeta = (targetSymbol: string) => {
     const matchPos = availablePositions.find(
@@ -180,9 +188,7 @@ export function NewDividendModal({
     setCompany(targetCompany);
 
     const meta = getSymbolMeta(targetSymbol);
-    const isForeignStock = meta.matchPos
-      ? meta.matchPos.country !== 'ES'
-      : targetSymbol !== 'TEF' && targetSymbol !== 'SAN' && targetSymbol !== 'IBE';
+    const isForeignStock = !isSpanishStock(meta.matchPos?.country, targetSymbol);
 
     const totalPortfolioShares = prefilledData?.totalPortfolioShares ?? meta.totalSharesInPortfolio;
     const singleOpShares = prefilledData?.shares ?? 0;
@@ -560,7 +566,7 @@ export function NewDividendModal({
                     const meta = getSymbolMeta(sym);
                     if (meta.matchPos) {
                       setCompany(meta.matchPos.company);
-                      const isForeign = meta.matchPos.country !== 'ES';
+                      const isForeign = !isSpanishStock(meta.matchPos.country, sym);
                       setActiveTab(isForeign ? 'foreign' : 'directEUR');
                       if (meta.totalSharesInPortfolio > 0) {
                         setSharesCount(meta.totalSharesInPortfolio);
