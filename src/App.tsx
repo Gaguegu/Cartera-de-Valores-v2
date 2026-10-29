@@ -1977,6 +1977,7 @@ export default function App() {
             {currentTab === 'closed' && (
               <ClosedPortfolioView
                 closedPositions={closedPositions}
+                operations={operations}
                 onUpdateClosedPosition={handleUpdateClosedPosition}
                 onDeleteClosedPosition={handleDeleteClosedPosition}
                 onOpenPrintReport={handleOpenPrintReport}

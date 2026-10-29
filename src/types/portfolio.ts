@@ -84,6 +84,8 @@ export interface ClosedPosition {
   buyPrice?: number;
   resultEUR: number;
   resultPercent?: number;
+  totalBuyEUR?: number;
+  totalSaleEUR?: number;
 }
 
 export interface DividendRecord {
