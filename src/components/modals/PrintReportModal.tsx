@@ -9,6 +9,7 @@ import {
   parseDateToTimestamp,
   getDividendCountry,
   COUNTRY_WITHHOLDINGS,
+  getClosedItemMetrics,
 } from '../../utils/formatters';
 
 interface PrintReportModalProps {
@@ -225,11 +226,35 @@ export function PrintReportModal({
     return acc;
   }, 0);
 
-  const closedGains = filteredClosed.reduce((acc, c) => acc + (c.resultEUR || 0), 0);
+  // Métricas contables y fiscales unificadas para posiciones cerradas
+  const closedItemsWithMetrics = useMemo(() => {
+    return filteredClosed.map(c => {
+      const m = getClosedItemMetrics(c);
+      return { item: c, metrics: m };
+    });
+  }, [filteredClosed]);
+
+  const closedTotalBuy = useMemo(() => {
+    return Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.totalBuy, 0).toFixed(2));
+  }, [closedItemsWithMetrics]);
+
+  const closedTotalSale = useMemo(() => {
+    return Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.totalSale, 0).toFixed(2));
+  }, [closedItemsWithMetrics]);
+
+  const closedTotalResult = useMemo(() => {
+    return Number(closedItemsWithMetrics.reduce((acc, x) => acc + x.metrics.result, 0).toFixed(2));
+  }, [closedItemsWithMetrics]);
+
+  const closedTotalReturnPct = useMemo(() => {
+    return closedTotalBuy > 0 ? Number(((closedTotalResult / closedTotalBuy) * 100).toFixed(2)) : 0;
+  }, [closedTotalResult, closedTotalBuy]);
+
+  const closedGains = closedTotalResult;
   const netDividends = totalDividends - totalWithholding;
 
-  const totalSaleValue = filteredClosed.reduce((acc, c) => acc + (c.salePrice * c.shares), 0);
-  const totalAcquisitionValue = filteredClosed.reduce((acc, c) => acc + (c.buyPrice !== undefined ? c.buyPrice * c.shares : Math.max(0, (c.salePrice * c.shares) - (c.resultEUR || 0))), 0);
+  const totalSaleValue = closedTotalSale;
+  const totalAcquisitionValue = closedTotalBuy;
   // Coste real invertido en euros en la cartera (exacto valor actual - plusvalía)
   const totalInvested = positions.reduce((acc, p) => acc + (p.currentValueEUR - (p.gainLossEUR || 0)), 0);
 
@@ -284,10 +309,10 @@ export function PrintReportModal({
     if (activeReportType !== 'annual') return [];
     const compMap = new Map<string, { symbol: string; company: string; closedGain: number; dividendGross: number; dividendWithholding: number; dividendNet: number }>();
 
-    filteredClosed.forEach(c => {
+    closedItemsWithMetrics.forEach(({ item: c, metrics: m }) => {
       const key = c.symbol.toUpperCase();
       const existing = compMap.get(key) || { symbol: c.symbol, company: c.company, closedGain: 0, dividendGross: 0, dividendWithholding: 0, dividendNet: 0 };
-      existing.closedGain += (c.resultEUR || 0);
+      existing.closedGain += m.result;
       compMap.set(key, existing);
     });
 
@@ -1265,65 +1290,145 @@ export function PrintReportModal({
 
           {/* Section: Operaciones Cerradas / Transmisiones FIFO */}
           {(activeReportType === 'closed' || activeReportType === 'full' || activeReportType === 'annual' || activeReportType === 'tax') && includeClosed && (
-            <div className="space-y-1.5 report-avoid-break">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
-                {sectionTitles.closedNum}Transmisiones Realizadas y Ganancias/Pérdidas FIFO ({yearLabel})
-              </h3>
-              <table className="w-full text-[11px] text-left border-collapse border border-slate-300">
+            <div className="space-y-2 report-avoid-break">
+              <div className="flex items-center justify-between border-b border-slate-300 pb-1">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  {sectionTitles.closedNum}Transmisiones Realizadas y Ganancias/Pérdidas FIFO ({yearLabel})
+                </h3>
+                <span className="text-[10px] text-slate-600 font-mono">
+                  {closedItemsWithMetrics.length} operaciones cerradas · Cálculo FIFO con comisiones
+                </span>
+              </div>
+
+              <table className="w-full text-[10px] sm:text-[10.5px] text-left border-collapse border border-slate-300">
                 <thead>
                   <tr className="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold">
-                    <th className="p-1.5 border border-slate-300">Ticker</th>
+                    <th className="p-1.5 border border-slate-300">Símbolo</th>
                     <th className="p-1.5 border border-slate-300">Empresa</th>
-                    <th className="p-1.5 border border-slate-300">Fecha Venta</th>
-                    <th className="p-1.5 border border-slate-300 text-right">Títulos</th>
-                    <th className="p-1.5 border border-slate-300 text-right">P. Venta</th>
-                    <th className="p-1.5 border border-slate-300 text-right">Valor Venta (€)</th>
-                    <th className="p-1.5 border border-slate-300 text-right">Rendimiento FIFO (€)</th>
+                    <th className="p-1.5 border border-slate-300">Fecha venta</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Cantidad</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Total compra (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Precio venta</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Total venta (€)</th>
+                    <th className="p-1.5 border border-slate-300 text-right">Resultado €</th>
+                    <th className="p-1.5 border border-slate-300 text-right">% Rent.</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredClosed.length === 0 ? (
+                  {closedItemsWithMetrics.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-3 text-center text-slate-500 italic border border-slate-300">
+                      <td colSpan={9} className="p-3 text-center text-slate-500 italic border border-slate-300">
                         No hay operaciones de venta cerradas registradas para {yearLabel.toLowerCase()}.
                       </td>
                     </tr>
                   ) : (
-                    filteredClosed.map((c, idx) => (
-                      <tr key={idx} className="border-b border-slate-300 even:bg-slate-50">
-                        <td className="p-1.5 font-bold font-mono border border-slate-300">{c.symbol}</td>
-                        <td className="p-1.5 border border-slate-300 font-medium">{c.company}</td>
-                        <td className="p-1.5 border border-slate-300">{c.saleDate}</td>
-                        <td className="p-1.5 text-right font-mono border border-slate-300">{c.shares}</td>
-                        <td className="p-1.5 text-right font-mono border border-slate-300">{formatNumber(c.salePrice)} €</td>
-                        <td className="p-1.5 text-right font-mono border border-slate-300">{formatEUR(c.salePrice * c.shares)}</td>
-                        <td
-                          className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${
-                            c.resultEUR < 0 ? 'text-red-700' : c.resultEUR > 0 ? 'text-emerald-700' : 'text-slate-700'
-                          }`}
-                        >
-                          {c.resultEUR > 0 ? `+${formatEUR(c.resultEUR)}` : formatEUR(c.resultEUR)}
-                        </td>
-                      </tr>
-                    ))
+                    closedItemsWithMetrics.map(({ item: c, metrics: m }, idx) => {
+                      const pctOfBuys = closedTotalBuy > 0 ? ((m.totalBuy / closedTotalBuy) * 100).toFixed(2) : '0';
+                      return (
+                        <tr key={c.id || idx} className="border-b border-slate-300 even:bg-slate-50/80">
+                          <td className="p-1.5 font-bold font-mono border border-slate-300 text-slate-900">{c.symbol}</td>
+                          <td className="p-1.5 border border-slate-300">
+                            <span className="font-semibold text-slate-900 block leading-tight">{c.company}</span>
+                            <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold font-mono bg-blue-100 text-blue-800 border border-blue-200">
+                              {pctOfBuys}% de compras
+                            </span>
+                          </td>
+                          <td className="p-1.5 border border-slate-300 font-mono text-slate-700">{c.saleDate}</td>
+                          <td className="p-1.5 text-right font-mono font-bold border border-slate-300 text-slate-900">{c.shares}</td>
+                          <td className="p-1.5 text-right font-mono border border-slate-300">
+                            <div className="font-bold text-slate-900">{formatEUR(m.totalBuy)}</div>
+                            <div className="text-[9px] text-slate-500 font-sans">(PMC: {formatNumber(m.pmcBuy)} €)</div>
+                          </td>
+                          <td className="p-1.5 text-right font-mono border border-slate-300 text-slate-800">
+                            {formatNumber(c.salePrice)} €
+                          </td>
+                          <td className="p-1.5 text-right font-mono font-bold border border-slate-300 text-slate-900">
+                            {formatEUR(m.totalSale)}
+                          </td>
+                          <td
+                            className={`p-1.5 text-right font-mono font-bold border border-slate-300 ${
+                              m.result < 0 ? 'text-red-700' : m.result > 0 ? 'text-emerald-700' : 'text-slate-700'
+                            }`}
+                          >
+                            {m.result > 0 ? `+${formatEUR(m.result)}` : formatEUR(m.result)}
+                          </td>
+                          <td className="p-1.5 text-right font-mono border border-slate-300">
+                            <span
+                              className={`inline-block px-1.5 py-0.5 rounded font-bold text-[9.5px] ${
+                                m.result < 0 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {formatPercent(m.returnPercent)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
-                  {filteredClosed.length > 0 && (
+                  {closedItemsWithMetrics.length > 0 && (
                     <tr className="bg-slate-100 font-bold border-t-2 border-slate-400">
-                      <td colSpan={5} className="p-1.5 border border-slate-300 text-right uppercase">
+                      <td colSpan={3} className="p-1.5 border border-slate-300 text-right uppercase">
                         TOTAL TRANSMISIONES ({yearLabel.toUpperCase()}):
                       </td>
-                      <td className="p-1.5 border border-slate-300 text-right font-mono">{formatEUR(totalSaleValue)}</td>
+                      <td className="p-1.5 border border-slate-300 text-right font-mono text-slate-900">
+                        {closedItemsWithMetrics.reduce((acc, x) => acc + x.item.shares, 0)}
+                      </td>
+                      <td className="p-1.5 border border-slate-300 text-right font-mono text-slate-900 font-bold">
+                        {formatEUR(closedTotalBuy)}
+                      </td>
+                      <td className="p-1.5 border border-slate-300 text-right font-mono text-slate-400">—</td>
+                      <td className="p-1.5 border border-slate-300 text-right font-mono text-slate-900 font-bold">
+                        {formatEUR(closedTotalSale)}
+                      </td>
                       <td
                         className={`p-1.5 border border-slate-300 text-right font-mono font-bold ${
-                          closedGains < 0 ? 'text-red-700' : closedGains > 0 ? 'text-emerald-800' : 'text-slate-700'
+                          closedTotalResult < 0 ? 'text-red-700' : closedTotalResult > 0 ? 'text-emerald-800' : 'text-slate-700'
                         }`}
                       >
-                        {closedGains > 0 ? `+${formatEUR(closedGains)}` : formatEUR(closedGains)}
+                        {closedTotalResult > 0 ? `+${formatEUR(closedTotalResult)}` : formatEUR(closedTotalResult)}
+                      </td>
+                      <td className="p-1.5 border border-slate-300 text-right font-mono font-bold">
+                        <span
+                          className={`inline-block px-1.5 py-0.5 rounded text-[9.5px] ${
+                            closedTotalResult < 0 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                          }`}
+                        >
+                          {formatPercent(closedTotalReturnPct)}
+                        </span>
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
+
+              {/* Bloque resumen idéntico al pie de pantalla de Cartera Cerrada */}
+              {closedItemsWithMetrics.length > 0 && (
+                <div className="p-2.5 bg-slate-50 border border-slate-300 rounded flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono">
+                  <div>
+                    <span className="text-slate-600 font-sans font-semibold">Total compras (con comisiones): </span>
+                    <strong className="text-slate-900 text-xs font-bold">{formatEUR(closedTotalBuy)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-sans font-semibold">
+                      {closedTotalResult >= 0 ? 'Beneficio cerrado:' : 'Pérdida cerrada:'}{' '}
+                    </span>
+                    <strong className={`text-xs font-bold ${closedTotalResult >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                      {closedTotalResult >= 0 ? `+${formatEUR(closedTotalResult)}` : formatEUR(closedTotalResult)}
+                    </strong>{' '}
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        closedTotalResult >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {formatPercent(closedTotalReturnPct)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-sans font-semibold">Total ventas (con comisiones): </span>
+                    <strong className="text-slate-900 text-xs font-bold">{formatEUR(closedTotalSale)}</strong>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
