@@ -261,10 +261,10 @@ export function CurrentPortfolio({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Action and Filter Bar - Screen 2 Header (Fijo en la parte superior) */}
-      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#12233f] p-4 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur-md">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="sticky top-0 z-20 bg-[#12233f] p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur-md">
+        <div className="flex items-center gap-2 flex-wrap w-full">
           {/* Selector rápido de ejercicio / año de compra */}
-          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner">
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner shrink-0 h-[36px]">
             <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="text-slate-400 font-medium hidden sm:inline">Año compra:</span>
             <select
@@ -284,7 +284,7 @@ export function CurrentPortfolio({
 
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all shrink-0 h-[36px] ${
               showFilters
                 ? 'bg-blue-600 border-blue-500 text-white'
                 : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
@@ -307,7 +307,7 @@ export function CurrentPortfolio({
                 window.print();
               }
             }}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 h-[36px] ${
               searchTerm.trim()
                 ? 'bg-blue-600 hover:bg-blue-500 border border-blue-400 text-white shadow-lg'
                 : 'bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white'
@@ -328,7 +328,7 @@ export function CurrentPortfolio({
 
           <button
             onClick={() => onOpenNewOperation()}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow"
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow shrink-0 h-[36px]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Nueva compra</span>
@@ -337,7 +337,7 @@ export function CurrentPortfolio({
           {onOpenNewDividend && (
             <button
               onClick={onOpenNewDividend}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-500/40 text-emerald-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-500/40 text-emerald-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer shrink-0 h-[36px]"
               title="Registrar cobro de dividendo"
             >
               <Coins className="w-3.5 h-3.5 text-emerald-400" />
@@ -346,18 +346,18 @@ export function CurrentPortfolio({
           )}
 
           {onRefreshQuotesOnline && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => onRefreshQuotesOnline()}
                 disabled={isRefreshingQuotes}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95 disabled:opacity-60"
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer active:scale-95 disabled:opacity-60 h-[36px]"
                 title={lastQuotesUpdatedAt ? `Actualizar precios en vivo (Última sincronización: ${lastQuotesUpdatedAt})` : 'Actualizar todas las cotizaciones de la cartera en tiempo real'}
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshingQuotes ? 'animate-spin' : ''}`} />
                 <span>{isRefreshingQuotes ? 'Actualizando...' : 'Actualizar Cotizaciones'}</span>
               </button>
               {lastQuotesUpdatedAt && (
-                <span className="hidden xl:inline-flex items-center px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700/60 text-[10px] text-slate-400 font-mono" title={`Última actualización de cotizaciones: ${lastQuotesUpdatedAt}`}>
+                <span className="hidden xl:inline-flex items-center px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700/60 text-[10px] text-slate-400 font-mono h-[36px]" title={`Última actualización de cotizaciones: ${lastQuotesUpdatedAt}`}>
                   {lastQuotesUpdatedAt}
                 </span>
               )}
@@ -367,7 +367,7 @@ export function CurrentPortfolio({
           {onOpenRebalanceModal && (
             <button
               onClick={onOpenRebalanceModal}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer shrink-0 h-[36px]"
               title="Simulador de rebalanceo y cálculo de compras periódicas (DCA)"
             >
               <Scale className="w-3.5 h-3.5 text-indigo-400" />
@@ -378,7 +378,7 @@ export function CurrentPortfolio({
           {onOpenCurrencyModal && (
             <button
               onClick={onOpenCurrencyModal}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer shrink-0 h-[36px]"
               title="Análisis del efecto divisa EUR/USD y tipos de cambio"
             >
               <Globe className="w-3.5 h-3.5 text-cyan-400" />
@@ -389,54 +389,54 @@ export function CurrentPortfolio({
           {onOpenAlertsModal && (
             <button
               onClick={() => onOpenAlertsModal()}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer shrink-0 h-[36px]"
               title="Centro de alertas de precio, stop-loss y take-profit"
             >
               <Bell className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden sm:inline">Alertas</span>
             </button>
           )}
-        </div>
 
-        {/* Search bar con acción directa de imprimir filtro y limpiar */}
-        <div className="relative flex-1 sm:max-w-xs flex items-center">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Buscar valor en cartera..."
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-16 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-          />
-          {searchTerm && (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenPrintReport) {
-                    onOpenPrintReport('portfolio', {
-                      year: selectedYear !== 'TODOS' ? selectedYear : undefined,
-                      searchFilter: searchTerm.trim(),
-                      closed: false,
-                      dividends: false,
-                    });
-                  }
-                }}
-                className="p-1 rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white transition-colors cursor-pointer"
-                title={`Imprimir este filtro ("${searchTerm.trim()}")`}
-              >
-                <Printer className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                title="Limpiar filtro"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
+          {/* Search bar con acción directa de imprimir filtro y limpiar - ubicado a la altura del botón Alertas y más largo */}
+          <div className="relative flex-1 min-w-[280px] sm:min-w-[340px] md:min-w-[380px] max-w-xl flex items-center">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar valor en cartera..."
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-16 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 h-[36px]"
+            />
+            {searchTerm && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenPrintReport) {
+                      onOpenPrintReport('portfolio', {
+                        year: selectedYear !== 'TODOS' ? selectedYear : undefined,
+                        searchFilter: searchTerm.trim(),
+                        closed: false,
+                        dividends: false,
+                      });
+                    }
+                  }}
+                  className="p-1 rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white transition-colors cursor-pointer"
+                  title={`Imprimir este filtro ("${searchTerm.trim()}")`}
+                >
+                  <Printer className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Limpiar filtro"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
