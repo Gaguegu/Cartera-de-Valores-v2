@@ -10,7 +10,7 @@ interface ClosedPortfolioViewProps {
   onDeleteClosedPosition?: (id: string) => void;
   onOpenPrintReport?: (
     type: 'closed' | 'full' | 'annual' | 'tax',
-    options?: { charts?: boolean; dividends?: boolean; closed?: boolean; year?: number | string }
+    options?: { charts?: boolean; dividends?: boolean; closed?: boolean; year?: number | string; searchFilter?: string }
   ) => void;
 }
 
@@ -253,16 +253,29 @@ export function ClosedPortfolioView({
                   closed: true,
                   dividends: false,
                   charts: false,
+                  searchFilter: searchTerm.trim(),
                 });
               } else {
                 window.print();
               }
             }}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-            title="Generar informe en PDF o imprimir las operaciones cerradas"
+            className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+              searchTerm.trim()
+                ? 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400 font-bold ring-2 ring-blue-500/30'
+                : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white'
+            }`}
+            title={
+              searchTerm.trim()
+                ? `Imprimir el informe filtrado para "${searchTerm.trim()}" (${sortedPositions.length} operaciones)`
+                : 'Generar informe en PDF o imprimir las operaciones cerradas'
+            }
           >
-            <Printer className="w-3.5 h-3.5 text-blue-400" />
-            <span>Generar PDF/Imprimir</span>
+            <Printer className={`w-3.5 h-3.5 ${searchTerm.trim() ? 'text-white' : 'text-blue-400'}`} />
+            <span>
+              {searchTerm.trim()
+                ? `Imprimir filtro "${searchTerm.trim()}" (${sortedPositions.length})`
+                : 'Generar PDF/Imprimir'}
+            </span>
           </button>
 
           <button
@@ -275,16 +288,46 @@ export function ClosedPortfolioView({
           </button>
         </div>
 
-        {/* Buscador de valor cerrado */}
-        <div className="relative flex-1 sm:max-w-xs">
+        {/* Buscador de valor cerrado con acción directa de imprimir filtro */}
+        <div className="relative flex-1 sm:max-w-xs flex items-center">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Buscar valor cerrado..."
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-16 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
           />
+          {searchTerm && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenPrintReport) {
+                    onOpenPrintReport('closed', {
+                      year: selectedYear,
+                      closed: true,
+                      dividends: false,
+                      charts: false,
+                      searchFilter: searchTerm.trim(),
+                    });
+                  }
+                }}
+                className="p-1 rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white transition-colors cursor-pointer"
+                title={`Imprimir este filtro ("${searchTerm}")`}
+              >
+                <Printer className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Limpiar filtro"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Printer, Calendar, Filter, Info, RotateCcw } from 'lucide-react';
+import { X, Printer, Calendar, Filter, Info, RotateCcw, Search } from 'lucide-react';
 import { StockPosition, Operation, ClosedPosition, DividendRecord } from '../../types/portfolio';
 import {
   formatEUR,
@@ -29,6 +29,7 @@ interface PrintReportModalProps {
     operations?: boolean;
     country?: string;
     withholdingType?: string;
+    searchFilter?: string;
   };
 }
 
@@ -74,6 +75,7 @@ export function PrintReportModal({
     return 'all';
   });
 
+  const [searchFilter, setSearchFilter] = useState<string>(() => options?.searchFilter || '');
   const [selectedCountry, setSelectedCountry] = useState<string>(options?.country || 'all');
   const [selectedWithholdingType, setSelectedWithholdingType] = useState<string>(options?.withholdingType || 'all');
   const [activeReportType, setActiveReportType] = useState<PrintReportModalProps['reportType']>(reportType);
@@ -84,6 +86,26 @@ export function PrintReportModal({
   const [includeCharts, setIncludeCharts] = useState<boolean>(() => options?.charts ?? true);
   const [includeDividends, setIncludeDividends] = useState<boolean>(() => options?.dividends ?? true);
   const [includeClosed, setIncludeClosed] = useState<boolean>(() => options?.closed ?? true);
+
+  // Lista única de valores disponibles para filtro rápido
+  const availableFilterStocks = useMemo(() => {
+    const map = new Map<string, string>();
+    closedPositions.forEach(c => {
+      if (c.symbol) map.set(c.symbol.toUpperCase(), c.company || c.symbol);
+    });
+    positions.forEach(p => {
+      if (p.symbol) map.set(p.symbol.toUpperCase(), p.company || p.symbol);
+    });
+    operations.forEach(o => {
+      if (o.symbol) map.set(o.symbol.toUpperCase(), o.company || o.symbol);
+    });
+    dividends.forEach(d => {
+      if (d.symbol) map.set(d.symbol.toUpperCase(), d.company || d.symbol);
+    });
+    return Array.from(map.entries())
+      .map(([symbol, company]) => ({ symbol, company }))
+      .sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }, [closedPositions, positions, operations, dividends]);
 
   // Lista única de países para filtrar dividendos
   const availableCountries = useMemo(() => {
@@ -109,6 +131,9 @@ export function PrintReportModal({
         setSelectedYear(String(initialYear));
       } else if (!selectedYear) {
         setSelectedYear('all');
+      }
+      if (options?.searchFilter !== undefined) {
+        setSearchFilter(options.searchFilter);
       }
       if (options?.country !== undefined) {
         setSelectedCountry(options.country);
@@ -141,15 +166,31 @@ export function PrintReportModal({
   const yearLabel = isAllYears ? 'Histórico Completo (Todos los años)' : `Año ${selectedYear}`;
   const yearExerciseLabel = isAllYears ? 'Histórico Completo' : `Ejercicio ${selectedYear}`;
 
-  const totalValue = positions.reduce((acc, p) => acc + (p.currentValueEUR || 0), 0);
-  const totalGain = positions.reduce((acc, p) => acc + (p.gainLossEUR || 0), 0);
+  const cleanFilter = searchFilter.trim().toLowerCase();
+
+  // Filtrado de posiciones abiertas para la cartera
+  const displayPositions = cleanFilter
+    ? positions.filter(
+        p =>
+          (p.symbol || '').toLowerCase().includes(cleanFilter) ||
+          (p.company || '').toLowerCase().includes(cleanFilter)
+      )
+    : positions;
+
+  const totalValue = displayPositions.reduce((acc, p) => acc + (p.currentValueEUR || 0), 0);
+  const totalGain = displayPositions.reduce((acc, p) => acc + (p.gainLossEUR || 0), 0);
 
   // Filtrado robusto de operaciones, posiciones cerradas y dividendos por el año seleccionado (ordenadas por fecha cronológica)
   const filteredOperations = operations
     .filter(op => {
       const y = getRecordYear(op);
-      if (isAllYears) return true;
-      return y === yearNum;
+      if (!isAllYears && y !== yearNum) return false;
+      if (cleanFilter) {
+        const sym = (op.symbol || '').toLowerCase();
+        const comp = (op.company || '').toLowerCase();
+        if (!sym.includes(cleanFilter) && !comp.includes(cleanFilter)) return false;
+      }
+      return true;
     })
     .sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
 
@@ -167,8 +208,13 @@ export function PrintReportModal({
 
   const filteredClosed = closedPositions.filter(c => {
     const y = getRecordYear(c);
-    if (isAllYears) return true;
-    return y === yearNum;
+    if (!isAllYears && y !== yearNum) return false;
+    if (cleanFilter) {
+      const sym = (c.symbol || '').toLowerCase();
+      const comp = (c.company || '').toLowerCase();
+      if (!sym.includes(cleanFilter) && !comp.includes(cleanFilter)) return false;
+    }
+    return true;
   });
 
   // Helper para verificar el tipo de retención en dividendos
@@ -192,6 +238,12 @@ export function PrintReportModal({
   const filteredDividends = dividends.filter(d => {
     const y = getRecordYear(d);
     if (!isAllYears && y !== yearNum) return false;
+
+    if (cleanFilter) {
+      const sym = (d.symbol || '').toLowerCase();
+      const comp = (d.company || '').toLowerCase();
+      if (!sym.includes(cleanFilter) && !comp.includes(cleanFilter)) return false;
+    }
 
     if (selectedCountry !== 'all') {
       const c = getDividendCountry(d, positions);
@@ -243,12 +295,12 @@ export function PrintReportModal({
   const totalSaleValue = closedTotalSale;
   const totalAcquisitionValue = closedTotalBuy;
   // Coste real invertido en euros en la cartera (exacto valor actual - plusvalía)
-  const totalInvested = positions.reduce((acc, p) => acc + (p.currentValueEUR - (p.gainLossEUR || 0)), 0);
+  const totalInvested = displayPositions.reduce((acc, p) => acc + (p.currentValueEUR - (p.gainLossEUR || 0)), 0);
 
   // Diversificación sectorial calculada dinámicamente para la sección de gráficos
   const sectorData = (() => {
     const map = new Map<string, number>();
-    positions.forEach(p => {
+    displayPositions.forEach(p => {
       const sec = p.sector || 'Otros';
       map.set(sec, (map.get(sec) || 0) + (p.currentValueEUR || 0));
     });
@@ -396,6 +448,67 @@ export function PrintReportModal({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Filtro interactivo por valor/empresa dentro de la cabecera */}
+              <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+                <Filter className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Filtrar:</span>
+                <div className="relative flex items-center">
+                  <Search className="w-3 h-3 text-slate-400 absolute left-2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchFilter}
+                    onChange={e => setSearchFilter(e.target.value)}
+                    placeholder="Ticker o valor..."
+                    className="bg-slate-900 border border-slate-600 text-white rounded-lg pl-7 pr-6 py-1 text-xs focus:outline-none focus:border-cyan-400 w-28 sm:w-36 placeholder-slate-400 font-medium"
+                  />
+                  {searchFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchFilter('')}
+                      className="absolute right-1.5 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+                      title="Quitar filtro"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <select
+                  value={
+                    availableFilterStocks.some(s => s.symbol.toUpperCase() === searchFilter.trim().toUpperCase())
+                      ? searchFilter.trim().toUpperCase()
+                      : searchFilter.trim()
+                      ? 'custom'
+                      : 'all'
+                  }
+                  onChange={e => {
+                    if (e.target.value === 'all') setSearchFilter('');
+                    else if (e.target.value !== 'custom') setSearchFilter(e.target.value);
+                  }}
+                  className="bg-slate-900 border border-slate-600 text-white rounded-lg px-2 py-1 text-xs font-bold focus:outline-none focus:border-cyan-400 cursor-pointer max-w-[130px]"
+                >
+                  <option value="all">Todos los valores</option>
+                  {availableFilterStocks.map(s => (
+                    <option key={s.symbol} value={s.symbol}>
+                      {s.symbol} - {s.company}
+                    </option>
+                  ))}
+                  {searchFilter.trim() && !availableFilterStocks.some(s => s.symbol.toUpperCase() === searchFilter.trim().toUpperCase()) && (
+                    <option value="custom">"{searchFilter.trim()}"</option>
+                  )}
+                </select>
+                {searchFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchFilter('')}
+                    className="px-2 py-0.5 bg-red-950/70 hover:bg-red-900 text-red-300 border border-red-700/60 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                    title="Restablecer filtro"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" />
+                    <span>Limpiar</span>
+                  </button>
+                )}
               </div>
 
               {activeReportType === 'dividends' && (
@@ -608,6 +721,11 @@ export function PrintReportModal({
               </p>
               <p className="text-[10px] text-slate-500 mt-1">
                 Ref. Cartera: <strong className="text-slate-800 font-mono">ES-CARTERA-{isAllYears ? 'GLOBAL' : selectedYear}</strong> · Moneda Base: <strong className="text-slate-800">EUR (€)</strong>
+                {cleanFilter && (
+                  <span className="ml-2 font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
+                    Filtro: "{searchFilter.trim().toUpperCase()}"
+                  </span>
+                )}
               </p>
             </div>
 
@@ -627,6 +745,21 @@ export function PrintReportModal({
             <h2 className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-wide">
               {getTitle()}
             </h2>
+            {cleanFilter && (
+              <div className="mt-1 flex items-center justify-center gap-1.5 flex-wrap text-[10px]">
+                <span className="bg-blue-100 text-blue-900 border border-blue-300 px-2.5 py-0.5 rounded font-bold font-mono">
+                  FILTRO APLICADO: "{searchFilter.trim().toUpperCase()}" (
+                  {activeReportType === 'closed'
+                    ? `${filteredClosed.length} ${filteredClosed.length === 1 ? 'operación cerrada' : 'operaciones cerradas'}`
+                    : activeReportType === 'operations'
+                    ? `${filteredOperations.length} ${filteredOperations.length === 1 ? 'operación' : 'operaciones'}`
+                    : activeReportType === 'dividends'
+                    ? `${filteredDividends.length} ${filteredDividends.length === 1 ? 'dividendo' : 'dividendos'}`
+                    : `${displayPositions.length} ${displayPositions.length === 1 ? 'posición' : 'posiciones'}`}
+                  )
+                </span>
+              </div>
+            )}
             {activeReportType === 'dividends' && (
               <div className="mt-1 flex items-center justify-center gap-1.5 flex-wrap text-[10px] text-slate-600 font-medium">
                 <span className="bg-white border border-slate-300 px-2 py-0.5 rounded font-mono font-bold text-slate-800">
@@ -779,9 +912,9 @@ export function PrintReportModal({
               ) : (
                 <div className="border-r border-slate-200 last:border-none p-1">
                   <span className="text-[9px] text-slate-500 uppercase block font-bold">Activos en Custodia</span>
-                  <span className="text-sm font-extrabold text-slate-900 font-mono">{positions.length} Valores</span>
+                  <span className="text-sm font-extrabold text-slate-900 font-mono">{displayPositions.length} Valores</span>
                   <span className="text-[9px] text-slate-400 block font-mono">
-                    {positions.reduce((acc, p) => acc + (p.shares || 0), 0)} títulos totales
+                    {displayPositions.reduce((acc, p) => acc + (p.shares || 0), 0)} títulos totales
                   </span>
                 </div>
               )}
@@ -810,7 +943,7 @@ export function PrintReportModal({
           )}
 
           {/* SECCIÓN VECTORIAL DE GRÁFICOS (Cuando 'Incluir gráficos' está activo en las opciones) */}
-          {includeCharts && (activeReportType === 'full' || activeReportType === 'portfolio' || activeReportType === 'annual') && positions.length > 0 && (
+          {includeCharts && (activeReportType === 'full' || activeReportType === 'portfolio' || activeReportType === 'annual') && displayPositions.length > 0 && (
             <div className="space-y-3 p-3.5 border border-slate-300 rounded bg-slate-50/60 report-avoid-break">
               <div className="flex items-center justify-between border-b border-slate-300 pb-1.5">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
@@ -818,7 +951,7 @@ export function PrintReportModal({
                   {sectionTitles.chartsNum}Análisis Gráfico y Distribución de la Cartera
                 </h3>
                 <span className="text-[10px] text-slate-600 font-mono">
-                  Total Cartera: <strong className="text-slate-900">{formatEUR(totalValue)}</strong> · {positions.length} Activos
+                  Total Cartera: <strong className="text-slate-900">{formatEUR(totalValue)}</strong> · {displayPositions.length} Activos
                 </span>
               </div>
 
@@ -830,7 +963,7 @@ export function PrintReportModal({
                 </div>
 
                 <div className="h-6 w-full rounded overflow-hidden flex border border-slate-300 shadow-xs">
-                  {positions.map((p, idx) => {
+                  {displayPositions.map((p, idx) => {
                     const pct = totalValue > 0 ? (p.currentValueEUR / totalValue) * 100 : 0;
                     const colors = ['#2563eb', '#dc2626', '#0284c7', '#d97706', '#059669', '#7c3aed', '#0891b2', '#ea580c'];
                     const barColor = colors[idx % colors.length];
@@ -849,7 +982,7 @@ export function PrintReportModal({
 
                 {/* Tarjetas resumen de cada posición */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
-                  {positions.map((p, idx) => {
+                  {displayPositions.map((p, idx) => {
                     const pct = totalValue > 0 ? (p.currentValueEUR / totalValue) * 100 : 0;
                     const colors = ['#2563eb', '#dc2626', '#0284c7', '#d97706', '#059669', '#7c3aed', '#0891b2', '#ea580c'];
                     const barColor = colors[idx % colors.length];
@@ -1111,7 +1244,7 @@ export function PrintReportModal({
           {(activeReportType === 'portfolio' || ((activeReportType === 'full' || activeReportType === 'annual') && includePortfolio)) && (
             <div className="space-y-1.5 report-avoid-break">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
-                {sectionTitles.posNum}Posiciones Vivas en Cartera ({positions.length} Activos en Custodia)
+                {sectionTitles.posNum}Posiciones Vivas en Cartera ({displayPositions.length} Activos en Custodia)
               </h3>
               <table className="w-full text-[11px] text-left border-collapse border border-slate-300">
                 <thead>
@@ -1127,14 +1260,16 @@ export function PrintReportModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {positions.length === 0 ? (
+                  {displayPositions.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="p-3 text-center text-slate-500 italic border border-slate-300">
-                        No hay posiciones abiertas registradas en la cartera actualmente.
+                        {cleanFilter
+                          ? `No hay activos en cartera que coincidan con el filtro "${searchFilter.trim()}".`
+                          : 'No hay posiciones abiertas registradas en la cartera actualmente.'}
                       </td>
                     </tr>
                   ) : (
-                    positions.map((p, idx) => {
+                    displayPositions.map((p, idx) => {
                       const isLoss = (p.gainLossEUR !== undefined && p.gainLossEUR < 0) || p.gainLossPercent < 0;
                       const effectiveBuyPrice = p.pmcWithCommission || (p.totalInvestedEUR && p.shares > 0 ? Number((p.totalInvestedEUR / p.shares).toFixed(2)) : p.buyPrice);
                       return (
@@ -1164,7 +1299,7 @@ export function PrintReportModal({
                       );
                     })
                   )}
-                  {positions.length > 0 && (
+                  {displayPositions.length > 0 && (
                     <tr className="bg-slate-100 font-bold border-t-2 border-slate-400">
                       <td colSpan={6} className="p-1.5 border border-slate-300 text-right uppercase">
                         TOTALES CARTERA ACTUAL:

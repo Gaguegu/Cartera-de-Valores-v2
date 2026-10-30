@@ -714,12 +714,14 @@ export default function App() {
     operations?: boolean;
     country?: string;
     withholdingType?: string;
+    searchFilter?: string;
   }>({
     charts: true,
     dividends: true,
     closed: true,
     portfolio: true,
     operations: true,
+    searchFilter: '',
   });
   const [printYear, setPrintYear] = useState<number | string | undefined>(undefined);
 
@@ -1550,6 +1552,7 @@ export default function App() {
       year?: number | string;
       country?: string;
       withholdingType?: string;
+      searchFilter?: string;
     }
   ) => {
     setPrintType(type);
@@ -1562,10 +1565,13 @@ export default function App() {
         operations: options.operations ?? true,
         country: options.country,
         withholdingType: options.withholdingType,
+        searchFilter: options.searchFilter || '',
       });
       if (options.year !== undefined) {
         setPrintYear(options.year);
       }
+    } else {
+      setPrintOptions(prev => ({ ...prev, searchFilter: '' }));
     }
     setIsPrintModalOpen(true);
   };
