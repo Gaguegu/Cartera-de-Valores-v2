@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StockPosition, Operation } from '../types/portfolio';
 import { formatEUR, formatNumber, formatPercent, downloadCSV, parseYearFromDate, getAvailableFiscalYears } from '../utils/formatters';
-import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer, Calendar, RefreshCw, Scale, Globe, Bell, Sparkles } from 'lucide-react';
+import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer, Calendar, RefreshCw, Scale, Globe, Bell, Sparkles, X } from 'lucide-react';
 
 interface CurrentPortfolioProps {
   positions: StockPosition[];
@@ -13,7 +13,15 @@ interface CurrentPortfolioProps {
   onSellStock?: (stock: StockPosition) => void;
   onOpenPrintReport?: (
     type: 'portfolio' | 'full' | 'annual' | 'tax',
-    options?: { charts?: boolean; dividends?: boolean; closed?: boolean; year?: number | string }
+    options?: {
+      charts?: boolean;
+      dividends?: boolean;
+      closed?: boolean;
+      portfolio?: boolean;
+      operations?: boolean;
+      year?: number | string;
+      searchFilter?: string;
+    }
   ) => void;
   onRefreshQuotesOnline?: () => Promise<void>;
   isRefreshingQuotes?: boolean;
@@ -289,16 +297,33 @@ export function CurrentPortfolio({
           <button
             onClick={() => {
               if (onOpenPrintReport) {
-                onOpenPrintReport('portfolio');
+                onOpenPrintReport('portfolio', {
+                  year: selectedYear !== 'TODOS' ? selectedYear : undefined,
+                  searchFilter: searchTerm.trim(),
+                  closed: false,
+                  dividends: false,
+                });
               } else {
                 window.print();
               }
             }}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Generar informe en PDF o imprimir la cartera"
+            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              searchTerm.trim()
+                ? 'bg-blue-600 hover:bg-blue-500 border border-blue-400 text-white shadow-lg'
+                : 'bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white'
+            }`}
+            title={
+              searchTerm.trim()
+                ? `Generar PDF/Imprimir con filtro activo: "${searchTerm.trim()}" (${sorted.length} ${sorted.length === 1 ? 'posición' : 'posiciones'})`
+                : 'Generar informe en PDF o imprimir la cartera'
+            }
           >
             <Printer className="w-3.5 h-3.5 text-blue-400" />
-            <span>Generar PDF/Imprimir</span>
+            <span>
+              {searchTerm.trim()
+                ? `Imprimir filtro "${searchTerm.trim()}" (${sorted.length})`
+                : 'Generar PDF/Imprimir'}
+            </span>
           </button>
 
           <button
@@ -373,16 +398,45 @@ export function CurrentPortfolio({
           )}
         </div>
 
-        {/* Search bar */}
-        <div className="relative flex-1 sm:max-w-xs">
+        {/* Search bar con acción directa de imprimir filtro y limpiar */}
+        <div className="relative flex-1 sm:max-w-xs flex items-center">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Buscar valor..."
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+            placeholder="Buscar valor en cartera..."
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-16 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
           />
+          {searchTerm && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenPrintReport) {
+                    onOpenPrintReport('portfolio', {
+                      year: selectedYear !== 'TODOS' ? selectedYear : undefined,
+                      searchFilter: searchTerm.trim(),
+                      closed: false,
+                      dividends: false,
+                    });
+                  }
+                }}
+                className="p-1 rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white transition-colors cursor-pointer"
+                title={`Imprimir este filtro ("${searchTerm.trim()}")`}
+              >
+                <Printer className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Limpiar filtro"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

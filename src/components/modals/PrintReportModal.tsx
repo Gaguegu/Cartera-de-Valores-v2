@@ -1316,6 +1316,35 @@ export function PrintReportModal({
                   )}
                 </tbody>
               </table>
+
+              {/* Bloque resumen idéntico al pie de pantalla de Cartera Actual */}
+              {displayPositions.length > 0 && (
+                <div className="p-2.5 bg-slate-50 border border-slate-300 rounded flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono">
+                  <div>
+                    <span className="text-slate-600 font-sans font-semibold">Total compras (con comisiones): </span>
+                    <strong className="text-slate-900 text-xs font-bold">{formatEUR(totalInvested)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-sans font-semibold">
+                      {totalGain >= 0 ? 'Plusvalía latente:' : 'Minusvalía latente:'}{' '}
+                    </span>
+                    <strong className={`text-xs font-bold ${totalGain >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                      {totalGain >= 0 ? `+${formatEUR(totalGain)}` : formatEUR(totalGain)}
+                    </strong>{' '}
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        totalGain >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {totalInvested > 0 ? formatPercent((totalGain / totalInvested) * 100) : '0%'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-sans font-semibold">Valor actual cartera: </span>
+                    <strong className="text-slate-900 text-xs font-bold">{formatEUR(totalValue)}</strong>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
