@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Operation, StockPosition, Broker } from '../../types/portfolio';
-import { formatEUR, formatNumber } from '../../utils/formatters';
+import { formatEUR, formatNumber, roundEUR } from '../../utils/formatters';
 import { POPULAR_MARKET_STOCKS } from '../../data/marketDatabase';
 import {
   X,
@@ -142,7 +142,7 @@ export function NewOperationModal({
   const numShares = shares === '' ? 0 : parseFloat(shares.replace(',', '.')) || 0;
   const numPrice = price === '' ? 0 : parseFloat(price.replace(',', '.')) || 0;
   const numCommission = commissionEUR === '' ? 0 : parseFloat(commissionEUR.replace(',', '.')) || 0;
-  const totalEUR = Number((numShares * numPrice).toFixed(2));
+  const totalEUR = roundEUR(numShares * numPrice);
 
   // Posición actual en cartera si existe para esta empresa
   const currentHolding = availablePositions.find(

@@ -2,13 +2,29 @@
  * Utility formatters for Spanish currency, percentage, and dates
  */
 
+/**
+ * Redondeo financiero exacto a N decimales (por defecto 2).
+ * Elimina las imprecisiones de coma flotante binaria IEEE 754 (ej. 745 * 0.127 = 94.614999999999995 -> 94.62).
+ */
+export function roundToDecimals(value: number, decimals: number = 2): number {
+  if (isNaN(value) || !isFinite(value)) return 0;
+  const factor = Math.pow(10, decimals);
+  const sign = value < 0 ? -1 : 1;
+  return sign * (Math.round((Math.abs(value) + 1e-8) * factor) / factor);
+}
+
+export function roundEUR(value: number): number {
+  return roundToDecimals(value, 2);
+}
+
 export function formatEUR(value: number): string {
+  const safeVal = roundEUR(value);
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(safeVal);
 }
 
 export function formatNumber(value: number, minDecimals: number = 2, maxDecimals: number = 2): string {

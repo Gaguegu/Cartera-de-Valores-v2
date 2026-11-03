@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StockPosition, Operation, DividendRecord } from '../../types/portfolio';
-import { formatEUR, formatNumber, parseYearFromDate } from '../../utils/formatters';
+import { formatEUR, formatNumber, parseYearFromDate, roundEUR } from '../../utils/formatters';
 import {
   X,
   Lock,
@@ -262,75 +262,77 @@ export function NewDividendModal({
     }
     const val = parseFloat(valStr.replace(',', '.'));
     if (!isNaN(val) && sharesCount > 0) {
-      const gUSD = Number((val * sharesCount).toFixed(2));
+      const gUSD = roundEUR(val * sharesCount);
       setFxGrossUSD(gUSD);
-      const oUSD = Number(((gUSD * fxOriginRateUSD) / 100).toFixed(2));
+      const oUSD = roundEUR((gUSD * fxOriginRateUSD) / 100);
       setFxOriginUSD(oUSD);
       if (fxRate > 0) {
-        const subEUR = Number(((gUSD - oUSD) / fxRate).toFixed(2));
-        setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+        const subEUR = roundEUR((gUSD - oUSD) / fxRate);
+        setFxDestEUR(roundEUR((subEUR * fxDestRate) / 100));
       }
     }
   };
 
   const handleFxGrossChange = (valUSD: number) => {
-    setFxGrossUSD(valUSD);
-    if (sharesCount > 0 && valUSD > 0) {
-      setFxPerShareUSD((valUSD / sharesCount).toFixed(4));
+    const safeGross = roundEUR(valUSD);
+    setFxGrossUSD(safeGross);
+    if (sharesCount > 0 && safeGross > 0) {
+      setFxPerShareUSD((safeGross / sharesCount).toFixed(4));
     }
-    const oUSD = Number(((valUSD * fxOriginRateUSD) / 100).toFixed(2));
+    const oUSD = roundEUR((safeGross * fxOriginRateUSD) / 100);
     setFxOriginUSD(oUSD);
     if (fxRate > 0) {
-      const subEUR = Number(((valUSD - oUSD) / fxRate).toFixed(2));
-      setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+      const subEUR = roundEUR((safeGross - oUSD) / fxRate);
+      setFxDestEUR(roundEUR((subEUR * fxDestRate) / 100));
     }
   };
 
   const handleFxOriginRateChange = (pct: number) => {
     setFxOriginRateUSD(pct);
-    const oUSD = Number(((fxGrossUSD * pct) / 100).toFixed(2));
+    const oUSD = roundEUR((fxGrossUSD * pct) / 100);
     setFxOriginUSD(oUSD);
     if (fxRate > 0 && fxGrossUSD > 0) {
-      const subEUR = Number(((fxGrossUSD - oUSD) / fxRate).toFixed(2));
-      setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+      const subEUR = roundEUR((fxGrossUSD - oUSD) / fxRate);
+      setFxDestEUR(roundEUR((subEUR * fxDestRate) / 100));
     }
   };
 
   const handleFxOriginUSDChange = (valUSD: number) => {
-    setFxOriginUSD(valUSD);
+    const safeO = roundEUR(valUSD);
+    setFxOriginUSD(safeO);
     if (fxGrossUSD > 0) {
-      setFxOriginRateUSD(Number(((valUSD / fxGrossUSD) * 100).toFixed(2)));
+      setFxOriginRateUSD(roundEUR((safeO / fxGrossUSD) * 100));
     }
     if (fxRate > 0 && fxGrossUSD > 0) {
-      const subEUR = Number(((fxGrossUSD - valUSD) / fxRate).toFixed(2));
-      setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+      const subEUR = roundEUR((fxGrossUSD - safeO) / fxRate);
+      setFxDestEUR(roundEUR((subEUR * fxDestRate) / 100));
     }
   };
 
   const handleFxRateChange = (r: number) => {
     setFxRate(r);
     if (r > 0 && fxGrossUSD > 0) {
-      const subEUR = Number(((fxGrossUSD - fxOriginUSD) / r).toFixed(2));
-      setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+      const subEUR = roundEUR((fxGrossUSD - fxOriginUSD) / r);
+      setFxDestEUR(roundEUR((subEUR * fxDestRate) / 100));
     }
   };
 
   const handleFxDestRateChange = (pct: number) => {
     setFxDestRate(pct);
     if (fxRate > 0 && fxGrossUSD > 0) {
-      const subEUR = Number(((fxGrossUSD - fxOriginUSD) / fxRate).toFixed(2));
-      setFxDestEUR(Number(((subEUR * pct) / 100).toFixed(2)));
+      const subEUR = roundEUR((fxGrossUSD - fxOriginUSD) / fxRate);
+      setFxDestEUR(roundEUR((subEUR * pct) / 100));
     }
   };
 
   // Derived calculations for Tab 1 (Foreign):
-  const tab1SubtotalUSD = fxGrossUSD > 0 ? Number((fxGrossUSD - fxOriginUSD).toFixed(2)) : 0;
-  const tab1SubtotalEUR = fxRate > 0 && tab1SubtotalUSD > 0 ? Number((tab1SubtotalUSD / fxRate).toFixed(2)) : 0;
+  const tab1SubtotalUSD = fxGrossUSD > 0 ? roundEUR(fxGrossUSD - fxOriginUSD) : 0;
+  const tab1SubtotalEUR = fxRate > 0 && tab1SubtotalUSD > 0 ? roundEUR(tab1SubtotalUSD / fxRate) : 0;
   const tab1DestEUR = fxDestEUR;
-  const tab1NetEUR = tab1SubtotalEUR > 0 ? Number((tab1SubtotalEUR - tab1DestEUR).toFixed(2)) : 0;
-  const tab1OriginEUR = fxRate > 0 && fxOriginUSD > 0 ? Number((fxOriginUSD / fxRate).toFixed(2)) : 0;
-  const tab1FullGrossEUR = fxRate > 0 && fxGrossUSD > 0 ? Number((fxGrossUSD / fxRate).toFixed(2)) : 0;
-  const tab1TotalWithholdingEUR = Number((tab1OriginEUR + tab1DestEUR).toFixed(2));
+  const tab1NetEUR = tab1SubtotalEUR > 0 ? roundEUR(tab1SubtotalEUR - tab1DestEUR) : 0;
+  const tab1OriginEUR = fxRate > 0 && fxOriginUSD > 0 ? roundEUR(fxOriginUSD / fxRate) : 0;
+  const tab1FullGrossEUR = fxRate > 0 && fxGrossUSD > 0 ? roundEUR(fxGrossUSD / fxRate) : 0;
+  const tab1TotalWithholdingEUR = roundEUR(tab1OriginEUR + tab1DestEUR);
 
   // ==========================================
   // TAB 2: DIRECT EUR CALCULATIONS
@@ -346,18 +348,19 @@ export function NewDividendModal({
     }
     const val = parseFloat(valStr.replace(',', '.'));
     if (!isNaN(val) && sharesCount > 0) {
-      const g = Number((val * sharesCount).toFixed(2));
+      const g = roundEUR(val * sharesCount);
       setDirectGrossEUR(g);
       recalcDirectWithholdings(g, hasDoubleWithholding, originPercent, destPercent, singleWithholdingPercent);
     }
   };
 
   const handleDirectGrossChange = (newG: number) => {
-    setDirectGrossEUR(newG);
-    if (sharesCount > 0 && newG > 0) {
-      setPerShareEUR((newG / sharesCount).toFixed(4));
+    const safeG = roundEUR(newG);
+    setDirectGrossEUR(safeG);
+    if (sharesCount > 0 && safeG > 0) {
+      setPerShareEUR((safeG / sharesCount).toFixed(4));
     }
-    recalcDirectWithholdings(newG, hasDoubleWithholding, originPercent, destPercent, singleWithholdingPercent);
+    recalcDirectWithholdings(safeG, hasDoubleWithholding, originPercent, destPercent, singleWithholdingPercent);
   };
 
   const recalcDirectWithholdings = (
@@ -368,20 +371,20 @@ export function NewDividendModal({
     singlePct: number
   ) => {
     if (!isDouble) {
-      setSingleWithholdingEUR(Number(((gross * singlePct) / 100).toFixed(2)));
+      setSingleWithholdingEUR(roundEUR((gross * singlePct) / 100));
     } else {
-      const oE = Number(((gross * origPct) / 100).toFixed(2));
+      const oE = roundEUR((gross * origPct) / 100);
       setOriginEUR(oE);
       const baseDest = Math.max(0, gross - oE);
-      setDestEUR(Number(((baseDest * dPct) / 100).toFixed(2)));
+      setDestEUR(roundEUR((baseDest * dPct) / 100));
     }
   };
 
   const tab2TotalWithholdingEUR = hasDoubleWithholding
-    ? Number((originEUR + destEUR).toFixed(2))
-    : Number(singleWithholdingEUR.toFixed(2));
+    ? roundEUR(originEUR + destEUR)
+    : roundEUR(singleWithholdingEUR);
 
-  const tab2NetEUR = directGrossEUR > 0 ? Number((directGrossEUR - tab2TotalWithholdingEUR).toFixed(2)) : 0;
+  const tab2NetEUR = directGrossEUR > 0 ? roundEUR(directGrossEUR - tab2TotalWithholdingEUR) : 0;
 
   // Handle shares count change
   const handleSharesCountChange = (newCount: number, source: 'portfolio' | 'single' | 'custom') => {
@@ -391,20 +394,20 @@ export function NewDividendModal({
     // Sync Tab 1
     if (fxPerShareUSD) {
       const pU = parseFloat(fxPerShareUSD.replace(',', '.')) || 0;
-      const gUSD = Number((newCount * pU).toFixed(2));
+      const gUSD = roundEUR(newCount * pU);
       setFxGrossUSD(gUSD);
-      const oUSD = Number(((gUSD * fxOriginRateUSD) / 100).toFixed(2));
+      const oUSD = roundEUR((gUSD * fxOriginRateUSD) / 100);
       setFxOriginUSD(oUSD);
       if (fxRate > 0) {
-        const subEUR = Number(((gUSD - oUSD) / fxRate).toFixed(2));
-        setFxDestEUR(Number(((subEUR * fxDestRate) / 100).toFixed(2)));
+        const subEUR = roundEUR((gUSD - oUSD) / fxRate);
+        setFxDestEUR(roundEUR((subEUR * fxDestRate) / 100));
       }
     }
 
     // Sync Tab 2
     if (calcMode === 'perShare' && perShareEUR) {
       const pE = parseFloat(perShareEUR.replace(',', '.')) || 0;
-      const gE = Number((newCount * pE).toFixed(2));
+      const gE = roundEUR(newCount * pE);
       setDirectGrossEUR(gE);
       recalcDirectWithholdings(gE, hasDoubleWithholding, originPercent, destPercent, singleWithholdingPercent);
     } else {
@@ -1074,7 +1077,7 @@ export function NewDividendModal({
                         onChange={e => {
                           const p = parseFloat(e.target.value) || 0;
                           setSingleWithholdingPercent(p);
-                          setSingleWithholdingEUR(Number(((directGrossEUR * p) / 100).toFixed(2)));
+                          setSingleWithholdingEUR(roundEUR((directGrossEUR * p) / 100));
                         }}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono"
                       />
@@ -1104,7 +1107,7 @@ export function NewDividendModal({
                           onChange={e => {
                             const p = parseFloat(e.target.value) || 0;
                             setOriginPercent(p);
-                            setOriginEUR(Number(((directGrossEUR * p) / 100).toFixed(2)));
+                            setOriginEUR(roundEUR((directGrossEUR * p) / 100));
                           }}
                           className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono"
                         />
@@ -1129,7 +1132,7 @@ export function NewDividendModal({
                             const p = parseFloat(e.target.value) || 0;
                             setDestPercent(p);
                             const base = Math.max(0, directGrossEUR - originEUR);
-                            setDestEUR(Number(((base * p) / 100).toFixed(2)));
+                            setDestEUR(roundEUR((base * p) / 100));
                           }}
                           className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono"
                         />
