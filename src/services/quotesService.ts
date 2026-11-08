@@ -56,8 +56,8 @@ const SYMBOL_MAP: Record<string, { yahooSymbol: string; company: string; country
 };
 
 // Tipos de cambio por defecto sincronizados con el cierre y cotización oficial de Yahoo Finance (EURUSD=X y EURGBP=X)
-let currentEurUsdRate = 1.1204;
-let currentGbpEurRate = 0.8376;
+let currentEurUsdRate = 1.1148;
+let currentGbpEurRate = 0.8339;
 
 export interface FxRates {
   usdEur: number;
@@ -71,9 +71,10 @@ export function getStoredFxRates(): FxRates {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && parsed.usdEur > 0) {
-        // Si tenía guardado el tipo desfasado del BCE (1.1193), migrar a la cotización oficial de Yahoo Finance (1.1204)
-        if (Math.abs(parsed.usdEur - 1.1193) < 0.0005) {
-          parsed.usdEur = 1.1204;
+        // Migrar tipos de cambio desfasados a la cotización oficial en tiempo real
+        if (Math.abs(parsed.usdEur - 1.1193) < 0.0005 || Math.abs(parsed.usdEur - 1.1204) < 0.0005) {
+          parsed.usdEur = 1.1148;
+          parsed.gbpEur = 0.8339;
           localStorage.setItem('cartera_fx_rates', JSON.stringify(parsed));
         }
         currentEurUsdRate = Number(parsed.usdEur);
