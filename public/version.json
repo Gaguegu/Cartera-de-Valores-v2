@@ -1,9 +1,9 @@
 {
   "version": "1.0.4",
   "commitSha": "v1.0.4",
-  "buildTime": "2026-10-20T18:10:00.000Z",
-  "message": "Fase 3: Cotizaciones en 1 clic en cartera, Simulador de Rebalanceo DCA, Centro de Alertas de Precios y Análisis Multidivisa FX",
-  "author": "Gaguegu",
+  "buildTime": "2026-11-08T12:00:00.000Z",
+  "message": "Versión Oficial v1.0.4: Actualización automática con bloqueo seguro de sesión y nombre de archivo oficial para informes",
+  "author": "Ansama",
   "branch": "main",
   "repo": "Gaguegu/Cartera-de-Valores-v2"
 }

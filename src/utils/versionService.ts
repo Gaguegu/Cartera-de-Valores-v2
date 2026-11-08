@@ -233,110 +233,27 @@ export async function fetchGitHubCommits(): Promise<AppVersionInfo[]> {
   }
 }
 
+// Versiones oficiales de la aplicación (solo v1.0.4 o posteriores, las modificaciones intermedias de código están en GitHub)
+export const OFFICIAL_VERSIONS: AppVersionInfo[] = [
+  {
+    version: '1.0.4',
+    commitSha: 'v1.0.4',
+    message: 'Versión Oficial v1.0.4: Actualización automática con cierre de sesión seguro (bloqueo por contraseña), asignación automática del nombre de archivo PDF en informes y corrección de redondeo financiero en liquidaciones.',
+    date: '2026-11-08T12:00:00Z',
+    author: 'Ansama',
+    url: `https://github.com/${GITHUB_REPO}/releases`,
+    isCurrent: true,
+  },
+];
+
 /**
- * Retrieves cached versions history or fallback repository list.
+ * Retrieves official versions history (only v1.0.4 and posterior releases).
  */
 export function getCachedHistory(): AppVersionInfo[] {
-  const raw = localStorage.getItem(KEY_CACHED_HISTORY);
-  const currentSha = getCurrentVersionSha();
-
-  if (raw) {
-    try {
-      const parsed: AppVersionInfo[] = JSON.parse(raw);
-      return parsed.map(p => ({
-        ...p,
-        message: sanitizeCommitMessage(p.message),
-        isCurrent: isSameCommit(p.version, currentSha) || isSameCommit(p.commitSha, currentSha),
-      }));
-    } catch {
-      // ignore
-    }
-  }
-
-  // Fallback initial list matching GitHub repository commits
-  return [
-    {
-      version: 'ca04a78',
-      commitSha: 'ca04a78b62e2c0cdec349e96cca5b680229b2b2d',
-      message: 'chore: bump application version to v1.0.0',
-      date: '2026-10-09T18:08:24Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/ca04a78b62e2c0cdec349e96cca5b680229b2b2d`,
-      isCurrent: isSameCommit(currentSha, 'ca04a78'),
-    },
-    {
-      version: '1a1718d',
-      commitSha: '1a1718d859d8ad7c83bbcbb77d794e6eeeb05d19',
-      message: 'feat: implement manual update check functionality',
-      date: '2026-10-09T18:02:26Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/1a1718d859d8ad7c83bbcbb77d794e6eeeb05d19`,
-      isCurrent: isSameCommit(currentSha, '1a1718d'),
-    },
-    {
-      version: '755adff',
-      commitSha: '755adff4c9af6a38cf81ac9a3cae4bc22483530a',
-      message: 'feat: implement manual update check functionality',
-      date: '2026-10-09T17:50:53Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/755adff4c9af6a38cf81ac9a3cae4bc22483530a`,
-      isCurrent: isSameCommit(currentSha, '755adff'),
-    },
-    {
-      version: '8e54940',
-      commitSha: '8e54940213992b3fc1a33f1e7eabd6a2d0c76d98',
-      message: 'feat: implement automatic update checker and version tracking',
-      date: '2026-10-09T17:33:24Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/8e54940213992b3fc1a33f1e7eabd6a2d0c76d98`,
-      isCurrent: isSameCommit(currentSha, '8e54940'),
-    },
-    {
-      version: '0e15465',
-      commitSha: '0e154658255c99b2cdbf7a9965b9cc7f7ef9680f',
-      message: 'build: upgrade esbuild and update dependency install',
-      date: '2026-10-09T16:58:01Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/0e154658255c99b2cdbf7a9965b9cc7f7ef9680f`,
-      isCurrent: isSameCommit(currentSha, '0e15465'),
-    },
-    {
-      version: 'fb5cec6',
-      commitSha: 'fb5cec673bcd417443aa4a0d7e0130b3da5dca79',
-      message: 'build: initialize project dependencies',
-      date: '2026-10-09T16:53:30Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/fb5cec673bcd417443aa4a0d7e0130b3da5dca79`,
-      isCurrent: isSameCommit(currentSha, 'fb5cec6'),
-    },
-    {
-      version: '054dc0a',
-      commitSha: '054dc0ad387f0f9d38157dae7424eeaeb7fde2cd',
-      message: 'ci: update deployment workflow and dependency install',
-      date: '2026-10-09T16:08:13Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/054dc0ad387f0f9d38157dae7424eeaeb7fde2cd`,
-      isCurrent: isSameCommit(currentSha, '054dc0a'),
-    },
-    {
-      version: 'ad1eee0',
-      commitSha: 'ad1eee0bcda48627a7fcb166869b7b082cc000be',
-      message: 'feat: initial project scaffold',
-      date: '2026-10-09T15:54:07Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/ad1eee0bcda48627a7fcb166869b7b082cc000be`,
-      isCurrent: isSameCommit(currentSha, 'ad1eee0'),
-    },
-    {
-      version: 'a85ac28',
-      commitSha: 'a85ac2838501c94df36769f0a9d2d1be6d7dff7d',
-      message: 'Initial commit',
-      date: '2026-10-09T15:51:27Z',
-      author: 'Ansama',
-      url: `https://github.com/${GITHUB_REPO}/commit/a85ac2838501c94df36769f0a9d2d1be6d7dff7d`,
-      isCurrent: isSameCommit(currentSha, 'a85ac28'),
-    },
-  ];
+  return OFFICIAL_VERSIONS.map(v => ({
+    ...v,
+    isCurrent: true,
+  }));
 }
 
 /**

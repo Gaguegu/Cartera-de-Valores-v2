@@ -211,7 +211,7 @@ export function Header({
                 ? 'bg-gradient-to-b from-[#2a1708] via-[#1f130b] to-[#0f0a05] border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.35)]'
                 : 'bg-gradient-to-b from-[#0f2343] via-[#0b1a32] to-[#071222] border-blue-500/80 hover:border-cyan-400 shadow-[0_0_14px_rgba(59,130,246,0.25)] hover:shadow-[0_0_20px_rgba(6,182,212,0.45)]'
             }`}
-            title={`Versión ${currentVersion || 'v1.0.0'} · Ver versiones modificadas en GitHub`}
+            title={`Versión ${currentVersion || 'v1.0.4'} · Ver versión oficial de la aplicación`}
           >
             {/* Indicador de actualización pendiente */}
             {hasPendingUpdate && (

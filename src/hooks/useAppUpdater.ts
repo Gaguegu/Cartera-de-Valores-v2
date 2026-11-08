@@ -37,33 +37,38 @@ export function useAppUpdater() {
   }, [autoUpdate]);
 
   // Check if we just reloaded or have a pending post-update notice
+  // Check if we just reloaded or have a pending post-update notice
   useEffect(() => {
-    const justReloaded = sessionStorage.getItem('cartera_just_reloaded');
-    if (justReloaded) {
-      sessionStorage.removeItem('cartera_just_reloaded');
+    const pendingNotice = localStorage.getItem('cartera_pending_update_banner');
+    if (pendingNotice) {
+      localStorage.removeItem('cartera_pending_update_banner');
       setJustUpdated({
-        version: APP_SEMANTIC_VERSION,
-        commitSha: getCurrentVersionSha(),
-        message: 'Aplicación recargada con éxito a la última versión disponible.',
+        version: pendingNotice || APP_SEMANTIC_VERSION,
+        commitSha: '',
+        message: `Aplicación actualizada con éxito a la última versión ${pendingNotice || APP_SEMANTIC_VERSION}.`,
         date: new Date().toISOString(),
       });
       playUpdateChime();
 
       justUpdatedTimerRef.current = setTimeout(() => {
         setJustUpdated(null);
-      }, 7000);
+      }, 6000);
       return;
     }
 
     const notice = consumeJustUpdatedNotification();
     if (notice) {
-      setJustUpdated(notice);
-      setCurrentVersionSha(notice.commitSha || getCurrentVersionSha());
+      setJustUpdated({
+        version: APP_SEMANTIC_VERSION,
+        commitSha: '',
+        message: `Aplicación actualizada a la última versión ${APP_SEMANTIC_VERSION}.`,
+        date: new Date().toISOString(),
+      });
       playUpdateChime();
 
       justUpdatedTimerRef.current = setTimeout(() => {
         setJustUpdated(null);
-      }, 7000);
+      }, 6000);
     }
 
     return () => {
@@ -75,9 +80,10 @@ export function useAppUpdater() {
 
   /**
    * Check for updates from GitHub API and deployed version.
-   * If autoUpdate is enabled, automatically installs and applies the update in-place,
-   * notifying the user once updated without requiring closing/reopening the app.
-   * If isManual is true, provides user-facing feedback toast and status.
+   * Cuando detecta archivos nuevos en GitHub:
+   * 1. Aplica la actualización.
+   * 2. Cierra la aplicación bloqueando la sesión para pedir la clave al inicio.
+   * 3. Muestra una única notificación al acceder a la aplicación.
    */
   const checkForUpdates = useCallback(async (isManual = false) => {
     if (isCheckingRef.current) return;
@@ -115,70 +121,36 @@ export function useAppUpdater() {
           isSameCommit(latestCommit.version, activeSha);
 
         if (!upToDate) {
-          // New update detected!
-          if (autoUpdateRef.current) {
-            // AUTOMATIC UPDATE: Apply update cleanly in-place without restarting
-            const notice = applyAppUpdate(latestCommit);
-            const targetSha = (latestCommit.commitSha || latestCommit.version).substring(0, 7);
+          // ¡Nueva actualización / archivos detectados en GitHub!
+          applyAppUpdate(latestCommit);
 
-            setCurrentVersionSha(targetSha);
-            setUpdateAvailable(null);
-            setManualFeedback(null);
-            setJustUpdated(notice);
+          // Guardamos la señal para mostrar la única notificación de éxito cuando el usuario entre
+          localStorage.setItem('cartera_pending_update_banner', APP_SEMANTIC_VERSION);
 
-            // Refresh history list marking the new target as current
-            setHistory(prev =>
-              prev.map(item => ({
-                ...item,
-                isCurrent: isSameCommit(item.version, targetSha) || isSameCommit(item.commitSha, targetSha),
-              }))
-            );
+          // Cerramos y bloqueamos la sesión para pedir la clave como al inicio
+          sessionStorage.removeItem('cartera_session_token');
+          sessionStorage.removeItem('cartera_session_pass');
+          sessionStorage.removeItem('cartera_just_reloaded');
 
-            playUpdateChime();
-
-            if (justUpdatedTimerRef.current) {
-              clearTimeout(justUpdatedTimerRef.current);
-            }
-            justUpdatedTimerRef.current = setTimeout(() => {
-              setJustUpdated(null);
-            }, 7000);
-
-            if (isManual) {
-              const cleanMsg = sanitizeCommitMessage(latestCommit.message);
-              setManualFeedback({
-                status: 'up_to_date',
-                message: `¡Actualizado a la última versión! Se han sincronizado las modificaciones (${targetSha}): "${cleanMsg}".`,
-                version: APP_SEMANTIC_VERSION,
-                commitSha: targetSha,
-                timestamp: now,
-              });
-              feedbackTimerRef.current = setTimeout(() => {
-                setManualFeedback(null);
-              }, 4500);
-            }
-          } else {
-            // Manual mode: Notify that update is ready to install
-            setUpdateAvailable(latestCommit);
-
-            if (isManual) {
-              const cleanMsg = sanitizeCommitMessage(latestCommit.message);
-              setManualFeedback({
-                status: 'update_available',
-                message: `Nueva modificación detectada: "${cleanMsg}".`,
-                version: latestCommit.version,
-                commitSha: latestCommit.commitSha,
-                timestamp: now,
-              });
-            }
+          // Limpiamos las cachés del navegador
+          if ('caches' in window) {
+            try {
+              const cacheKeys = await window.caches.keys();
+              await Promise.all(cacheKeys.map(k => window.caches.delete(k)));
+            } catch {}
           }
+
+          // Se actualiza y se cierra la aplicación inmediatamente recargando hacia la pantalla de acceso
+          window.location.reload();
+          return;
         } else {
-          // Completely up to date
+          // Completamente al día
           setUpdateAvailable(null);
 
           if (isManual) {
             setManualFeedback({
               status: 'up_to_date',
-              message: `¡Todas las modificaciones están al día! Tu versión activa coincide con el último commit de GitHub (${activeSha.substring(0, 7)}).`,
+              message: `La aplicación ya está actualizada a la última versión (${APP_SEMANTIC_VERSION}).`,
               version: APP_SEMANTIC_VERSION,
               commitSha: activeSha,
               timestamp: now,
@@ -186,7 +158,7 @@ export function useAppUpdater() {
 
             feedbackTimerRef.current = setTimeout(() => {
               setManualFeedback(null);
-            }, 4500);
+            }, 3000);
           }
         }
       } else {
@@ -194,14 +166,14 @@ export function useAppUpdater() {
         if (isManual) {
           setManualFeedback({
             status: 'up_to_date',
-            message: `¡Todas las actualizaciones están al día! Tienes la última versión (${APP_SEMANTIC_VERSION}).`,
+            message: `La aplicación ya está actualizada a la última versión (${APP_SEMANTIC_VERSION}).`,
             version: APP_SEMANTIC_VERSION,
             commitSha: activeSha,
             timestamp: now,
           });
           feedbackTimerRef.current = setTimeout(() => {
             setManualFeedback(null);
-          }, 4500);
+          }, 3000);
         }
       }
     } catch (e) {
@@ -214,7 +186,7 @@ export function useAppUpdater() {
         });
         feedbackTimerRef.current = setTimeout(() => {
           setManualFeedback(null);
-        }, 4500);
+        }, 3000);
       }
     } finally {
       isCheckingRef.current = false;
@@ -273,13 +245,19 @@ export function useAppUpdater() {
       // ignore
     }
 
-    sessionStorage.setItem('cartera_just_reloaded', 'true');
+    // Guardamos la señal para mostrar la única notificación de éxito cuando el usuario vuelva a entrar
+    localStorage.setItem('cartera_pending_update_banner', APP_SEMANTIC_VERSION);
+
+    // Cerramos la aplicación bloqueando la sesión para solicitar la clave al inicio
+    sessionStorage.removeItem('cartera_session_token');
+    sessionStorage.removeItem('cartera_session_pass');
+    sessionStorage.removeItem('cartera_just_reloaded');
+
     window.location.reload();
   };
 
   /**
-   * Forces a clean cache-busting reload of the app so any code modifications
-   * take effect immediately without requiring the user to manually close and reopen the app.
+   * Recarga limpia cerrando la sesión para que se vuelva a solicitar la clave
    */
   const handleForceReload = async () => {
     setIsUpdating(true);
@@ -293,7 +271,9 @@ export function useAppUpdater() {
       // ignore
     }
 
-    sessionStorage.setItem('cartera_just_reloaded', 'true');
+    sessionStorage.removeItem('cartera_session_token');
+    sessionStorage.removeItem('cartera_session_pass');
+    sessionStorage.removeItem('cartera_just_reloaded');
     window.location.reload();
   };
 

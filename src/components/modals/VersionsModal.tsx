@@ -76,7 +76,7 @@ export function VersionsModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                  Versiones Modificadas de la Aplicación
+                  Versión Oficial de la Aplicación
                 </h2>
                 {/* Oval in modal header */}
                 <div className="inline-flex flex-col items-center justify-center px-3.5 py-1 rounded-full bg-gradient-to-b from-[#0f2343] via-[#0b1a32] to-[#071222] border-2 border-blue-500/80 shadow-[0_0_10px_rgba(59,130,246,0.25)]">
@@ -84,7 +84,7 @@ export function VersionsModal({
                     VERSIÓN
                   </span>
                   <span className="text-[11px] font-black text-white tracking-tight leading-none mt-0.5 font-mono">
-                    {currentVersion || 'v1.0.0'}
+                    {currentVersion || 'v1.0.4'}
                   </span>
                 </div>
               </div>
@@ -122,7 +122,7 @@ export function VersionsModal({
                 </span>
                 {updateAvailable ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                    <AlertCircle className="w-3 h-3" /> Modificación pendiente
+                    <AlertCircle className="w-3 h-3" /> Actualización disponible
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
@@ -136,14 +136,12 @@ export function VersionsModal({
                     VERSIÓN
                   </span>
                   <span className="text-xs font-black text-white tracking-tight leading-none mt-0.5 font-mono">
-                    {currentVersion || 'v1.0.0'}
+                    {currentVersion || 'v1.0.4'}
                   </span>
                 </div>
-                <div className="text-xs text-slate-300">
-                  <span className="text-slate-400">Commit activo: </span>
-                  <span className="font-mono text-blue-300 bg-blue-950/80 px-2 py-0.5 rounded border border-blue-800/60 font-bold">
-                    {currentCommitSha || 'ca04a78'}
-                  </span>
+                <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Versión oficial en uso</span>
                 </div>
               </div>
               <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
@@ -211,109 +209,70 @@ export function VersionsModal({
             </div>
           )}
 
-          {/* List of Modified Versions */}
+          {/* Versión Oficial del Sistema (Solo v1.0.4 o posteriores) */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                <span>Lista de Versiones Modificadas</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono">
-                  {history.length} registradas
+                <span>Versión Oficial del Sistema</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono font-bold">
+                  v1.0.4
                 </span>
               </h3>
-              <span className="text-xs text-slate-400 hidden sm:inline">
-                Sincronizado con GitHub Actions & Commits
-              </span>
+              <a
+                href={`https://github.com/${GITHUB_REPO}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1"
+                title="Ver historial completo de commits y ramas en GitHub"
+              >
+                <span>Ver historial en GitHub</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
 
             <div className="space-y-2.5">
-              {history.map((item, idx) => {
-                const isCurrent =
-                  item.version === currentVersion || item.commitSha === currentVersion;
-                return (
-                  <div
-                    key={item.commitSha || idx}
-                    className={`p-3.5 rounded-xl border transition-all ${
-                      isCurrent
-                        ? 'bg-blue-950/40 border-emerald-500/50 shadow-sm'
-                        : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60'
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-start sm:items-center gap-2.5">
-                        {/* Oval Badge with Version */}
-                        <div
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border transition-colors shadow-sm ${
-                            isCurrent
-                              ? 'bg-emerald-950 text-emerald-300 border-emerald-500/60 ring-1 ring-emerald-500/30'
-                              : 'bg-slate-900 text-slate-300 border-slate-700'
-                          }`}
-                        >
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              isCurrent ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-                            }`}
-                          ></span>
-                          <span>v{item.version}</span>
-                        </div>
-
-                        {/* Current badge */}
-                        {isCurrent ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                            <ShieldCheck className="w-3 h-3" /> Versión actual en uso
-                          </span>
-                        ) : (
-                          idx === 0 && updateAvailable && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                              Modificación nueva
-                            </span>
-                          )
-                        )}
-                      </div>
-
-                      {/* Date & Author */}
-                      <div className="flex items-center gap-3 text-xs text-slate-400 sm:self-center">
-                        <span className="flex items-center gap-1 font-mono">
-                          <Clock className="w-3 h-3 text-slate-500" />
-                          {formatDate(item.date)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3 text-slate-500" />
-                          {item.author}
-                        </span>
-                        {item.url && (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-400 hover:text-blue-300 flex items-center gap-0.5"
-                            title="Ver este commit en GitHub"
-                          >
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                          </a>
-                        )}
-                      </div>
+              <div className="p-4 rounded-xl border bg-blue-950/40 border-emerald-500/50 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-start sm:items-center gap-2.5">
+                    {/* Oval Badge with Version */}
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border shadow-sm bg-emerald-950 text-emerald-300 border-emerald-500/60 ring-1 ring-emerald-500/30">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span>v1.0.4</span>
                     </div>
 
-                    {/* Commit Description */}
-                    <div className="mt-2 text-xs sm:text-sm text-slate-200 font-medium pl-1">
-                      {sanitizeCommitMessage(item.message)}
-                    </div>
-
-                    {/* Quick switch to this version if not current */}
-                    {!isCurrent && (
-                      <div className="mt-2 flex items-center justify-end">
-                        <button
-                          onClick={() => onInstallUpdate(item)}
-                          className="text-[11px] text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          Cargar esta versión
-                        </button>
-                      </div>
-                    )}
+                    {/* Current badge */}
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      <ShieldCheck className="w-3 h-3" /> Versión actual en uso
+                    </span>
                   </div>
-                );
-              })}
+
+                  {/* Date & Author */}
+                  <div className="flex items-center gap-3 text-xs text-slate-400 sm:self-center">
+                    <span className="flex items-center gap-1 font-mono">
+                      <Clock className="w-3 h-3 text-slate-500" />
+                      08/11/2026, 12:00
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <User className="w-3 h-3 text-slate-500" />
+                      Ansama
+                    </span>
+                    <a
+                      href={`https://github.com/${GITHUB_REPO}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-400 hover:text-blue-300 flex items-center gap-0.5"
+                      title="Ver repositorio en GitHub"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Release Description */}
+                <div className="mt-3 text-xs sm:text-sm text-slate-200 font-medium pl-1 leading-relaxed">
+                  Versión Oficial v1.0.4: Actualización automática en segundo plano con cierre y bloqueo seguro de sesión (solicitando la clave de acceso al inicio), asignación automática del nombre oficial de archivo PDF en informes y corrección de redondeo financiero de alta precisión en liquidaciones.
+                </div>
+              </div>
             </div>
           </div>
 
@@ -321,9 +280,9 @@ export function VersionsModal({
           <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400 flex items-start gap-2.5">
             <span className="text-base">💡</span>
             <div>
-              <p className="font-semibold text-slate-300">¿Cómo funciona la actualización?</p>
+              <p className="font-semibold text-slate-300">Gestión de versiones y GitHub</p>
               <p className="mt-0.5 text-slate-400 leading-relaxed">
-                Cuando subes cambios a tu repositorio en GitHub, la aplicación comprueba en segundo plano las modificaciones cada minuto. Al detectarse, se aplica la actualización sin que se borre ninguna de tus compras, ventas o datos de cartera guardados.
+                Todas las modificaciones intermedias de código se gestionan directamente en tu repositorio de GitHub. Cuando se detecten archivos nuevos, la aplicación se actualizará automáticamente y se cerrará para que entres introduciendo tu clave como al inicio.
               </p>
             </div>
           </div>
