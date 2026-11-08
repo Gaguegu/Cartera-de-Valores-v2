@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Printer, Calendar, Filter, Info, RotateCcw, Search, FileText } from 'lucide-react';
+import { X, Printer, Calendar, Filter, Info, RotateCcw, Search } from 'lucide-react';
 import { StockPosition, Operation, ClosedPosition, DividendRecord } from '../../types/portfolio';
 import {
   formatEUR,
@@ -127,7 +127,6 @@ export function PrintReportModal({
   const [includeCharts, setIncludeCharts] = useState<boolean>(() => options?.charts ?? true);
   const [includeDividends, setIncludeDividends] = useState<boolean>(() => options?.dividends ?? true);
   const [includeClosed, setIncludeClosed] = useState<boolean>(() => options?.closed ?? true);
-  const [customReportName, setCustomReportName] = useState<string>('');
 
   // Lista única de valores disponibles para filtro rápido
   const availableFilterStocks = useMemo(() => {
@@ -198,7 +197,6 @@ export function PrintReportModal({
       if (options?.closed !== undefined) {
         setIncludeClosed(options.closed);
       }
-      setCustomReportName('');
     }
   }, [isOpen, initialYear, reportType, options]);
 
@@ -208,14 +206,13 @@ export function PrintReportModal({
   useEffect(() => {
     if (!isOpen) return;
     const originalTitle = document.title;
-    const autoName = getAutoReportFileName(activeReportType, selectedYear, searchFilter);
-    const finalName = customReportName.trim() || autoName;
-    document.title = finalName;
+    const reportFileName = getAutoReportFileName(activeReportType, selectedYear, searchFilter);
+    document.title = reportFileName;
 
     return () => {
       document.title = originalTitle;
     };
-  }, [isOpen, activeReportType, selectedYear, searchFilter, customReportName]);
+  }, [isOpen, activeReportType, selectedYear, searchFilter]);
 
   if (!isOpen) return null;
 
@@ -427,9 +424,8 @@ export function PrintReportModal({
 
   const handlePrint = () => {
     const originalTitle = document.title;
-    const autoName = getAutoReportFileName(activeReportType, selectedYear, searchFilter);
-    const finalName = customReportName.trim() || autoName;
-    document.title = finalName;
+    const reportFileName = getAutoReportFileName(activeReportType, selectedYear, searchFilter);
+    document.title = reportFileName;
 
     const restoreTitle = () => {
       document.title = originalTitle;
@@ -776,39 +772,12 @@ export function PrintReportModal({
             </div>
           </div>
 
-          {/* Barra de Nombre de Archivo PDF & Configuración de Impresión */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-800/90 border border-slate-700 px-3.5 py-2.5 rounded-xl text-xs">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="text-slate-300 font-medium text-xs flex items-center gap-1.5 shrink-0">
-                <FileText className="w-3.5 h-3.5 text-blue-400" />
-                <span>Nombre del archivo PDF:</span>
-              </span>
-              <div className="flex items-center gap-1.5 flex-1 max-w-lg min-w-0">
-                <input
-                  type="text"
-                  value={customReportName || getAutoReportFileName(activeReportType, selectedYear, searchFilter)}
-                  onChange={e => setCustomReportName(e.target.value)}
-                  placeholder={getAutoReportFileName(activeReportType, selectedYear, searchFilter)}
-                  className="bg-slate-900 border border-slate-600 text-cyan-300 font-mono text-xs font-semibold px-2.5 py-1 rounded-lg w-full focus:outline-none focus:border-cyan-400 shadow-inner"
-                  title="Nombre sugerido con el que se guardará el archivo PDF (puedes personalizarlo si deseas)"
-                />
-                <span className="text-slate-400 font-mono text-xs shrink-0 font-bold">.pdf</span>
-                {customReportName && (
-                  <button
-                    type="button"
-                    onClick={() => setCustomReportName('')}
-                    className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition-colors cursor-pointer"
-                    title="Restablecer nombre predeterminado"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-amber-200/95 shrink-0 bg-amber-950/40 border border-amber-600/30 px-2.5 py-1 rounded-lg">
-              <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>Desmarca <em>«Encabezados y pies de página»</em> al imprimir para quitar la URL web.</span>
-            </div>
+          {/* Aviso práctico para quitar el enlace web y la fecha del navegador al imprimir */}
+          <div className="flex items-start sm:items-center gap-2 text-[11px] text-amber-200 bg-amber-950/60 border border-amber-500/40 px-3.5 py-2 rounded-xl">
+            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+            <p className="leading-snug">
+              <strong>Para que no salga el enlace web abajo en el PDF:</strong> En la ventana de impresión de tu navegador (en <em>«Más ajustes / Opciones»</em>), desmarca la casilla <strong>«Encabezados y pies de página»</strong> y marca <strong>«Gráficos de fondo»</strong>.
+            </p>
           </div>
         </div>
 
