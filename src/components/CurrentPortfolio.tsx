@@ -54,6 +54,7 @@ export function CurrentPortfolio({
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<keyof StockPosition>('currentValueEUR');
   const [sortAsc, setSortAsc] = useState(false);
+  const [mobileView, setMobileView] = useState<'cards' | 'table'>('cards');
 
   // Años dinámicos disponibles en compras de la cartera (2026, 2025, etc.)
   const availableYears = useMemo(() => {
@@ -398,7 +399,7 @@ export function CurrentPortfolio({
           )}
 
           {/* Search bar con acción directa de imprimir filtro y limpiar - ubicado a la altura del botón Alertas y más largo */}
-          <div className="relative flex-1 min-w-[280px] sm:min-w-[340px] md:min-w-[380px] max-w-xl flex items-center">
+          <div className="relative flex-1 min-w-[200px] sm:min-w-[340px] md:min-w-[380px] max-w-xl flex items-center w-full sm:w-auto">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -472,9 +473,163 @@ export function CurrentPortfolio({
         </div>
       )}
 
-      {/* Main Table - Screen 2 */}
+      {/* Main Table & Mobile Cards - Screen 2 */}
       <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto">
+        {/* Selector de vista solo para móviles (Tarjetas / Tabla) */}
+        <div className="sm:hidden flex items-center justify-between p-3 bg-[#0e1b30] border-b border-slate-700/80">
+          <span className="text-xs font-bold text-slate-300">
+            {sorted.length} {sorted.length === 1 ? 'posición' : 'posiciones'}
+          </span>
+          <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setMobileView('cards')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                mobileView === 'cards'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              📱 Tarjetas
+            </button>
+            <button
+              onClick={() => setMobileView('table')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                mobileView === 'table'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              📄 Tabla
+            </button>
+          </div>
+        </div>
+
+        {/* VISTA EN TARJETAS PARA MÓVIL (Solo pantallas pequeñas, sin alterar escritorio) */}
+        <div className={`sm:hidden divide-y divide-slate-800/80 ${mobileView === 'cards' ? 'block' : 'hidden'}`}>
+          {sorted.length === 0 ? (
+            <div className="p-8 text-center text-slate-400">
+              <p className="font-semibold text-slate-300">No hay posiciones abiertas para los filtros seleccionados.</p>
+            </div>
+          ) : (
+            sorted.map(pos => {
+              const pmcWithComm = getPositionPmcWithCommission(pos);
+              const isLoss = (pos.gainLossEUR !== undefined && pos.gainLossEUR < 0) || pos.gainLossPercent < 0;
+              return (
+                <div
+                  key={pos.id}
+                  onClick={() => onSelectStock(pos)}
+                  className="p-3.5 bg-[#12233f] hover:bg-slate-800/50 active:bg-slate-800/80 transition-colors cursor-pointer space-y-2.5"
+                >
+                  {/* Fila 1: Ticker + Empresa + País / Plusvalía badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
+                        style={{ backgroundColor: pos.color || '#3b82f6' }}
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-sm text-white">{pos.symbol}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            {pos.country}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 font-medium truncate max-w-[190px]">{pos.company}</p>
+                      </div>
+                    </div>
+
+                    {/* Plusvalía badge grande */}
+                    <div className={`text-right shrink-0 px-2.5 py-1 rounded-xl border ${
+                      isLoss
+                        ? 'bg-red-950/50 border-red-500/30 text-red-400'
+                        : 'bg-emerald-950/50 border-emerald-500/30 text-emerald-400'
+                    }`}>
+                      <div className="font-mono font-black text-xs">
+                        {formatPercent(pos.gainLossPercent)}
+                      </div>
+                      <div className="font-mono text-[10px] font-semibold">
+                        {pos.gainLossEUR && pos.gainLossEUR > 0 ? `+${formatEUR(pos.gainLossEUR)}` : formatEUR(pos.gainLossEUR || 0)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fila 2: Grid 2 columnas con métricas clave */}
+                  <div className="grid grid-cols-2 gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/60 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">Precio actual (€)</span>
+                      <div className="font-mono font-bold text-white text-sm">
+                        {formatNumber(pos.currentPrice)} €
+                      </div>
+                      {pos.priceUSD && Math.abs(pos.priceUSD - pos.currentPrice) > 0.05 && (
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          ({formatNumber(pos.priceUSD)} $)
+                        </span>
+                      )}
+                      {pos.dayChangePercent !== undefined && pos.dayChangePercent !== 0 && (
+                        <span className={`inline-block ml-1 px-1 py-0.5 text-[9px] font-bold rounded ${
+                          pos.dayChangePercent > 0 ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          {pos.dayChangePercent > 0 ? `+${pos.dayChangePercent.toFixed(2)}%` : `${pos.dayChangePercent.toFixed(2)}%`} hoy
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block font-medium">Valor total</span>
+                      <div className="font-mono font-bold text-white text-sm">
+                        {formatEUR(pos.currentValueEUR)}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {pos.shares} títulos · PMC {formatNumber(pmcWithComm)} €
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fila 3: Botones de acción táctiles para móvil */}
+                  <div className="flex items-center justify-between gap-1.5 pt-1" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => onSelectStock(pos)}
+                      className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3 text-cyan-400" />
+                      <span>Detalle</span>
+                    </button>
+                    {onSellStock && (
+                      <button
+                        onClick={() => onSellStock(pos)}
+                        className="flex-1 py-1.5 px-2 bg-amber-950/60 border border-amber-500/40 hover:bg-amber-900 text-amber-200 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <ArrowUpRight className="w-3 h-3 text-amber-400" />
+                        <span>Vender</span>
+                      </button>
+                    )}
+                    {onRegisterDividendForStock && (
+                      <button
+                        onClick={() => onRegisterDividendForStock(pos)}
+                        className="flex-1 py-1.5 px-2 bg-emerald-950/60 border border-emerald-500/40 hover:bg-emerald-900 text-emerald-200 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Coins className="w-3 h-3 text-emerald-400" />
+                        <span>Dividendo</span>
+                      </button>
+                    )}
+                    {onOpenAlertsModal && (
+                      <button
+                        onClick={() => onOpenAlertsModal(pos.symbol)}
+                        className="p-1.5 bg-slate-800 text-amber-400 rounded-lg border border-slate-700"
+                        title="Fijar alerta"
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Tabla tradicional (Visible en escritorio siempre, y en móvil solo si se selecciona 'Tabla') */}
+        <div className={`overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto ${mobileView === 'table' ? 'block' : 'hidden sm:block'}`}>
           <table className="w-full text-xs text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none shadow-md">
               <tr>

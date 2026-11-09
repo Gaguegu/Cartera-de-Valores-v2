@@ -157,11 +157,11 @@ export function Header({
         {/* BOTÓN ROJO DE BLOQUEO: colocado de forma fluida para que nunca se solape con ningún botón */}
         <button
           onClick={hasPassword && onLockApp ? onLockApp : () => onOpenSecurityModal && onOpenSecurityModal('password')}
-          className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-black bg-red-600 hover:bg-red-500 active:bg-red-700 border-2 border-red-400 text-white shadow-[0_0_14px_rgba(239,68,68,0.55)] hover:shadow-[0_0_20px_rgba(239,68,68,0.8)] transition-all cursor-pointer select-none active:scale-95 shrink-0"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-black bg-red-600 hover:bg-red-500 active:bg-red-700 border-2 border-red-400 text-white shadow-[0_0_14px_rgba(239,68,68,0.55)] hover:shadow-[0_0_20px_rgba(239,68,68,0.8)] transition-all cursor-pointer select-none active:scale-95 shrink-0"
           title={hasPassword ? 'Bloquear aplicación ahora (un solo clic)' : 'Configurar contraseña de acceso'}
         >
           <Lock className="w-3.5 h-3.5 text-white" />
-          <span>Bloquear</span>
+          <span className="hidden sm:inline">Bloquear</span>
         </button>
         {/* BOTÓN / INDICADOR DE ALERTAS DE PRECIO (CAMPANA) */}
         {onOpenAlertsModal && (
@@ -206,7 +206,7 @@ export function Header({
         {onOpenVersionsModal && (
           <button
             onClick={onOpenVersionsModal}
-            className={`group relative flex flex-col items-center justify-center min-w-[92px] sm:min-w-[108px] px-4 sm:px-5 py-1 sm:py-1.5 rounded-full border-2 transition-all duration-200 cursor-pointer select-none active:scale-95 ${
+            className={`group relative flex flex-col items-center justify-center min-w-[76px] sm:min-w-[108px] px-3 sm:px-5 py-1 sm:py-1.5 rounded-full border-2 transition-all duration-200 cursor-pointer select-none active:scale-95 ${
               hasPendingUpdate
                 ? 'bg-gradient-to-b from-[#2a1708] via-[#1f130b] to-[#0f0a05] border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.35)]'
                 : 'bg-gradient-to-b from-[#0f2343] via-[#0b1a32] to-[#071222] border-blue-500/80 hover:border-cyan-400 shadow-[0_0_14px_rgba(59,130,246,0.25)] hover:shadow-[0_0_20px_rgba(6,182,212,0.45)]'
@@ -223,7 +223,7 @@ export function Header({
 
             {/* Texto superior: VERSIÓN */}
             <div className="flex items-center gap-1.5 leading-none">
-              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-cyan-400 group-hover:text-cyan-300 transition-colors">
+              <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-widest text-cyan-400 group-hover:text-cyan-300 transition-colors">
                 VERSIÓN
               </span>
               {!hasPendingUpdate && (
@@ -250,7 +250,7 @@ export function Header({
             <button
               onClick={hasPendingUpdate && onInstallNow ? () => onInstallNow() : onCheckForUpdates}
               disabled={isCheckingVersion}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-60 ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-60 ${
                 hasPendingUpdate
                   ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white border-amber-400 shadow-md shadow-amber-950/40 ring-2 ring-amber-500/30'
                   : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border-slate-700/80 hover:border-cyan-500/60'
@@ -271,7 +271,7 @@ export function Header({
                   ? 'Actualizar ahora'
                   : 'Comprobar actualizaciones'}
               </span>
-              <span className="md:hidden">
+              <span className="hidden sm:inline md:hidden">
                 {isCheckingVersion ? 'Buscando...' : hasPendingUpdate ? 'Actualizar' : 'Comprobar'}
               </span>
             </button>

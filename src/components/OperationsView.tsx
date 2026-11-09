@@ -28,6 +28,7 @@ export function OperationsView({
   const [filterType, setFilterType] = useState<string>('Todos');
   const [filterYear, setFilterYear] = useState<string>('Todos los años');
   const [searchTerm, setSearchTerm] = useState('');
+  const [mobileView, setMobileView] = useState<'cards' | 'table'>('cards');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => {
     const saved = localStorage.getItem('cartera_operations_sort_dir');
     return saved === 'desc' ? 'desc' : 'asc';
@@ -182,8 +183,135 @@ export function OperationsView({
         </div>
       </div>
 
+      {/* Selector de visualización en móvil: Tarjetas vs Tabla */}
+      <div className="sm:hidden flex items-center justify-between bg-[#12233f] p-2.5 rounded-xl border border-slate-700/70 text-xs">
+        <span className="text-slate-400 font-medium">Vista en móvil:</span>
+        <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-800">
+          <button
+            type="button"
+            onClick={() => setMobileView('cards')}
+            className={`px-3 py-1 rounded-md font-semibold transition-all ${
+              mobileView === 'cards'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            📱 Tarjetas
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileView('table')}
+            className={`px-3 py-1 rounded-md font-semibold transition-all ${
+              mobileView === 'table'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            📄 Tabla
+          </button>
+        </div>
+      </div>
+
+      {/* Vista de Tarjetas para Móvil (sm:hidden) */}
+      <div className={`sm:hidden space-y-3 ${mobileView === 'table' ? 'hidden' : 'block'}`}>
+        {sorted.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 bg-[#12233f] rounded-2xl border border-slate-700/70">
+            <p className="font-semibold text-sm text-slate-300 mb-1">No hay operaciones</p>
+            <p className="text-xs text-slate-500">
+              {operations.length === 0
+                ? 'No hay operaciones registradas aún.'
+                : 'No se encontraron operaciones con los filtros seleccionados.'}
+            </p>
+          </div>
+        ) : (
+          sorted.map(op => {
+            const isBuy = op.type === 'Compra';
+            return (
+              <div
+                key={op.id}
+                className="p-3.5 bg-[#12233f] rounded-2xl border border-slate-700/70 shadow-lg space-y-2.5"
+              >
+                {/* Cabecera de tarjeta: Badge Tipo + Fecha + Total */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold inline-block shadow-sm ${
+                        isBuy
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      }`}
+                    >
+                      {op.type}
+                    </span>
+                    <span className="font-mono text-xs text-slate-300">{op.date}</span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block font-medium">Total</span>
+                    <span className="font-mono font-bold text-sm text-emerald-400">
+                      {formatEUR(op.totalEUR)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Símbolo y Empresa */}
+                <div>
+                  <span className="font-mono font-bold text-base text-white">{op.symbol}</span>
+                  <p className="text-xs text-slate-300 font-medium truncate">{op.company}</p>
+                </div>
+
+                {/* Grid métricas */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/60 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-medium">Cantidad y Precio</span>
+                    <span className="font-mono text-white text-xs font-semibold">
+                      {op.shares} títulos · {formatNumber(op.price)} €
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block font-medium">Comisión / Broker</span>
+                    <span className="font-mono text-slate-300 text-xs">
+                      {formatNumber(op.commissionEUR)} € {op.broker ? `(${op.broker})` : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Acciones para móvil */}
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-800/60">
+                  {isBuy && onRegisterDividend && (
+                    <button
+                      onClick={() => onRegisterDividend(op)}
+                      className="flex-1 py-1.5 px-2 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <Coins className="w-3.5 h-3.5" />
+                      <span>Dividendo</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onEditOperation(op)}
+                    className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    onClick={() => onDeleteOperation(op.id)}
+                    className="py-1.5 px-3 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
+                    title="Eliminar operación"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* Operations Table */}
-      <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
+      <div className={`bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden ${mobileView === 'table' ? 'block' : 'hidden sm:block'}`}>
         <div className="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 shadow-md">

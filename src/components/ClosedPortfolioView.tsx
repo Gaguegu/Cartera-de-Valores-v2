@@ -42,6 +42,7 @@ export function ClosedPortfolioView({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<ClosedSortField>('saleDateTimestamp');
   const [sortAsc, setSortAsc] = useState(false);
+  const [mobileView, setMobileView] = useState<'cards' | 'table'>('cards');
 
   const handleToggleSort = (field: ClosedSortField) => {
     if (sortField === field) {
@@ -331,9 +332,137 @@ export function ClosedPortfolioView({
         </div>
       </div>
 
+      {/* Selector de visualización en móvil: Tarjetas vs Tabla */}
+      <div className="sm:hidden flex items-center justify-between bg-[#12233f] p-2.5 rounded-xl border border-slate-700/70 text-xs">
+        <span className="text-slate-400 font-medium">Vista en móvil:</span>
+        <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-800">
+          <button
+            type="button"
+            onClick={() => setMobileView('cards')}
+            className={`px-3 py-1 rounded-md font-semibold transition-all ${
+              mobileView === 'cards'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            📱 Tarjetas
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileView('table')}
+            className={`px-3 py-1 rounded-md font-semibold transition-all ${
+              mobileView === 'table'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            📄 Tabla
+          </button>
+        </div>
+      </div>
+
+      {/* Vista de Tarjetas para Móvil (sm:hidden) */}
+      <div className={`sm:hidden space-y-3 ${mobileView === 'table' ? 'hidden' : 'block'}`}>
+        {sortedPositions.length === 0 ? (
+          <div className="p-8 text-center text-slate-500 bg-[#12233f] rounded-2xl border border-slate-700/70">
+            {searchTerm.trim()
+              ? `No hay operaciones cerradas que coincidan con "${searchTerm.trim()}"`
+              : 'No hay posiciones cerradas para el filtro seleccionado.'}
+          </div>
+        ) : (
+          sortedPositions.map(item => {
+            const m = getClosedItemMetrics(item);
+            const isProfit = m.result >= 0;
+            const pctOfYear = totalBuyInYear > 0 ? (m.totalBuy / totalBuyInYear) * 100 : 0;
+            return (
+              <div
+                key={item.id}
+                className="p-3.5 bg-[#12233f] rounded-2xl border border-slate-700/70 shadow-lg space-y-2.5"
+              >
+                {/* Cabecera de tarjeta: Símbolo, Empresa + Badge de Resultado */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                          isProfit ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-red-500 shadow-sm shadow-red-500/50'
+                        }`}
+                      />
+                      <span className="font-mono font-bold text-base text-white">{item.symbol}</span>
+                    </div>
+                    <p className="text-xs text-slate-300 font-medium truncate mt-0.5">{item.company}</p>
+                    {pctOfYear > 0 && (
+                      <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-950/60 text-blue-300 border border-blue-500/30">
+                        {formatNumber(pctOfYear, 2)}% de compras
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Badge de Resultado Ganancia/Pérdida */}
+                  <div
+                    className={`text-right shrink-0 px-2.5 py-1 rounded-xl border ${
+                      isProfit
+                        ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/30'
+                        : 'bg-rose-950/60 text-rose-400 border-rose-500/30'
+                    }`}
+                  >
+                    <div className="font-mono font-black text-sm">
+                      {isProfit ? `+${formatEUR(m.result)}` : formatEUR(m.result)}
+                    </div>
+                    <div className="font-mono text-[10px] font-bold">
+                      {formatPercent(m.returnPercent)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Métricas clave en cuadrícula */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/60 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-medium">Fecha venta</span>
+                    <span className="font-mono text-white text-xs font-semibold">{item.saleDate}</span>
+                    <div className="mt-1 text-[10px] text-slate-400 font-mono">
+                      {item.shares} títulos · PMC {formatNumber(m.pmcBuy)} €
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block font-medium">Precio venta</span>
+                    <span className="font-mono text-white text-xs font-semibold">{formatNumber(item.salePrice)} €</span>
+                    <div className="mt-1 text-[10px] text-slate-400 font-mono">
+                      Venta: <strong className="text-white">{formatEUR(m.totalSale)}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acciones para móvil */}
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-800/60">
+                  <button
+                    onClick={() => handleOpenEdit(item)}
+                    className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Editar</span>
+                  </button>
+                  {onDeleteClosedPosition && (
+                    <button
+                      onClick={() => onDeleteClosedPosition(item.id)}
+                      className="py-1.5 px-3 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                      title="Eliminar posición cerrada"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Eliminar</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* Main Table */}
       {/* Closed Positions Table */}
-      <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
+      <div className={`bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden ${mobileView === 'table' ? 'block' : 'hidden sm:block'}`}>
         <div className="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none shadow-md">
