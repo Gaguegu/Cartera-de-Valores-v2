@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Menu, RefreshCw, TrendingUp, Calendar, Sparkles, Lock, Shield, Bell, Globe, Plus } from 'lucide-react';
 import { ActiveTab } from '../types/portfolio';
 import { formatEUR } from '../utils/formatters';
+import ansamaLogo from '../assets/logo-ansama.jpeg';
 
 interface HeaderProps {
   currentTab: ActiveTab;
@@ -104,8 +105,12 @@ export function Header({
         </button>
 
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="lg:hidden w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shrink-0">
-            <TrendingUp className="w-4 h-4 text-white" />
+          <div className="lg:hidden w-8 h-8 rounded-lg bg-white p-0.5 shadow-md flex items-center justify-center shrink-0 border border-slate-700/60 overflow-hidden">
+            <img
+              src={ansamaLogo}
+              alt="Logo ANSAMA"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, KeyRound, Shield, AlertCircle, HelpCircle, ArrowRight, Upload } from 'lucide-react';
+import ansamaLogo from '../../assets/logo-ansama.jpeg';
 
 interface LockScreenProps {
   onUnlock: (password: string) => Promise<{ success: boolean; error?: string }>;
@@ -54,11 +55,15 @@ export function LockScreen({ onUnlock, hint, onOpenRestoreFromLock }: LockScreen
         {/* Top Vault / Lock Icon */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="relative mb-3">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-900/50">
-              <Lock className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 rounded-2xl bg-white p-1.5 shadow-xl shadow-blue-900/50 flex items-center justify-center border border-slate-600/60 overflow-hidden">
+              <img
+                src={ansamaLogo}
+                alt="Logo ANSAMA"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-[#0f1d33]">
-              <Shield className="w-3.5 h-3.5 text-white" />
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-[#0f1d33]" title="Protegido con contraseña">
+              <Lock className="w-3.5 h-3.5 text-white" />
             </div>
           </div>
 

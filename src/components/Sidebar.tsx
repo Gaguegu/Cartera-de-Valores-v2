@@ -21,6 +21,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { ActiveTab } from '../types/portfolio';
+import ansamaLogo from '../assets/logo-ansama.jpeg';
 
 interface SidebarProps {
   currentTab: ActiveTab;
@@ -85,9 +86,13 @@ export function Sidebar({
       >
         {/* Brand Header */}
         <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
-              <TrendingUp className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white p-0.5 shadow-md flex items-center justify-center shrink-0 border border-slate-700/60 overflow-hidden">
+              <img
+                src={ansamaLogo}
+                alt="Logo ANSAMA"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <span className="font-extrabold text-base tracking-wider text-white">Cartera de Valores</span>
