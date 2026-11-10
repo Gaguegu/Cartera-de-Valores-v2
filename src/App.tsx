@@ -48,7 +48,7 @@ import { useAppSecurity } from './hooks/useAppSecurity';
 import { AppPortfolioBackupData } from './utils/cryptoService';
 import { parseYearFromDate } from './utils/formatters';
 import { fetchBatchQuotes, fetchQuoteOnline, fetchLiveFxRates, getStoredFxRates } from './services/quotesService';
-import { CheckCircle2, AlertTriangle, Sparkles, ArrowUp } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<ActiveTab>(() => {
@@ -2144,31 +2144,6 @@ export default function App() {
         </main>
       </div>
 
-      {/* Botón flotante para subir arriba en dispositivos móviles (1 toque instantáneo para volver al inicio) */}
-      <button
-        type="button"
-        onClick={() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          const mainEl = document.querySelector('main');
-          if (mainEl) {
-            mainEl.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }}
-        onTouchEnd={e => {
-          e.preventDefault();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          const mainEl = document.querySelector('main');
-          if (mainEl) {
-            mainEl.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }}
-        className="sm:hidden fixed bottom-6 right-4 z-50 px-4 py-2.5 rounded-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-2xl shadow-black/80 border-2 border-blue-400 flex items-center gap-1.5 text-xs font-black transition-all active:scale-90 select-none cursor-pointer touch-manipulation"
-        title="Subir al inicio"
-        aria-label="Subir arriba"
-      >
-        <ArrowUp className="w-4 h-4 stroke-[3]" />
-        <span>Subir</span>
-      </button>
 
       {/* Floating Global Toast Notification for Quotes and Currencies */}
       {globalToast && (
