@@ -261,8 +261,180 @@ export function CurrentPortfolio({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      {/* Action and Filter Bar - Screen 2 Header (Fijo en la parte superior) */}
-      <div className="sticky top-0 z-20 bg-[#12233f] p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur-md">
+      {/* Mobile Unified Controls Header (sm:hidden) - Unificado directamente con la cabecera sin huecos */}
+      <div className="sm:hidden sticky top-0 z-20 bg-[#0e1b30] border-b border-slate-700/80 p-2.5 shadow-md -mx-2 space-y-2">
+        {/* Fila 1: Buscador de valor + Selector de Año de compra */}
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1 flex items-center">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar valor en cartera..."
+              className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-8 pr-12 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 h-[34px]"
+            />
+            {searchTerm && (
+              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenPrintReport) {
+                      onOpenPrintReport('portfolio', {
+                        year: selectedYear !== 'TODOS' ? selectedYear : undefined,
+                        searchFilter: searchTerm.trim(),
+                        closed: false,
+                        dividends: false,
+                      });
+                    }
+                  }}
+                  className="p-1 rounded-md bg-blue-600 text-white"
+                  title="Imprimir filtro"
+                >
+                  <Printer className="w-2.5 h-2.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="p-1 rounded-md text-slate-400 hover:text-white"
+                  title="Limpiar"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Selector de año de compra */}
+          <div className="bg-slate-900 border border-slate-700/80 rounded-xl px-2 h-[34px] flex items-center shrink-0">
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(e.target.value)}
+              className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer"
+              title="Filtrar por año de compra"
+            >
+              <option value="TODOS" className="bg-slate-900 text-white">Todos</option>
+              {availableYears.map(yr => (
+                <option key={yr} value={String(yr)} className="bg-slate-900 text-white">
+                  {yr}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Fila 2: Botones de tamaño IDÉNTICO para reducir el tamaño al mínimo con su logotipo correspondiente */}
+        <div className="grid grid-cols-8 gap-1.5">
+          {/* 1. Nueva compra (+) */}
+          <button
+            onClick={() => onOpenNewOperation()}
+            className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white flex items-center justify-center shadow transition-all cursor-pointer"
+            title="Nueva compra de acciones"
+            aria-label="Nueva compra"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+
+          {/* 2. Registrar dividendo (Coins) */}
+          {onOpenNewDividend && (
+            <button
+              onClick={onOpenNewDividend}
+              className="h-8 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 active:bg-emerald-800 flex items-center justify-center shadow transition-all cursor-pointer"
+              title="Registrar cobro de dividendo"
+              aria-label="Registrar dividendo"
+            >
+              <Coins className="w-4 h-4 text-emerald-400" />
+            </button>
+          )}
+
+          {/* 3. Actualizar cotizaciones (RefreshCw) */}
+          {onRefreshQuotesOnline && (
+            <button
+              onClick={() => onRefreshQuotesOnline()}
+              disabled={isRefreshingQuotes}
+              className="h-8 rounded-xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-900 active:bg-cyan-800 flex items-center justify-center shadow transition-all cursor-pointer disabled:opacity-50"
+              title={lastQuotesUpdatedAt ? `Actualizar cotizaciones en vivo (Última: ${lastQuotesUpdatedAt})` : 'Actualizar cotizaciones en vivo'}
+              aria-label="Actualizar cotizaciones"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshingQuotes ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+
+          {/* 4. Generar PDF / Imprimir (Printer) */}
+          <button
+            onClick={() => {
+              if (onOpenPrintReport) {
+                onOpenPrintReport('portfolio', {
+                  year: selectedYear !== 'TODOS' ? selectedYear : undefined,
+                  searchFilter: searchTerm.trim(),
+                  closed: false,
+                  dividends: false,
+                });
+              } else {
+                window.print();
+              }
+            }}
+            className={`h-8 rounded-xl border flex items-center justify-center shadow transition-all cursor-pointer ${
+              searchTerm.trim() ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'
+            }`}
+            title="Generar PDF / Imprimir"
+            aria-label="Generar PDF / Imprimir"
+          >
+            <Printer className="w-3.5 h-3.5" />
+          </button>
+
+          {/* 5. Filtros País/Sector (Filter) */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`h-8 rounded-xl border flex items-center justify-center shadow transition-all cursor-pointer ${
+              showFilters ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+            }`}
+            title="Filtros por país y sector"
+            aria-label="Filtros"
+          >
+            <Filter className="w-3.5 h-3.5" />
+          </button>
+
+          {/* 6. Alertas de precio (Bell) */}
+          {onOpenAlertsModal && (
+            <button
+              onClick={() => onOpenAlertsModal()}
+              className="h-8 rounded-xl bg-amber-950/80 border border-amber-500/40 text-amber-300 hover:bg-amber-900 active:bg-amber-800 flex items-center justify-center shadow transition-all cursor-pointer"
+              title="Alertas de precios y stop-loss"
+              aria-label="Alertas de precio"
+            >
+              <Bell className="w-3.5 h-3.5 text-amber-400" />
+            </button>
+          )}
+
+          {/* 7. Rebalanceo DCA (Scale) */}
+          {onOpenRebalanceModal && (
+            <button
+              onClick={onOpenRebalanceModal}
+              className="h-8 rounded-xl bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-900 active:bg-indigo-800 flex items-center justify-center shadow transition-all cursor-pointer"
+              title="Simulador de rebalanceo y cálculo DCA"
+              aria-label="Rebalanceo DCA"
+            >
+              <Scale className="w-3.5 h-3.5 text-indigo-400" />
+            </button>
+          )}
+
+          {/* 8. Efecto Divisa (Globe) */}
+          {onOpenCurrencyModal && (
+            <button
+              onClick={onOpenCurrencyModal}
+              className="h-8 rounded-xl bg-slate-800 border border-slate-700 text-cyan-400 hover:bg-slate-700 active:bg-slate-600 flex items-center justify-center shadow transition-all cursor-pointer"
+              title="Análisis del efecto divisa EUR/USD"
+              aria-label="Efecto Divisa"
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-400" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Action and Filter Bar - Screen 2 Header (Escritorio intacto) */}
+      <div className="hidden sm:block sticky top-0 z-20 bg-[#12233f] p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur-md">
         <div className="flex items-center gap-2 flex-wrap w-full">
           {/* Selector rápido de ejercicio / año de compra */}
           <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner shrink-0 h-[36px]">

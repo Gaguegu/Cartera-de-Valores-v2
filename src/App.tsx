@@ -51,7 +51,41 @@ import { fetchBatchQuotes, fetchQuoteOnline, fetchLiveFxRates, getStoredFxRates 
 import { CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<ActiveTab>('dashboard');
+  const [currentTab, setCurrentTab] = useState<ActiveTab>(() => {
+    try {
+      const saved = localStorage.getItem('cartera_active_tab');
+      const validTabs: ActiveTab[] = [
+        'dashboard',
+        'current',
+        'detail',
+        'operations',
+        'closed',
+        'dividends',
+        'analytics',
+        'tax',
+        'reports',
+        'calendar',
+        'quotes',
+        'watchlist',
+        'config',
+      ];
+      if (saved && validTabs.includes(saved as ActiveTab)) {
+        return saved as ActiveTab;
+      }
+    } catch {
+      // fallback
+    }
+    return 'dashboard';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cartera_active_tab', currentTab);
+    } catch {
+      // ignore
+    }
+  }, [currentTab]);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Core Data States with localStorage persistence
@@ -1940,7 +1974,7 @@ export default function App() {
           <main className={`flex-1 min-h-0 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424] ${
             currentTab === 'quotes'
               ? 'overflow-hidden p-3 sm:p-4 lg:p-5 flex flex-col no-scrollbar'
-              : 'overflow-y-auto p-4 sm:p-6 lg:p-8'
+              : 'overflow-y-auto pt-0 sm:pt-6 px-2 sm:px-6 pb-4 sm:pb-8 overscroll-y-contain'
           }`}>
           <div className={`max-w-7xl mx-auto w-full ${currentTab === 'quotes' ? 'flex-1 flex flex-col min-h-0 h-full overflow-hidden' : ''}`}>
             {/* View Switching */}

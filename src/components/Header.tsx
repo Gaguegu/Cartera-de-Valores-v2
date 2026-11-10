@@ -159,20 +159,20 @@ export function Header({
 
       {/* Right: Botón Bloquear en Rojo (in-flow sin solaparse), Alertas, Mercado, Óvalo Versión, Comprobar actualizaciones, Fecha */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-3">
-        {/* BOTÓN ROJO DE BLOQUEO: colocado de forma fluida para que nunca se solape con ningún botón */}
+        {/* BOTÓN ROJO DE BLOQUEO: oculto en móvil por petición del usuario, visible en escritorio */}
         <button
           onClick={hasPassword && onLockApp ? onLockApp : () => onOpenSecurityModal && onOpenSecurityModal('password')}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-black bg-red-600 hover:bg-red-500 active:bg-red-700 border-2 border-red-400 text-white shadow-[0_0_14px_rgba(239,68,68,0.55)] hover:shadow-[0_0_20px_rgba(239,68,68,0.8)] transition-all cursor-pointer select-none active:scale-95 shrink-0"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-black bg-red-600 hover:bg-red-500 active:bg-red-700 border-2 border-red-400 text-white shadow-[0_0_14px_rgba(239,68,68,0.55)] hover:shadow-[0_0_20px_rgba(239,68,68,0.8)] transition-all cursor-pointer select-none active:scale-95 shrink-0"
           title={hasPassword ? 'Bloquear aplicación ahora (un solo clic)' : 'Configurar contraseña de acceso'}
         >
           <Lock className="w-3.5 h-3.5 text-white" />
           <span className="hidden sm:inline">Bloquear</span>
         </button>
-        {/* BOTÓN / INDICADOR DE ALERTAS DE PRECIO (CAMPANA) */}
+        {/* BOTÓN / INDICADOR DE ALERTAS DE PRECIO (CAMPANA): oculto en móvil para no duplicar campanas, visible en escritorio */}
         {onOpenAlertsModal && (
           <button
             onClick={onOpenAlertsModal}
-            className="relative p-2 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700/80 transition-all cursor-pointer shadow-sm active:scale-90"
+            className="hidden sm:flex relative p-2 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700/80 transition-all cursor-pointer shadow-sm active:scale-90"
             title="Centro de Alertas de Precios y Stop-Loss"
             aria-label="Alertas de precios"
           >
@@ -284,7 +284,7 @@ export function Header({
             {onForceReload && (
               <button
                 onClick={onForceReload}
-                className="flex items-center justify-center p-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer shadow-sm active:scale-90"
+                className="hidden sm:flex items-center justify-center p-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer shadow-sm active:scale-90"
                 title="Recargar la aplicación (limpia caché y carga los últimos cambios sin cerrar la app)"
                 aria-label="Recargar aplicación"
               >

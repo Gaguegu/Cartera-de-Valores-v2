@@ -8,6 +8,9 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 @layer base {
