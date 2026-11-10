@@ -93,7 +93,7 @@ export function Header({
   };
 
   return (
-    <header className="shrink-0 z-20 bg-[#0f1e36] border-b border-slate-800/80 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-md relative min-h-[64px]">
+    <header className="shrink-0 z-30 sticky top-0 bg-[#0f1e36] border-b border-slate-800/80 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shadow-md min-h-[56px] sm:min-h-[64px]">
       {/* Left: Mobile trigger & Current View (con controles de Dashboard unificados) */}
       <div className="flex items-center gap-3 min-w-0">
         <button

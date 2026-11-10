@@ -91,7 +91,7 @@ export function OperationsView({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Bar - Screen 4 Header (Fijo en la parte superior, sin huecos en móvil) */}
-      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 bg-[#0e1b30] sm:bg-[#12233f] p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl border-b sm:border border-slate-700/80 shadow-md sm:shadow-xl backdrop-blur-md">
+      <div className="sticky top-[56px] sm:top-0 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 bg-[#0e1b30] sm:bg-[#12233f] p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl border-b sm:border border-slate-700/80 shadow-md sm:shadow-xl backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-2">
           {/* Filter Type */}
           <select
