@@ -48,7 +48,7 @@ import { useAppSecurity } from './hooks/useAppSecurity';
 import { AppPortfolioBackupData } from './utils/cryptoService';
 import { parseYearFromDate } from './utils/formatters';
 import { fetchBatchQuotes, fetchQuoteOnline, fetchLiveFxRates, getStoredFxRates } from './services/quotesService';
-import { CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Sparkles, ArrowUp } from 'lucide-react';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<ActiveTab>(() => {
@@ -1974,7 +1974,7 @@ export default function App() {
           <main className={`flex-1 min-h-0 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424] ${
             currentTab === 'quotes'
               ? 'overflow-hidden p-3 sm:p-4 lg:p-5 flex flex-col no-scrollbar'
-              : 'overflow-y-auto pt-0 sm:pt-6 px-2 sm:px-6 pb-4 sm:pb-8 overscroll-y-contain'
+              : 'overflow-y-auto pt-0 sm:pt-6 px-2 sm:px-6 pb-32 sm:pb-8 overscroll-y-none'
           }`}>
           <div className={`max-w-7xl mx-auto w-full ${currentTab === 'quotes' ? 'flex-1 flex flex-col min-h-0 h-full overflow-hidden' : ''}`}>
             {/* View Switching */}
@@ -2143,6 +2143,24 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* Botón flotante para subir arriba en dispositivos móviles (1 toque para volver al inicio sin tirones) */}
+      <button
+        type="button"
+        onClick={() => {
+          const mainEl = document.querySelector('main');
+          if (mainEl) {
+            mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        className="sm:hidden fixed bottom-6 right-4 z-50 px-4 py-2.5 rounded-full bg-blue-600/95 hover:bg-blue-500 active:bg-blue-700 text-white shadow-2xl shadow-black/80 border-2 border-blue-400 flex items-center gap-1.5 text-xs font-black transition-all active:scale-95 select-none cursor-pointer"
+        title="Subir al inicio"
+        aria-label="Subir arriba"
+      >
+        <ArrowUp className="w-4 h-4 stroke-[3]" />
+        <span>Subir</span>
+      </button>
 
       {/* Floating Global Toast Notification for Quotes and Currencies */}
       {globalToast && (

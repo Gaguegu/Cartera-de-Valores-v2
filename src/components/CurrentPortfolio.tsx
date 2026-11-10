@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StockPosition, Operation } from '../types/portfolio';
 import { formatEUR, formatNumber, formatPercent, downloadCSV, parseYearFromDate, getAvailableFiscalYears } from '../utils/formatters';
-import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer, Calendar, RefreshCw, Scale, Globe, Bell, Sparkles, X } from 'lucide-react';
+import { Search, Download, Filter, MoreVertical, Plus, ArrowUpDown, ExternalLink, Coins, ArrowUpRight, Printer, Calendar, RefreshCw, Scale, Globe, Bell, Sparkles, X, ArrowUp } from 'lucide-react';
 
 interface CurrentPortfolioProps {
   positions: StockPosition[];
@@ -1137,6 +1137,7 @@ export function CurrentPortfolio({
           </div>
         </div>
       </div>
+
     </div>
   );
 }

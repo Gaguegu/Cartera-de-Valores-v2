@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ClosedPosition, Operation } from '../types/portfolio';
 import { formatEUR, formatNumber, formatPercent, downloadCSV, getAvailableFiscalYears, parseDateToTimestamp, getClosedItemMetrics } from '../utils/formatters';
-import { Download, TrendingUp, Calendar, Pencil, Trash2, X, Check, Calculator, Printer, Search, ArrowUpDown } from 'lucide-react';
+import { Download, TrendingUp, Calendar, Pencil, Trash2, X, Check, Calculator, Printer, Search, ArrowUpDown, ArrowUp } from 'lucide-react';
 
 interface ClosedPortfolioViewProps {
   closedPositions: ClosedPosition[];
@@ -880,6 +880,8 @@ export function ClosedPortfolioView({
           </div>
         </div>
       )}
+
+      {/* Botón flotante para volver arriba en móvil con un solo toque */}
     </div>
   );
 }
