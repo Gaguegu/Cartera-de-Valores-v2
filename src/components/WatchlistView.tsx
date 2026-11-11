@@ -49,7 +49,7 @@ export function WatchlistView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header - Compacto */}
-      <div className="sticky top-0 z-10 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
+      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
         <div className="min-w-0">
           <h2 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
             <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />

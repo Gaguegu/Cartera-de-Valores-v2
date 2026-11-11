@@ -492,9 +492,108 @@ export function QuotesView({
         </div>
       </div>
 
-      {/* Quotes Results Table */}
+      {/* Quotes Results */}
       <div className="bg-[#12233f] border border-slate-700/70 rounded-xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto no-scrollbar">
+        {/* VISTA EN TARJETAS PARA MÓVIL (sm:hidden) */}
+        <div className="sm:hidden divide-y divide-slate-800/80">
+          {filteredQuotes.length === 0 ? (
+            <div className="p-8 text-center text-slate-400">
+              <Globe className="w-8 h-8 text-slate-500 mx-auto mb-2 opacity-50" />
+              <p className="font-semibold text-slate-300">No se encontraron cotizaciones</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Prueba con otro tícker o haz clic en «Buscar en Internet».
+              </p>
+            </div>
+          ) : (
+            filteredQuotes.map(q => {
+              const cleanSym = (q.displaySymbol || q.symbol).replace(/\.[A-Z]+$/, '').toUpperCase();
+              const inPortfolio = portfolioSymbolsSet.has(cleanSym) || portfolioSymbolsSet.has(q.symbol.toUpperCase());
+              const inWatchlist = watchlistSymbolsSet.has(cleanSym) || watchlistSymbolsSet.has(q.symbol.toUpperCase());
+
+              return (
+                <div key={q.symbol} className="p-3 bg-[#12233f] hover:bg-slate-800/50 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-sm text-white">{cleanSym}</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                          {q.country === 'España' ? '🇪🇸' : q.country === 'USA' ? '🇺🇸' : q.country === 'Alemania' ? '🇩🇪' : q.country === 'Francia' ? '🇫🇷' : '🇪🇺'} {q.country}
+                        </span>
+                        {inPortfolio && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-500/40">
+                            En Cartera
+                          </span>
+                        )}
+                        {inWatchlist && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300 border border-amber-500/40">
+                            ⭐ Radar
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-300 font-medium truncate max-w-[200px] mt-0.5">{q.company}</p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-sm font-black text-white font-mono">
+                        {formatNumber(q.price)} {q.currency === 'USD' ? '$' : '€'}
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          q.changePercent >= 0
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                        }`}
+                      >
+                        {q.changePercent >= 0 ? '+' : ''}{formatPercent(q.changePercent)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      {q.currency === 'USD' && q.priceEUR ? `≈ ${formatEUR(q.priceEUR)}` : (q.exchange || '')}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {inPortfolio ? (
+                        <button
+                          onClick={() => handleUpdateSingleStock(q)}
+                          className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer flex items-center gap-1"
+                          title="Actualizar precio de este valor en tu cartera"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Actualizar</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onOpenNewOperation(cleanSym, 'Compra', q.company, q.priceEUR || q.price)}
+                          className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-all cursor-pointer flex items-center gap-1"
+                          title="Registrar operación de compra"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Comprar</span>
+                        </button>
+                      )}
+
+                      {!inWatchlist && (
+                        <button
+                          onClick={() => handleQuickAddWatchlist(q)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 border border-slate-700/60 transition-colors cursor-pointer"
+                          title="Añadir a radar"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* TABLA PARA ESCRITORIO (hidden sm:block) */}
+        <div className="hidden sm:block overflow-x-auto no-scrollbar">
           <table className="w-full text-xs text-left">
             <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none sticky top-0 z-10 shadow-md">
               <tr>
