@@ -56,7 +56,7 @@ export function TaxReportView({ onOpenPrintReport, closedPositions = [], dividen
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Year Filter Header - Compacto */}
-      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md flex items-center justify-between gap-2">
+      <div className="sticky top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md flex items-center justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shrink-0"></span>

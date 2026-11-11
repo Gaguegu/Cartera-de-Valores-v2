@@ -3,22 +3,14 @@
 html,
 body,
 #root {
-  min-height: 100%;
+  height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
   overscroll-behavior-y: none !important;
   overscroll-behavior: none !important;
   -webkit-overflow-scrolling: touch;
-}
-
-@media (min-width: 640px) {
-  html,
-  body,
-  #root {
-    height: 100%;
-    overflow: hidden;
-  }
 }
 
 main,
@@ -27,6 +19,7 @@ aside,
   overscroll-behavior-y: contain !important;
   overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 @layer base {

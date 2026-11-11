@@ -196,7 +196,7 @@ export function DividendsView({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Controls: Filtros por Año, País con sus respectivas retenciones y Tipo de Retención (Sin huecos en móvil) */}
-      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md space-y-2.5">
+      <div className="sticky top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md space-y-2.5">
         {/* Fila 1: Título de pantalla y acciones principales (Imprimir, CSV, + Dividendo) */}
         <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-700/60 sm:border-0 sm:pb-0">
           <div className="flex items-center gap-2 min-w-0">

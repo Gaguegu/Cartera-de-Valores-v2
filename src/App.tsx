@@ -1902,8 +1902,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen sm:h-screen w-full sm:w-screen sm:max-h-screen sm:overflow-hidden bg-[#0a1424] text-slate-100 flex flex-col font-sans select-none print:bg-white print:text-slate-900 print:h-auto print:overflow-visible">
-      <div className="app-shell-ui flex-1 flex sm:h-full sm:max-h-full sm:overflow-hidden min-h-0 print:hidden">
+    <div className="h-full w-full max-h-screen overflow-hidden bg-[#0a1424] text-slate-100 flex flex-col font-sans select-none print:bg-white print:text-slate-900 print:h-auto print:overflow-visible">
+      <div className="app-shell-ui flex-1 flex h-full max-h-full overflow-hidden min-h-0 print:hidden">
         {/* Left Column: Sidebar fija y permanente en pantalla completa */}
         <Sidebar
           currentTab={currentTab}
@@ -1925,7 +1925,7 @@ export default function App() {
         />
 
         {/* Right Column: Header fijo arriba y Contenido principal con scroll abajo */}
-        <div className="flex-1 flex flex-col min-w-0 sm:h-full sm:overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {/* Update Notification Banner / Toast */}
           <UpdateNotificationBanner
             updateAvailable={updateAvailable}
@@ -1971,7 +1971,7 @@ export default function App() {
           />
 
           {/* Main Content Area */}
-          <main className="flex-1 min-h-0 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424] sm:overflow-y-auto pt-0 sm:pt-6 px-2 sm:px-6 pb-32 sm:pb-8 overscroll-y-none">
+          <main className="flex-1 min-h-0 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424] overflow-y-auto overscroll-contain pt-0 sm:pt-6 px-2 sm:px-6 pb-32 sm:pb-8">
           <div className="max-w-7xl mx-auto w-full">
             {/* View Switching */}
             {currentTab === 'dashboard' && (

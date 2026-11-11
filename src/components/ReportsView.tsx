@@ -98,7 +98,7 @@ export function ReportsView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Identificador de pantalla */}
-      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex items-center justify-between backdrop-blur-md">
+      <div className="sticky top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex items-center justify-between backdrop-blur-md">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
           <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-1.5">

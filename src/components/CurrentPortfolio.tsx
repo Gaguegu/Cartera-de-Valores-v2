@@ -262,7 +262,7 @@ export function CurrentPortfolio({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Mobile Unified Controls Header (sm:hidden) - Unificado directamente con la cabecera sin huecos */}
-      <div className="sm:hidden sticky top-[56px] z-20 bg-[#0e1b30] border-b border-slate-700/80 p-2.5 shadow-md -mx-2 space-y-2">
+      <div className="sm:hidden sticky top-0 z-20 bg-[#0e1b30] border-b border-slate-700/80 p-2.5 shadow-md -mx-2 space-y-2">
         {/* Identificador de pantalla en móvil */}
         <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-700/60">
           <div className="flex items-center gap-2">

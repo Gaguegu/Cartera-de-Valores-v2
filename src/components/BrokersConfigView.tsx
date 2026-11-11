@@ -163,7 +163,7 @@ export function BrokersConfigView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Configuration Header & Navigation - Compacto */}
-      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl space-y-2 sm:space-y-3 backdrop-blur-md">
+      <div className="sticky top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl space-y-2 sm:space-y-3 backdrop-blur-md">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="p-1.5 sm:p-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl shadow-inner shrink-0">

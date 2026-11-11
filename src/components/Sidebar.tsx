@@ -110,7 +110,7 @@ export function Sidebar({
         </div>
 
         {/* Navigation list and Bottom Controls in one single smooth scrollable container */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar p-3 flex flex-col justify-between">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 flex flex-col touch-pan-y">
           <div className="space-y-1">
             {navItems.map(item => {
               const isActive = currentTab === item.id;
@@ -135,7 +135,7 @@ export function Sidebar({
           </div>
 
           {/* Bottom Banner & Controls - Fluye con el scroll en móvil y queda al final */}
-          <div className="pt-4 mt-4 border-t border-slate-800/80">
+          <div className="pt-4 mt-auto border-t border-slate-800/80">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-blue-900/40 text-center">
               <span className="font-black text-xs text-white tracking-widest block uppercase">
                 Cartera de Valores

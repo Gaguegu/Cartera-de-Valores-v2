@@ -192,7 +192,7 @@ export function AnalyticsView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Controls - Compacto */}
-      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-3.5 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 backdrop-blur-md">
+      <div className="sticky top-0 z-10 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-3.5 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 backdrop-blur-md">
         <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 flex-wrap">
           {/* Selector Vista */}
           <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-xl text-xs shadow-inner">
