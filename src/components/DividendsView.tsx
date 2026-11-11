@@ -299,21 +299,23 @@ export function DividendsView({
                 window.print();
               }
             }}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            className="p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
             title="Generar PDF o imprimir dividendos según los filtros seleccionados"
+            aria-label="Generar PDF o imprimir"
           >
-            <Printer className="w-3.5 h-3.5 text-blue-400" />
-            <span>Generar PDF/Imprimir</span>
+            <Printer className="w-4 h-4 text-blue-400" />
+            <span className="hidden md:inline">Imprimir</span>
           </button>
 
           {/* Botón Exportar CSV */}
           <button
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            className="p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
             title="Exportar listado filtrado a CSV"
+            aria-label="Exportar CSV"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Exportar CSV</span>
+            <Download className="w-4 h-4 text-emerald-400" />
+            <span className="hidden md:inline">Exportar CSV</span>
           </button>
         </div>
 

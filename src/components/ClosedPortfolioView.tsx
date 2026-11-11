@@ -273,7 +273,7 @@ export function ClosedPortfolioView({
                 window.print();
               }
             }}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+            className={`p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0 ${
               searchTerm.trim()
                 ? 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400 font-bold ring-2 ring-blue-500/30'
                 : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white'
@@ -283,22 +283,24 @@ export function ClosedPortfolioView({
                 ? `Imprimir el informe filtrado para "${searchTerm.trim()}" (${sortedPositions.length} operaciones)`
                 : 'Generar informe en PDF o imprimir las operaciones cerradas'
             }
+            aria-label="Generar PDF o imprimir"
           >
-            <Printer className={`w-3.5 h-3.5 ${searchTerm.trim() ? 'text-white' : 'text-blue-400'}`} />
-            <span>
+            <Printer className={`w-4 h-4 ${searchTerm.trim() ? 'text-white' : 'text-blue-400'}`} />
+            <span className="hidden md:inline">
               {searchTerm.trim()
                 ? `Imprimir filtro "${searchTerm.trim()}" (${sortedPositions.length})`
-                : 'Generar PDF/Imprimir'}
+                : 'Imprimir'}
             </span>
           </button>
 
           <button
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            className="p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
             title="Exportar a archivo CSV / Excel"
+            aria-label="Exportar CSV"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Exportar CSV</span>
+            <Download className="w-4 h-4 text-emerald-400" />
+            <span className="hidden md:inline">Exportar CSV</span>
           </button>
         </div>
 

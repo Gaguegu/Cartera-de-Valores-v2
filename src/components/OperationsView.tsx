@@ -105,22 +105,23 @@ export function OperationsView({
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {/* Filter Type */}
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 focus:outline-none focus:border-blue-500 font-medium"
           >
             <option value="Todos">Todos</option>
             <option value="Compra">Compras</option>
             <option value="Venta">Ventas</option>
           </select>
 
+          {/* Filter Year */}
           <select
             value={filterYear}
             onChange={e => setFilterYear(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
+            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
           >
             <option value="Todos los años">Todos los años</option>
             {availableYears.map(yr => (
@@ -130,8 +131,7 @@ export function OperationsView({
             ))}
           </select>
 
-
-
+          {/* Botón Imprimir reducido con logo al lado de Todos los años */}
           <button
             onClick={() => {
               if (onOpenPrintReport) {
@@ -142,54 +142,59 @@ export function OperationsView({
                 window.print();
               }
             }}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Generar PDF o imprimir las operaciones"
+            className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer shrink-0"
+            title="Generar PDF o imprimir operaciones"
+            aria-label="Generar PDF o imprimir"
           >
-            <Printer className="w-3.5 h-3.5 text-blue-400" />
-            <span>Generar PDF/Imprimir</span>
+            <Printer className="w-4 h-4 text-blue-400" />
+            <span className="hidden md:inline">Imprimir</span>
           </button>
 
+          {/* Botón Exportar CSV compacto */}
           <button
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+            className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer shrink-0"
             title="Exportar operaciones filtradas a CSV"
+            aria-label="Exportar CSV"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden md:inline">Exportar CSV</span>
+            <Download className="w-4 h-4 text-emerald-400" />
+            <span className="hidden md:inline">CSV</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="relative flex-1 sm:w-56">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Search ampliado para ocupar todo el espacio disponible */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Buscar..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 sm:py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 shadow-inner"
             />
           </div>
 
-          {/* Operations Action Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Operations Action Buttons - botón Nueva operación más compacto */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={onOpenNewOperation}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+              title="Registrar nueva operación"
             >
               <Plus className="w-4 h-4" />
-              <span>Nueva operación</span>
+              <span className="hidden sm:inline">Nueva operación</span>
+              <span className="sm:hidden">Operación</span>
             </button>
 
             {onOpenNewDividend && (
               <button
                 onClick={onOpenNewDividend}
-                className="px-3.5 py-2 bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-500/40 text-emerald-200 hover:text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="p-1.5 sm:px-3 sm:py-2 bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-500/40 text-emerald-200 hover:text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1 shrink-0 cursor-pointer"
                 title="Registrar cobro de dividendo"
               >
                 <Coins className="w-4 h-4 text-emerald-400" />
-                <span className="hidden sm:inline">Registrar dividendo</span>
+                <span className="hidden md:inline">Dividendo</span>
               </button>
             )}
           </div>
