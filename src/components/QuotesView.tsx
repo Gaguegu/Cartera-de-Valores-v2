@@ -287,7 +287,7 @@ export function QuotesView({
   }, [indices]);
 
   return (
-    <div className="h-full flex flex-col min-h-0 space-y-2.5 animate-in fade-in duration-300">
+    <div className="space-y-2.5 sm:space-y-3 pb-8 animate-in fade-in duration-300">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-blue-500/50 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 max-w-md">
@@ -305,47 +305,47 @@ export function QuotesView({
       )}
 
       {/* Cabecera Fija de la captura (Título + 5 Índices + Búsqueda y Filtros) */}
-      <div className="shrink-0 space-y-2.5">
+      <div className="space-y-2 sm:space-y-2.5">
         {/* Main Header Card - Compacto */}
-        <div className="bg-[#12233f] border border-slate-700/70 p-3.5 sm:p-4 rounded-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
-                <Globe className="w-4 h-4 text-blue-400" />
-              </div>
-              <div>
-                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                  Cotizaciones de Mercado (EE.UU. y Europa)
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    En vivo
-                  </span>
-                </h1>
-                <p className="text-[11px] sm:text-xs text-slate-400">
-                  Consulta cotizaciones en tiempo real por ticker o empresa y sincroniza automáticamente tu cartera de valores y lista de seguimiento.
-                </p>
-              </div>
+        <div className="bg-[#12233f] border border-slate-700/70 p-2.5 sm:p-3.5 rounded-xl shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
+              <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                <span>Cotizaciones de Mercado</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  En vivo
+                </span>
+              </h1>
+              <p className="hidden sm:block text-[11px] text-slate-400 truncate">
+                Consulta cotizaciones en tiempo real por ticker o empresa y sincroniza tu cartera.
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0">
             <button
               onClick={handleUpdateAllPortfolio}
               disabled={isUpdatingPortfolio}
-              className="flex-1 md:flex-none px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
               title="Actualiza los precios actuales de todas las acciones de tu cartera abierta"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isUpdatingPortfolio ? 'animate-spin' : ''}`} />
-              <span>{isUpdatingPortfolio ? 'Actualizando Cartera...' : 'Actualizar mi Cartera'}</span>
+              <span className="hidden sm:inline">{isUpdatingPortfolio ? 'Actualizando...' : 'Actualizar mi Cartera'}</span>
+              <span className="sm:hidden">{isUpdatingPortfolio ? 'Actualizando...' : 'Cartera'}</span>
             </button>
 
             <button
               onClick={handleUpdateAllWatchlist}
               disabled={isUpdatingWatchlist}
-              className="flex-1 md:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs rounded-lg shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs rounded-lg shadow transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
               title="Actualiza los precios de todos los valores de tu lista de seguimiento"
             >
               <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
-              <span>{isUpdatingWatchlist ? 'Actualizando...' : 'Actualizar Seguimiento'}</span>
+              <span className="hidden sm:inline">{isUpdatingWatchlist ? 'Actualizando...' : 'Actualizar Seguimiento'}</span>
+              <span className="sm:hidden">{isUpdatingWatchlist ? 'Actualizando...' : 'Radar'}</span>
             </button>
           </div>
         </div>
@@ -492,9 +492,9 @@ export function QuotesView({
         </div>
       </div>
 
-      {/* Quotes Results Table - Ocupa el resto del alto disponible y hace scroll sin barra desplazadora */}
-      <div className="flex-1 min-h-0 bg-[#12233f] border border-slate-700/70 rounded-xl shadow-xl flex flex-col overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto no-scrollbar">
+      {/* Quotes Results Table */}
+      <div className="bg-[#12233f] border border-slate-700/70 rounded-xl shadow-xl overflow-hidden">
+        <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-xs text-left">
             <thead className="bg-[#0e1b30] text-slate-400 font-semibold border-b border-slate-700/80 select-none sticky top-0 z-10 shadow-md">
               <tr>

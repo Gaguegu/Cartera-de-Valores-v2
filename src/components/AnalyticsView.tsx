@@ -191,66 +191,69 @@ export function AnalyticsView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Controls */}
-      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs">
-            <PieChart className="w-3.5 h-3.5 text-blue-400" />
+      {/* Top Controls - Compacto */}
+      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-3.5 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 backdrop-blur-md">
+        <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 flex-wrap">
+          {/* Selector Vista */}
+          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-xl text-xs shadow-inner">
+            <PieChart className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <select
               value={filterView}
               onChange={e => setFilterView(e.target.value as any)}
-              className="bg-transparent text-white font-medium focus:outline-none cursor-pointer"
+              className="bg-transparent text-white font-medium focus:outline-none cursor-pointer text-xs"
             >
-              <option value="sectores" className="bg-slate-900 text-white">Por sectores</option>
-              <option value="paises" className="bg-slate-900 text-white">Por países</option>
-              <option value="rentabilidad" className="bg-slate-900 text-white">Por rentabilidad</option>
+              <option value="sectores" className="bg-slate-900 text-white">Sectores</option>
+              <option value="paises" className="bg-slate-900 text-white">Países</option>
+              <option value="rentabilidad" className="bg-slate-900 text-white">Rentabilidad</option>
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs">
-            <Filter className="w-3.5 h-3.5 text-cyan-400" />
+          {/* Selector Ejercicio */}
+          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-xl text-xs shadow-inner">
+            <Filter className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <select
               value={selectedYear}
               onChange={e => setSelectedYear(e.target.value)}
-              className="bg-transparent text-white font-medium focus:outline-none cursor-pointer"
+              className="bg-transparent text-white font-medium focus:outline-none cursor-pointer text-xs"
             >
-              <option value="all" className="bg-slate-900 text-white">Todos los ejercicios</option>
+              <option value="all" className="bg-slate-900 text-white">Año: Todos</option>
               {availableYears.map(yr => (
                 <option key={yr} value={String(yr)} className="bg-slate-900 text-white">
-                  Ejercicio {yr}
+                  Año {yr}
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Valoración compacta en la misma fila */}
+          <div className="text-xs text-slate-300 flex items-center gap-1.5 ml-auto sm:ml-0 sm:pl-2 sm:border-l sm:border-slate-700/80">
+            <span className="text-[11px] text-slate-400 hidden sm:inline">Cartera:</span>
+            <span className="text-emerald-400 font-bold font-mono text-xs sm:text-sm">{formatEUR(totalValueEUR)}</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {onOpenRebalanceModal && (
             <button
               onClick={onOpenRebalanceModal}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              className="flex-1 sm:flex-none px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 hover:text-white flex items-center justify-center gap-1 transition-all shadow cursor-pointer"
               title="Simulador de rebalanceo y asignación ideal de cartera"
             >
               <Scale className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Simulador Rebalanceo DCA</span>
+              <span>Rebalanceo DCA</span>
             </button>
           )}
 
           {onOpenCurrencyModal && (
             <button
               onClick={onOpenCurrencyModal}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all shadow cursor-pointer"
+              className="flex-1 sm:flex-none px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-1 transition-all shadow cursor-pointer"
               title="Desglose del efecto divisa EUR/USD en la cartera"
             >
               <Globe className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Efecto Divisa FX</span>
+              <span>Divisa FX</span>
             </button>
           )}
-
-          <div className="text-xs text-slate-300 flex items-center gap-2 pl-2 border-l border-slate-700/80">
-            <span>Valoración Cartera {selectedYear !== 'all' ? `(${selectedYear})` : ''}:</span>
-            <span className="text-emerald-400 font-bold font-mono text-sm">{formatEUR(totalValueEUR)}</span>
-          </div>
         </div>
       </div>
 

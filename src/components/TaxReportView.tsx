@@ -55,24 +55,25 @@ export function TaxReportView({ onOpenPrintReport, closedPositions = [], dividen
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Year Filter Header */}
-      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl backdrop-blur-md flex items-center justify-between">
-        <div>
-          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-            Fiscal / IRPF (Declaración de la Renta)
+      {/* Year Filter Header - Compacto */}
+      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shrink-0"></span>
+            <span>Fiscal / IRPF (Renta)</span>
           </h2>
-          <p className="text-xs text-slate-400">
-            Cálculo conforme a la normativa española de la AEAT (Método FIFO y retenciones en origen)
+          <p className="hidden sm:block text-[11px] text-slate-400 truncate">
+            Cálculo conforme a la AEAT (Método FIFO y retenciones en origen)
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <select
             value={selectedYear}
             onChange={e => setSelectedYear(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3.5 py-2 font-bold focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 font-bold focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"
           >
-            <option value="all">Todos los años</option>
+            <option value="all">Año: Todos</option>
             {availableYears.map(yr => (
               <option key={yr} value={String(yr)}>
                 Año: {yr}

@@ -1971,12 +1971,8 @@ export default function App() {
           />
 
           {/* Main Content Area */}
-          <main className={`flex-1 min-h-0 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424] ${
-            currentTab === 'quotes'
-              ? 'overflow-hidden p-3 sm:p-4 lg:p-5 flex flex-col no-scrollbar'
-              : 'sm:overflow-y-auto pt-0 sm:pt-6 px-2 sm:px-6 pb-32 sm:pb-8 overscroll-y-none'
-          }`}>
-          <div className={`max-w-7xl mx-auto w-full ${currentTab === 'quotes' ? 'flex-1 flex flex-col min-h-0 h-full overflow-hidden' : ''}`}>
+          <main className="flex-1 min-h-0 bg-gradient-to-b from-[#0a1424] via-[#0d1a30] to-[#0a1424] sm:overflow-y-auto pt-0 sm:pt-6 px-2 sm:px-6 pb-32 sm:pb-8 overscroll-y-none">
+          <div className="max-w-7xl mx-auto w-full">
             {/* View Switching */}
             {currentTab === 'dashboard' && (
               <Dashboard

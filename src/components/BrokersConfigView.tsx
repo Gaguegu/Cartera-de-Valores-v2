@@ -162,52 +162,53 @@ export function BrokersConfigView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Configuration Header & Navigation */}
-      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#12233f] border border-slate-700/80 p-5 rounded-2xl shadow-xl space-y-4 backdrop-blur-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl shadow-inner">
-              <Sliders className="w-5 h-5" />
+      {/* Configuration Header & Navigation - Compacto */}
+      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl space-y-2 sm:space-y-3 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 sm:p-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl shadow-inner shrink-0">
+              <Sliders className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-base font-black text-white tracking-tight flex items-center gap-1.5 truncate">
                 <span>Configuración y Seguridad</span>
               </h2>
-              <p className="text-xs text-slate-400">
-                Contraseña de acceso, copias de seguridad cifradas, intermediarios (brokers), impuestos y divisas
+              <p className="hidden sm:block text-[11px] text-slate-400 truncate">
+                Contraseña, copias cifradas, brokers, impuestos y divisas
               </p>
             </div>
           </div>
 
           {/* Badge de seguridad global */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 shrink-0">
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
                 hasPassword
                   ? 'bg-emerald-950/80 border-emerald-600/50 text-emerald-300'
                   : 'bg-amber-950/80 border-amber-600/50 text-amber-300'
               }`}
             >
-              {hasPassword ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-              <span>{hasPassword ? 'Protegida con contraseña' : 'Sin contraseña (acceso libre)'}</span>
+              {hasPassword ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+              <span className="hidden sm:inline">{hasPassword ? 'Protegida con contraseña' : 'Sin contraseña (acceso libre)'}</span>
+              <span className="sm:hidden">{hasPassword ? 'Protegida' : 'Acceso libre'}</span>
             </span>
           </div>
         </div>
 
         {/* 6 Tabs */}
-        <div className="flex border-b border-slate-800 gap-1 sm:gap-2 overflow-x-auto text-xs sm:text-sm font-semibold pb-1 scrollbar-none">
+        <div className="flex border-b border-slate-800 gap-1 sm:gap-2 overflow-x-auto text-xs font-semibold pb-1 no-scrollbar">
           {[
-            { id: 'seguridad', label: 'Seguridad y Acceso', icon: <Lock className="w-3.5 h-3.5" /> },
-            { id: 'copias', label: 'Copias de Seguridad', icon: <Database className="w-3.5 h-3.5" /> },
-            { id: 'brokers', label: 'Brokers y Cuentas', icon: <Briefcase className="w-3.5 h-3.5" /> },
-            { id: 'impuestos', label: 'Fiscalidad / IRPF', icon: <FileSpreadsheet className="w-3.5 h-3.5" /> },
-            { id: 'divisas', label: 'Divisas (€/$)', icon: <DollarSign className="w-3.5 h-3.5" /> },
-            { id: 'general', label: 'General / Reset', icon: <Sliders className="w-3.5 h-3.5" /> },
+            { id: 'seguridad', label: 'Seguridad', icon: <Lock className="w-3 h-3" /> },
+            { id: 'copias', label: 'Copias', icon: <Database className="w-3 h-3" /> },
+            { id: 'brokers', label: 'Brokers', icon: <Briefcase className="w-3 h-3" /> },
+            { id: 'impuestos', label: 'Fiscalidad', icon: <FileSpreadsheet className="w-3 h-3" /> },
+            { id: 'divisas', label: 'Divisas', icon: <DollarSign className="w-3 h-3" /> },
+            { id: 'general', label: 'General', icon: <Sliders className="w-3 h-3" /> },
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-3 sm:px-4 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+              className={`py-1.5 px-2.5 sm:px-3 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 activeTab === tab.id
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-950/40'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'

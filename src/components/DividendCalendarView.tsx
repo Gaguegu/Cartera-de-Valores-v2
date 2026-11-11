@@ -527,47 +527,49 @@ export function DividendCalendarView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Filter Bar */}
-      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
-        <div>
-          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-            <Coins className="w-5 h-5 text-emerald-400" />
-            <span>Calendario y previsión de dividendos</span>
+      {/* Top Filter Bar - Compacto */}
+      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 backdrop-blur-md">
+        <div className="min-w-0">
+          <h2 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+            <Coins className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Calendario de Dividendos</span>
           </h2>
-          <p className="text-xs text-slate-400">
-            Fechas de corte (ex-dividend) y pagos confirmados a cuenta
+          <p className="hidden sm:block text-[11px] text-slate-400 truncate">
+            Fechas de corte (ex-dividend) y pagos confirmados
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <select
             value={String(currentYear)}
             onChange={e => handleYearChange(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3.5 py-2 font-bold focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 font-bold focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"
           >
             {availableYears.map(yr => (
               <option key={yr} value={String(yr)}>
-                Año: {yr}
+                Año {yr}
               </option>
             ))}
           </select>
 
-          {/* Botón principal: Buscar y actualizar dividendos de las acciones de la cartera */}
+          {/* Botón principal: Buscar y actualizar dividendos */}
           <button
             onClick={handleFetchPortfolioDividends}
             disabled={isSyncing}
-            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
-            title="Buscar y actualizar automáticamente los dividendos anunciados y públicos de las acciones de tu Cartera actual"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl shadow-md border border-emerald-400/30 transition-all cursor-pointer disabled:opacity-60"
+            title="Buscar y actualizar dividendos de las acciones de tu Cartera"
           >
-            <RefreshCw className={`w-4 h-4 text-emerald-200 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Buscando dividendos...' : 'Actualizar dividendos de cartera'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-200 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isSyncing ? 'Buscando...' : 'Actualizar dividendos de cartera'}</span>
+            <span className="sm:hidden">{isSyncing ? 'Buscando...' : 'Actualizar'}</span>
           </button>
 
           {/* Botón secundario discreto para añadir previsión manual */}
           <button
             onClick={handleOpenAddModal}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
             title="Añadir dividendo manualmente..."
+            aria-label="Añadir dividendo manualmente"
           >
             <Plus className="w-4 h-4" />
           </button>

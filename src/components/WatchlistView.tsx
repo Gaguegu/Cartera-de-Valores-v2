@@ -48,24 +48,25 @@ export function WatchlistView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
-        <div>
-          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-            <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-            Lista de Seguimiento (Valores en Radar)
+      {/* Header - Compacto */}
+      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
+        <div className="min-w-0">
+          <h2 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+            <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
+            <span>Lista de Seguimiento</span>
           </h2>
-          <p className="text-xs text-slate-400">
-            Valores que estás monitorizando antes de abrir posición, con precios objetivos de compra y venta
+          <p className="hidden sm:block text-[11px] text-slate-400 truncate">
+            Valores en radar antes de abrir posición, con precios objetivos
           </p>
         </div>
 
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5"
+          className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1 shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Añadir valor a seguir</span>
+          <span className="hidden sm:inline">Añadir valor a seguir</span>
+          <span className="sm:hidden">+ Valor</span>
         </button>
       </div>
 
