@@ -263,6 +263,19 @@ export function CurrentPortfolio({
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Mobile Unified Controls Header (sm:hidden) - Unificado directamente con la cabecera sin huecos */}
       <div className="sm:hidden sticky top-[56px] z-20 bg-[#0e1b30] border-b border-slate-700/80 p-2.5 shadow-md -mx-2 space-y-2">
+        {/* Identificador de pantalla en móvil */}
+        <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-700/60">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+            <h2 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+              📈 Cartera Actual
+            </h2>
+          </div>
+          <span className="text-[11px] font-bold text-blue-300 bg-blue-950/60 px-2.5 py-0.5 rounded-lg border border-blue-500/40 font-mono">
+            {sorted.length} {sorted.length === 1 ? 'posición' : 'posiciones'}
+          </span>
+        </div>
+
         {/* Fila 1: Buscador de valor + Selector de Año de compra */}
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1 flex items-center">

@@ -97,6 +97,19 @@ export function ReportsView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Identificador de pantalla */}
+      <div className="sticky top-[56px] sm:top-0 z-10 bg-[#12233f] border border-slate-700/80 p-4 rounded-2xl shadow-xl flex items-center justify-between backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+          <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+            📊 Informes y Exportación
+          </h2>
+        </div>
+        <span className="text-[11px] font-bold text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-700/60 font-mono">
+          PDF y CSV
+        </span>
+      </div>
+
       {/* 3 Top Cards from Screen 9 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card 1: Informe completo */}

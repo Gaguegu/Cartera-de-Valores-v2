@@ -196,8 +196,22 @@ export function DividendsView({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Controls: Filtros por Año, País con sus respectivas retenciones y Tipo de Retención (Sin huecos en móvil) */}
-      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
+      <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md space-y-2.5">
+        {/* Identificador de pantalla para móvil y escritorio */}
+        <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-700/60 sm:border-0 sm:pb-0">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+              💰 Dividendos y Retenciones
+            </h2>
+          </div>
+          <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-500/40 font-mono">
+            {selectedYear}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
           {/* Selector de Año */}
           <div className="flex items-center gap-1.5">
             <label className="text-[11px] text-slate-400 font-medium">Año:</label>
@@ -303,14 +317,15 @@ export function DividendsView({
           </button>
         </div>
 
-        {/* Botón Registrar dividendo */}
-        <button
-          onClick={onOpenNewDividend}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.01]"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Registrar dividendo</span>
-        </button>
+          {/* Botón Registrar dividendo */}
+          <button
+            onClick={onOpenNewDividend}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.01]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Registrar dividendo</span>
+          </button>
+        </div>
       </div>
 
       {/* Banner Informativo Fiscal si hay un país seleccionado */}
@@ -660,9 +675,11 @@ export function DividendsView({
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Footer Summary con desglose completo y reactivo al filtro */}
-        <div className="p-4 bg-[#0e1b30] border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
+      {/* Footer Summary con desglose completo y reactivo al filtro - Visible en Móvil y Escritorio */}
+      <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
+        <div className="p-4 bg-[#0e1b30] flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
           <div className="flex items-center gap-2">
             <span className="text-slate-300 font-bold text-sm">
               Total {selectedYear === 'Todos los años' ? 'General' : selectedYear}

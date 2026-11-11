@@ -92,6 +92,19 @@ export function OperationsView({
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Bar - Screen 4 Header (Fijo en la parte superior, sin huecos en móvil) */}
       <div className="sticky top-[56px] sm:top-0 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 bg-[#0e1b30] sm:bg-[#12233f] p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl border-b sm:border border-slate-700/80 shadow-md sm:shadow-xl backdrop-blur-md">
+        {/* Identificador de pantalla para móvil y escritorio */}
+        <div className="flex items-center justify-between gap-2 pb-1.5 sm:pb-0 border-b border-slate-700/60 sm:border-0">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+            <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+              📝 Operaciones
+            </h2>
+          </div>
+          <span className="text-[11px] font-bold text-cyan-300 bg-cyan-950/60 px-2.5 py-0.5 rounded-lg border border-cyan-500/40 font-mono">
+            {filtered.length} {filtered.length === 1 ? 'operación' : 'operaciones'}
+          </span>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
           {/* Filter Type */}
           <select
@@ -412,9 +425,11 @@ export function OperationsView({
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Footer info */}
-        <div className="p-4 bg-[#0e1b30] border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+      {/* Footer info - Visible en móvil y escritorio */}
+      <div className="bg-[#12233f] border border-slate-700/70 rounded-2xl shadow-xl overflow-hidden">
+        <div className="p-4 bg-[#0e1b30] flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="text-slate-400">
             Total operaciones listadas: <span className="text-white font-bold">{filtered.length}</span>
           </div>

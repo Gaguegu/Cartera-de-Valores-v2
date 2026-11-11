@@ -82,7 +82,7 @@ export function Header({
       case 'calendar':
         return 'Calendario de dividendos';
       case 'quotes':
-        return 'Cotizaciones de Mercado (EE.UU. y Europa)';
+        return 'Cotizaciones de Mercado';
       case 'watchlist':
         return 'Lista de seguimiento';
       case 'config':
@@ -113,11 +113,17 @@ export function Header({
             />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="lg:hidden font-extrabold text-sm tracking-wider text-white">Cartera de Valores</span>
-              <span className="lg:hidden w-1 h-1 rounded-full bg-slate-500"></span>
-              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
-                <span className="text-slate-400 font-normal hidden lg:inline">Panel /</span>
+            {/* Título en móvil: Nombre destacado y limpio de la pantalla actual (sin recortarse a Car o Cot) */}
+            <div className="lg:hidden flex items-center gap-1.5">
+              <h1 className="text-sm font-extrabold text-white tracking-tight truncate max-w-[150px] sm:max-w-none">
+                {getTabTitle(currentTab)}
+              </h1>
+            </div>
+
+            {/* Título en pantallas grandes de escritorio */}
+            <div className="hidden lg:flex items-center gap-2">
+              <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
+                <span className="text-slate-400 font-normal">Panel /</span>
                 <span className="text-white font-extrabold">{getTabTitle(currentTab)}</span>
                 {currentTab === 'dashboard' && (
                   <span className="hidden xl:inline text-[11px] font-semibold text-blue-300 bg-blue-900/40 border border-blue-700/50 px-2 py-0.5 rounded-full ml-1">
