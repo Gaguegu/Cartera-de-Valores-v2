@@ -197,136 +197,128 @@ export function DividendsView({
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Controls: Filtros por Año, País con sus respectivas retenciones y Tipo de Retención (Sin huecos en móvil) */}
       <div className="sticky top-[56px] sm:top-0 z-20 bg-[#0e1b30] sm:bg-[#12233f] border-b sm:border border-slate-700/80 p-2.5 sm:p-4 -mx-2 sm:mx-0 rounded-none sm:rounded-2xl shadow-md sm:shadow-xl backdrop-blur-md space-y-2.5">
-        {/* Identificador de pantalla para móvil y escritorio */}
+        {/* Fila 1: Título de pantalla y acciones principales (Imprimir, CSV, + Dividendo) */}
         <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-700/60 sm:border-0 sm:pb-0">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-            <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+            <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider truncate flex items-center gap-1.5">
               💰 Dividendos y Retenciones
             </h2>
           </div>
-          <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-500/40 font-mono">
-            {selectedYear}
-          </span>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Botón Imprimir reducido */}
+            <button
+              onClick={() => {
+                if (onOpenPrintReport) {
+                  onOpenPrintReport('dividends', {
+                    year: selectedYear === 'Todos los años' ? 'all' : selectedYear,
+                    country: selectedCountry,
+                    withholdingType: selectedWithholdingType,
+                    dividends: true,
+                    closed: false,
+                    charts: false,
+                  });
+                } else {
+                  window.print();
+                }
+              }}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer shadow-sm shrink-0"
+              title="Generar PDF o imprimir dividendos"
+              aria-label="Generar PDF o imprimir"
+            >
+              <Printer className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden md:inline text-xs">Imprimir</span>
+            </button>
+
+            {/* Botón Exportar CSV compacto */}
+            <button
+              onClick={handleExportCSV}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer shadow-sm shrink-0"
+              title="Exportar listado filtrado a CSV"
+              aria-label="Exportar CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline text-xs">CSV</span>
+            </button>
+
+            {/* Botón Registrar dividendo reducido */}
+            <button
+              onClick={onOpenNewDividend}
+              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1 shrink-0 cursor-pointer hover:scale-[1.01]"
+              title="Registrar cobro de dividendo"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Registrar dividendo</span>
+              <span className="sm:hidden">+ Dividendo</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
+        {/* Fila 2: Selectores compactos (Año, País, Retenciones, Limpiar) */}
+        <div className="flex items-center gap-1.5 flex-wrap">
           {/* Selector de Año */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] text-slate-400 font-medium">Año:</label>
-            <select
-              value={selectedYear}
-              onChange={e => setSelectedYear(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"
-              title="Filtrar por ejercicio fiscal"
-            >
-              <option value="Todos los años">Todos los años</option>
-              {availableYears.map(yr => (
-                <option key={yr} value={String(yr)}>
-                  Año {yr}
+          <select
+            value={selectedYear}
+            onChange={e => setSelectedYear(e.target.value)}
+            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"
+            title="Filtrar por ejercicio fiscal"
+          >
+            <option value="Todos los años">Año: Todos</option>
+            {availableYears.map(yr => (
+              <option key={yr} value={String(yr)}>
+                Año {yr}
+              </option>
+            ))}
+          </select>
+
+          {/* Selector de País */}
+          <select
+            value={selectedCountry}
+            onChange={e => setSelectedCountry(e.target.value)}
+            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner max-w-[125px] sm:max-w-[200px] truncate"
+            title="Filtrar por país de cotización y origen"
+          >
+            <option value="all">País: Todos</option>
+            {availableCountries.map(country => {
+              const profile = COUNTRY_WITHHOLDINGS[country];
+              const label = profile
+                ? `${profile.flag} ${country}`
+                : country;
+              return (
+                <option key={country} value={country}>
+                  {label}
                 </option>
-              ))}
-            </select>
-          </div>
+              );
+            })}
+          </select>
 
-          {/* Selector de País con sus respectivas retenciones */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] text-slate-400 font-medium">País:</label>
-            <select
-              value={selectedCountry}
-              onChange={e => setSelectedCountry(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner max-w-[230px]"
-              title="Filtrar por país de cotización y origen"
-            >
-              <option value="all">Todos los países</option>
-              {availableCountries.map(country => {
-                const profile = COUNTRY_WITHHOLDINGS[country];
-                const label = profile
-                  ? `${profile.flag} ${country} (${profile.summary})`
-                  : country;
-                return (
-                  <option key={country} value={country}>
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {/* Selector de Tipo de Retención */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] text-slate-400 font-medium">Retenciones:</label>
-            <select
-              value={selectedWithholdingType}
-              onChange={e => setSelectedWithholdingType(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"
-              title="Filtrar por tipo de retención fiscal"
-            >
-              <option value="all">Todas las retenciones</option>
-              <option value="double">Doble Retención (Origen + Destino)</option>
-              <option value="origin">Solo Retención en Origen (Internacional)</option>
-              <option value="destination">Solo Retención en Destino (IRPF España)</option>
-              <option value="exempt">Sin Retención (Exento 0%)</option>
-            </select>
-          </div>
+          {/* Selector de Retenciones */}
+          <select
+            value={selectedWithholdingType}
+            onChange={e => setSelectedWithholdingType(e.target.value)}
+            className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner max-w-[140px] sm:max-w-[210px] truncate"
+            title="Filtrar por tipo de retención fiscal"
+          >
+            <option value="all">Retenciones: Todas</option>
+            <option value="double">Doble Retención</option>
+            <option value="origin">Solo Origen</option>
+            <option value="destination">Solo Destino (IRPF)</option>
+            <option value="exempt">Sin Retención (0%)</option>
+          </select>
 
           {/* Botón para resetear filtros si hay alguno activo */}
           {isAnyFilterActive && (
             <button
               onClick={handleResetFilters}
-              className="px-2.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer shrink-0"
               title="Restablecer todos los filtros"
+              aria-label="Restablecer todos los filtros"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Limpiar</span>
+              <span className="hidden sm:inline">Limpiar</span>
             </button>
           )}
-
-          {/* Botón Generar PDF / Imprimir con los filtros aplicados */}
-          <button
-            onClick={() => {
-              if (onOpenPrintReport) {
-                onOpenPrintReport('dividends', {
-                  year: selectedYear === 'Todos los años' ? 'all' : selectedYear,
-                  country: selectedCountry,
-                  withholdingType: selectedWithholdingType,
-                  dividends: true,
-                  closed: false,
-                  charts: false,
-                });
-              } else {
-                window.print();
-              }
-            }}
-            className="p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
-            title="Generar PDF o imprimir dividendos según los filtros seleccionados"
-            aria-label="Generar PDF o imprimir"
-          >
-            <Printer className="w-4 h-4 text-blue-400" />
-            <span className="hidden md:inline">Imprimir</span>
-          </button>
-
-          {/* Botón Exportar CSV */}
-          <button
-            onClick={handleExportCSV}
-            className="p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
-            title="Exportar listado filtrado a CSV"
-            aria-label="Exportar CSV"
-          >
-            <Download className="w-4 h-4 text-emerald-400" />
-            <span className="hidden md:inline">Exportar CSV</span>
-          </button>
-        </div>
-
-          {/* Botón Registrar dividendo */}
-          <button
-            onClick={onOpenNewDividend}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.01]"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Registrar dividendo</span>
-          </button>
         </div>
       </div>
 

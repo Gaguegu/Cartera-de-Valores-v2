@@ -112,7 +112,7 @@ export function OperationsView({
             onChange={e => setFilterType(e.target.value)}
             className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 focus:outline-none focus:border-blue-500 font-medium"
           >
-            <option value="Todos">Todos</option>
+            <option value="Todos">Tipo: Todos</option>
             <option value="Compra">Compras</option>
             <option value="Venta">Ventas</option>
           </select>
@@ -123,10 +123,10 @@ export function OperationsView({
             onChange={e => setFilterYear(e.target.value)}
             className="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
           >
-            <option value="Todos los años">Todos los años</option>
+            <option value="Todos los años">Año: Todos</option>
             {availableYears.map(yr => (
               <option key={yr} value={String(yr)}>
-                {yr}
+                Año {yr}
               </option>
             ))}
           </select>

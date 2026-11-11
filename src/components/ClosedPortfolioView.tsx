@@ -234,14 +234,14 @@ export function ClosedPortfolioView({
               📂 Carteras Cerradas
             </h2>
           </div>
-          <span className="text-[11px] font-bold text-cyan-300 bg-cyan-950/60 px-2.5 py-0.5 rounded-lg border border-cyan-500/40 font-mono">
+          <span className="hidden sm:inline-block text-[11px] font-bold text-cyan-300 bg-cyan-950/60 px-2.5 py-0.5 rounded-lg border border-cyan-500/40 font-mono">
             {selectedYear === 'all' ? 'Histórico completo' : `Año ${selectedYear}`}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {/* Selector desplegable de ejercicio / año de venta */}
-          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs shadow-inner">
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs shadow-inner">
             <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="text-slate-400 font-medium hidden sm:inline">Año venta:</span>
             <select
@@ -250,7 +250,7 @@ export function ClosedPortfolioView({
               className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
               title="Filtrar cartera cerrada por año de venta de las acciones"
             >
-              <option value="all" className="bg-slate-900 text-white">Todos los años</option>
+              <option value="all" className="bg-slate-900 text-white">Año: Todos</option>
               {availableYears.map(yr => (
                 <option key={yr} value={yr} className="bg-slate-900 text-white">
                   Año {yr}
