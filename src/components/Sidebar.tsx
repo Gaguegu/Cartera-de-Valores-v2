@@ -80,7 +80,7 @@ export function Sidebar({
 
       {/* Sidebar container - Fijo en la vista lateral sin desbordamiento */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0c182c] border-r border-slate-800/80 flex flex-col h-full overflow-hidden transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0c182c] border-r border-slate-800/80 flex flex-col h-full overflow-hidden overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:shrink-0 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -109,105 +109,107 @@ export function Sidebar({
           </button>
         </div>
 
-        {/* Navigation list - scrollable con min-h-0 para no desbordar controles */}
-        <div className="p-3 space-y-1 overflow-y-auto flex-1 min-h-0">
-          {navItems.map(item => {
-            const isActive = currentTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onSelectTab(item.id);
-                  onClose();
-                }}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <span className={isActive ? 'text-white' : 'text-slate-400'}>{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Bottom Banner & Controls - Siempre fijos en la parte inferior */}
-        <div className="p-3 bg-slate-950 border-t border-slate-800/80 shrink-0 mt-auto">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-blue-900/40 text-center">
-            <span className="font-black text-xs text-white tracking-widest block uppercase">
-              Cartera de Valores
-            </span>
-            <span className="text-[10px] text-blue-300 block font-medium">
-              Tu cartera, siempre bajo control
-            </span>
-
-            {onOpenVersionsModal && (
-              <button
-                onClick={() => {
-                  onOpenVersionsModal();
-                  onClose();
-                }}
-                className="mt-3 w-full flex flex-col items-center justify-center py-1.5 px-4 rounded-full bg-gradient-to-b from-[#0f2343] via-[#0b1a32] to-[#071222] border-2 border-blue-500/80 hover:border-cyan-400 shadow-[0_0_12px_rgba(59,130,246,0.25)] hover:shadow-[0_0_18px_rgba(6,182,212,0.4)] transition-all cursor-pointer group active:scale-95"
-                title={`Versión ${currentVersion || 'v1.0.0'} · Ver versiones modificadas en GitHub`}
-              >
-                <div className="flex items-center gap-1.5 leading-none">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 group-hover:text-cyan-300">
-                    VERSIÓN
-                  </span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                </div>
-                <span className="text-xs font-black text-white tracking-tight leading-none mt-0.5 font-mono">
-                  {currentVersion || 'v1.0.0'}
-                </span>
-              </button>
-            )}
-
-            {onCheckForUpdates && (
-              <button
-                onClick={() => {
-                  onCheckForUpdates();
-                  onClose();
-                }}
-                disabled={isCheckingVersion}
-                className="mt-2 w-full flex items-center justify-center gap-1.5 py-1 px-3 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-[11px] font-semibold text-slate-300 hover:text-white border border-slate-700/70 transition-colors cursor-pointer"
-                title="Comprobar si están todas las actualizaciones al día con GitHub"
-              >
-                <RefreshCw className={`w-3 h-3 ${isCheckingVersion ? 'animate-spin text-cyan-400' : 'text-blue-400'}`} />
-                <span>{isCheckingVersion ? 'Comprobando...' : 'Comprobar al día'}</span>
-              </button>
-            )}
-
-            {/* Acceso rápido a Seguridad y Copias Cifradas */}
-            {onOpenSecurityModal && (
-              <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-1.5">
+        {/* Navigation list and Bottom Controls in one single smooth scrollable container */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar p-3 flex flex-col justify-between">
+          <div className="space-y-1">
+            {navItems.map(item => {
+              const isActive = currentTab === item.id;
+              return (
                 <button
+                  key={item.id}
                   onClick={() => {
-                    onOpenSecurityModal();
+                    onSelectTab(item.id);
                     onClose();
                   }}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/50 text-[11px] font-bold text-cyan-300 border border-cyan-800/50 transition-colors"
-                  title="Abrir panel de Seguridad y Copias de Seguridad"
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
                 >
-                  <Shield className="w-3 h-3 text-cyan-400" />
-                  <span>Seguridad & Copias</span>
+                  <span className={isActive ? 'text-white' : 'text-slate-400'}>{item.icon}</span>
+                  <span>{item.label}</span>
                 </button>
+              );
+            })}
+          </div>
 
-                {hasPassword && onLockApp && (
+          {/* Bottom Banner & Controls - Fluye con el scroll en móvil y queda al final */}
+          <div className="pt-4 mt-4 border-t border-slate-800/80">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-blue-900/40 text-center">
+              <span className="font-black text-xs text-white tracking-widest block uppercase">
+                Cartera de Valores
+              </span>
+              <span className="text-[10px] text-blue-300 block font-medium">
+                Tu cartera, siempre bajo control
+              </span>
+
+              {onOpenVersionsModal && (
+                <button
+                  onClick={() => {
+                    onOpenVersionsModal();
+                    onClose();
+                  }}
+                  className="mt-3 w-full flex flex-col items-center justify-center py-1.5 px-4 rounded-full bg-gradient-to-b from-[#0f2343] via-[#0b1a32] to-[#071222] border-2 border-blue-500/80 hover:border-cyan-400 shadow-[0_0_12px_rgba(59,130,246,0.25)] hover:shadow-[0_0_18px_rgba(6,182,212,0.4)] transition-all cursor-pointer group active:scale-95"
+                  title={`Versión ${currentVersion || 'v1.0.0'} · Ver versiones modificadas en GitHub`}
+                >
+                  <div className="flex items-center gap-1.5 leading-none">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 group-hover:text-cyan-300">
+                      VERSIÓN
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  </div>
+                  <span className="text-xs font-black text-white tracking-tight leading-none mt-0.5 font-mono">
+                    {currentVersion || 'v1.0.0'}
+                  </span>
+                </button>
+              )}
+
+              {onCheckForUpdates && (
+                <button
+                  onClick={() => {
+                    onCheckForUpdates();
+                    onClose();
+                  }}
+                  disabled={isCheckingVersion}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-1 px-3 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-[11px] font-semibold text-slate-300 hover:text-white border border-slate-700/70 transition-colors cursor-pointer"
+                  title="Comprobar si están todas las actualizaciones al día con GitHub"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isCheckingVersion ? 'animate-spin text-cyan-400' : 'text-blue-400'}`} />
+                  <span>{isCheckingVersion ? 'Comprobando...' : 'Comprobar al día'}</span>
+                </button>
+              )}
+
+              {/* Acceso rápido a Seguridad y Copias Cifradas */}
+              {onOpenSecurityModal && (
+                <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-1.5">
                   <button
                     onClick={() => {
-                      onLockApp();
+                      onOpenSecurityModal();
                       onClose();
                     }}
-                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-800/50 transition-colors"
-                    title="Bloquear aplicación ahora"
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/50 text-[11px] font-bold text-cyan-300 border border-cyan-800/50 transition-colors cursor-pointer"
+                    title="Abrir panel de Seguridad y Copias de Seguridad"
                   >
-                    <Lock className="w-3 h-3" />
+                    <Shield className="w-3 h-3 text-cyan-400" />
+                    <span>Seguridad & Copias</span>
                   </button>
-                )}
-              </div>
-            )}
+
+                  {hasPassword && onLockApp && (
+                    <button
+                      onClick={() => {
+                        onLockApp();
+                        onClose();
+                      }}
+                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-800/50 transition-colors cursor-pointer"
+                      title="Bloquear aplicación ahora"
+                    >
+                      <Lock className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </aside>

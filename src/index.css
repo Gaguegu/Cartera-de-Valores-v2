@@ -21,9 +21,11 @@ body,
   }
 }
 
-main {
-  overscroll-behavior-y: none !important;
-  overscroll-behavior: none !important;
+main,
+aside,
+.overflow-y-auto {
+  overscroll-behavior-y: contain !important;
+  overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch;
 }
 
