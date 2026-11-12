@@ -7,8 +7,8 @@ body,
   width: 100%;
   margin: 0;
   padding: 0;
-  overscroll-behavior-y: contain !important;
-  overscroll-behavior: contain !important;
+  overscroll-behavior-y: none !important;
+  overscroll-behavior: none !important;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -24,9 +24,10 @@ body,
 main,
 aside,
 .overflow-y-auto {
-  overscroll-behavior-y: contain !important;
-  overscroll-behavior: contain !important;
+  overscroll-behavior-y: none !important;
+  overscroll-behavior: none !important;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 @layer base {

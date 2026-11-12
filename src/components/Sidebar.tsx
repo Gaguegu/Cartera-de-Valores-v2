@@ -19,6 +19,7 @@ import {
   Lock,
   FileKey,
   Globe,
+  ArrowUp,
 } from 'lucide-react';
 import { ActiveTab } from '../types/portfolio';
 import ansamaLogo from '../assets/logo-ansama.jpeg';
@@ -56,29 +57,27 @@ export function Sidebar({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Bloquear el scroll del fondo (body) cuando el menú lateral está abierto en móvil
-  // para evitar que los gestos se escapen a la página y provoquen el pull-to-refresh de Chrome
+  // para evitar que los gestos se escapen a la página
   useEffect(() => {
     if (isOpen) {
       const originalOverflow = document.body.style.overflow;
       const originalOverscroll = document.body.style.overscrollBehavior;
-      const originalTouchAction = document.body.style.touchAction;
 
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
-      document.body.style.touchAction = 'none';
-
-      // Asegurar que al abrir empiece desde arriba
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = 0;
-      }
 
       return () => {
         document.body.style.overflow = originalOverflow;
         document.body.style.overscrollBehavior = originalOverscroll;
-        document.body.style.touchAction = originalTouchAction;
       };
     }
   }, [isOpen]);
+
+  const scrollToTop = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const navItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Inicio', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -101,20 +100,25 @@ export function Sidebar({
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden touch-none"
         />
       )}
 
       {/* Sidebar container - Fijo en la vista lateral sin desbordamiento */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0c182c] border-r border-slate-800/80 flex flex-col h-[100dvh] lg:h-full overflow-hidden overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:z-auto lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0c182c] border-r border-slate-800/80 flex flex-col h-[100dvh] lg:h-full overflow-hidden overscroll-none touch-pan-y transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:z-auto lg:shrink-0 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
+        style={{ overscrollBehavior: 'none' }}
       >
-        {/* Brand Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white p-0.5 shadow-md flex items-center justify-center shrink-0 border border-slate-700/60 overflow-hidden">
+        {/* Brand Header - Tocarlo vuelve al inicio del menú */}
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-[#0c182c]">
+          <div
+            onClick={scrollToTop}
+            className="flex items-center gap-3 cursor-pointer group"
+            title="Toca para subir al principio del menú"
+          >
+            <div className="w-10 h-10 rounded-xl bg-white p-0.5 shadow-md flex items-center justify-center shrink-0 border border-slate-700/60 overflow-hidden group-hover:scale-105 transition-transform">
               <img
                 src={ansamaLogo}
                 alt="Logo ANSAMA"
@@ -122,7 +126,9 @@ export function Sidebar({
               />
             </div>
             <div>
-              <span className="font-extrabold text-base tracking-wider text-white">Cartera de Valores</span>
+              <span className="font-extrabold text-base tracking-wider text-white flex items-center gap-1.5">
+                <span>Cartera de Valores</span>
+              </span>
               <span className="block text-[10px] text-blue-400 font-semibold tracking-wider uppercase">
                 Gestión de Inversiones
               </span>
@@ -140,8 +146,8 @@ export function Sidebar({
         {/* Navigation list and Bottom Controls in one single smooth scrollable container */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-4 touch-pan-y"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-none p-3 space-y-4 touch-pan-y"
+          style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           <div className="space-y-1">
             {navItems.map(item => {
@@ -153,7 +159,7 @@ export function Sidebar({
                     onSelectTab(item.id);
                     onClose();
                   }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
@@ -166,8 +172,19 @@ export function Sidebar({
             })}
           </div>
 
-          {/* Bottom Banner & Controls - Fluye con el scroll natural sin bugs de flexbox */}
-          <div className="pt-4 pb-6 border-t border-slate-800/80">
+          {/* Bottom Banner & Controls */}
+          <div className="pt-3 pb-8 border-t border-slate-800/80">
+            {/* Botón directo y accesible para volver a subir al inicio */}
+            <button
+              type="button"
+              onClick={scrollToTop}
+              className="w-full mb-3 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600/25 hover:bg-blue-600/35 active:bg-blue-600/50 text-blue-300 hover:text-white border border-blue-500/40 text-xs font-bold transition-all cursor-pointer touch-manipulation"
+              title="Volver a la parte superior del menú"
+            >
+              <ArrowUp className="w-4 h-4 text-cyan-400" />
+              <span>Volver arriba (Inicio)</span>
+            </button>
+
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-blue-900/40 text-center">
               <span className="font-black text-xs text-white tracking-widest block uppercase">
                 Cartera de Valores
