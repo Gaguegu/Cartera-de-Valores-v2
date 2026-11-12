@@ -143,15 +143,12 @@ export default function App() {
         }
       }
 
-      // Actualizar automáticamente cotizaciones históricas si estaban guardadas con valores antiguos en localStorage
+      // Preservar la contabilidad de compra de cada valor y permitir que las cotizaciones reales de mercado se apliquen
       const symUpper = (p.symbol || '').toUpperCase();
       if (symUpper === 'MSFT' && p.shares === 25) {
-        // MSFT: 530,61 $ (-0.99% hoy) Nasdaq Real Time. Conversión EUR: ~475.97 €
-        const curPrice = (p.priceUSD === 524.51 || !p.priceUSD || Math.abs(p.currentPrice - 469.78) < 1.0) ? 475.97 : (p.currentPrice || 475.97);
-        const priceUSD = (p.priceUSD === 524.51 || !p.priceUSD) ? 530.61 : p.priceUSD;
-        const dayChange = (p.dayChangePercent === 0.66 || p.dayChangePercent === undefined) ? -0.99 : p.dayChangePercent;
-        const valEUR = Number((25 * curPrice).toFixed(2));
         const totalInvested = 12173.05;
+        const curPrice = p.currentPrice || 486.92;
+        const valEUR = Number((25 * curPrice).toFixed(2));
         const gainEUR = Number((valEUR - totalInvested).toFixed(2));
         const gainPct = Number(((gainEUR / totalInvested) * 100).toFixed(2));
         return {
@@ -163,121 +160,9 @@ export default function App() {
           totalCommissionEUR: 1.00,
           totalInvestedEUR: totalInvested,
           currentPrice: curPrice,
-          priceUSD,
           currentValueEUR: valEUR,
           gainLossEUR: gainEUR,
           gainLossPercent: gainPct,
-          dayChangePercent: dayChange,
-        };
-      }
-      if (symUpper === 'MSFT' && (p.priceUSD === 524.51 || p.priceUSD === 537.42 || Math.abs(p.currentPrice - 469.78) < 1.0 || Math.abs(p.currentPrice - 478.69) < 0.1)) {
-        const priceEUR = 475.97;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 486.92));
-        return {
-          ...p,
-          currentPrice: priceEUR,
-          priceUSD: 530.61,
-          currentValueEUR: valEUR,
-          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
-          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
-          dayChangePercent: -0.99,
-        };
-      }
-      if (symUpper === 'META' && (p.priceUSD === 642.62 || p.priceUSD === 724.80 || Math.abs(p.currentPrice - 575.57) < 1.0 || Math.abs(p.currentPrice - 645.59) < 0.1)) {
-        // META: 610,15 $ (+0.84% hoy) Nasdaq Real Time. Conversión EUR: ~547.32 €
-        const priceEUR = 547.32;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 570.27));
-        return {
-          ...p,
-          currentPrice: priceEUR,
-          priceUSD: 610.15,
-          currentValueEUR: valEUR,
-          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
-          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
-          dayChangePercent: 0.84,
-        };
-      }
-      if (symUpper === 'BE' && (p.priceUSD === 193.30 || p.priceUSD === 282.24 || Math.abs(p.currentPrice - 172.70) < 1.0 || Math.abs(p.currentPrice - 251.39) < 0.1)) {
-        // BE: 173,24 $ (+3.41% hoy) NYSE. Conversión EUR: ~155.40 €
-        const priceEUR = 155.40;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 233.65));
-        return {
-          ...p,
-          currentPrice: priceEUR,
-          priceUSD: 173.24,
-          currentValueEUR: valEUR,
-          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
-          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
-          dayChangePercent: 3.41,
-        };
-      }
-      if (symUpper === 'AMZN' && (p.priceUSD === 248.00 || p.priceUSD === 228.60 || Math.abs(p.currentPrice - 222.12) < 1.0 || Math.abs(p.currentPrice - 203.62) < 0.1)) {
-        // AMZN: 259,30 $ (-0.35% hoy) Nasdaq. Conversión EUR: ~232.60 €
-        const priceEUR = 232.60;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 221.38));
-        return {
-          ...p,
-          currentPrice: priceEUR,
-          priceUSD: 259.30,
-          currentValueEUR: valEUR,
-          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
-          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
-          dayChangePercent: -0.35,
-        };
-      }
-      if (symUpper === 'CEG' && (p.priceUSD === 253.45 || p.priceUSD === 288.96 || Math.abs(p.currentPrice - 227.00) < 1.0 || Math.abs(p.currentPrice - 257.38) < 0.1)) {
-        // CEG: 249,95 $ (+4.30% hoy) Nasdaq. Conversión EUR: ~224.21 €
-        const priceEUR = 224.21;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 255.19));
-        return {
-          ...p,
-          currentPrice: priceEUR,
-          priceUSD: 249.95,
-          currentValueEUR: valEUR,
-          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
-          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
-          dayChangePercent: 4.30,
-        };
-      }
-      if (symUpper === 'AMD' && (p.priceUSD === 516.79 || p.priceUSD === 156.80 || Math.abs(p.currentPrice - 462.87) < 1.0 || Math.abs(p.currentPrice - 139.66) < 0.1)) {
-        // AMD: 449,04 $ (+11.04% hoy) Nasdaq Real Time. Conversión EUR: ~402.80 €
-        const priceEUR = 402.80;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 513.78));
-        return {
-          ...p,
-          currentPrice: priceEUR,
-          priceUSD: 449.04,
-          currentValueEUR: valEUR,
-          gainLossEUR: Number((valEUR - costEUR).toFixed(2)),
-          gainLossPercent: costEUR > 0 ? Number((((valEUR - costEUR) / costEUR) * 100).toFixed(2)) : 0,
-          dayChangePercent: 11.04,
-        };
-      }
-      if (symUpper === 'SAN' && (Math.abs(p.currentPrice - 10.64) < 0.05 || Math.abs(p.currentPrice - 12.02) < 0.2 || p.currentPrice >= 11.5)) {
-        // SAN: 10,70 € (-1.18% hoy) Bolsa de Madrid
-        const priceEUR = 10.70;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = (typeof p.totalInvestedEUR === 'number' && p.totalInvestedEUR > 0)
-          ? p.totalInvestedEUR
-          : p.shares * (p.pmcWithCommission || p.buyPrice || 10.74);
-        const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 0;
-        return {
-          ...p,
-          company: 'Banco Santander',
-          country: 'España',
-          currency: 'EUR',
-          currentPrice: priceEUR,
-          currentValueEUR: valEUR,
-          gainLossEUR: gainEUR,
-          gainLossPercent: gainPct,
-          dayChangePercent: -1.18,
         };
       }
 
@@ -358,115 +243,60 @@ export default function App() {
         };
       }
 
-      // Corrección ORCL para que opere y se multiplique en euros (118,57 €) y dólares (132,89 $) solo a título informativo
+      // Corrección metadata ORCL
       const isOrcl = p.symbol && p.symbol.toUpperCase() === 'ORCL';
-      if (isOrcl && (p.currentPrice > 130 || !p.priceUSD || p.country !== 'USA')) {
+      if (isOrcl && (p.country !== 'USA' || p.currency !== 'EUR')) {
         positionsChanged = true;
-        const priceEUR = 118.57;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = p.shares * (p.buyPrice || 145.94);
-        const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : -18.75;
         return {
           ...p,
+          company: 'Oracle Corporation',
           country: 'USA',
           currency: 'EUR',
-          currentPrice: priceEUR,
-          priceUSD: 132.89,
-          currentValueEUR: valEUR,
-          gainLossEUR: gainEUR,
-          gainLossPercent: gainPct,
         };
       }
 
       // Corrección BE (Bloom Energy) - NYSE EEUU
       const isBE = p.symbol && p.symbol.toUpperCase() === 'BE';
-      if (isBE && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent)) {
+      if (isBE && p.country !== 'USA') {
         positionsChanged = true;
-        const curPrice = p.currentPrice || 172.70;
-        const priceUSD = p.priceUSD || 193.30;
-        const valEUR = Number((p.shares * curPrice).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 233.65));
-        const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 0;
         return {
           ...p,
           company: 'Bloom Energy Corp.',
           country: 'USA',
-          priceUSD,
-          dayChangePercent: p.dayChangePercent || 3.41,
-          currentValueEUR: valEUR,
-          gainLossEUR: gainEUR,
-          gainLossPercent: gainPct,
         };
       }
 
       // Corrección CEG (Constellation Energy) - NASDAQ EEUU
       const isCEG = p.symbol && p.symbol.toUpperCase() === 'CEG';
-      if (isCEG && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent || p.priceUSD === 253.45)) {
+      if (isCEG && p.country !== 'USA') {
         positionsChanged = true;
-        const curPrice = (p.priceUSD === 253.45 || !p.currentPrice) ? 224.21 : p.currentPrice;
-        const priceUSD = (p.priceUSD === 253.45 || !p.priceUSD) ? 249.95 : p.priceUSD;
-        const valEUR = Number((p.shares * curPrice).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 255.19));
-        const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 0;
         return {
           ...p,
           company: 'Constellation Energy Corp.',
           country: 'USA',
-          priceUSD,
-          dayChangePercent: (p.dayChangePercent === -0.69 || !p.dayChangePercent) ? 4.30 : p.dayChangePercent,
-          currentValueEUR: valEUR,
-          gainLossEUR: gainEUR,
-          gainLossPercent: gainPct,
         };
       }
 
       // Corrección AMD (Advanced Micro Devices) - NASDAQ EEUU
       const isAMD = p.symbol && p.symbol.toUpperCase() === 'AMD';
-      if (isAMD && (p.country !== 'USA' || !p.priceUSD || !p.dayChangePercent || p.priceUSD === 516.79)) {
+      if (isAMD && p.country !== 'USA') {
         positionsChanged = true;
-        const curPrice = (p.priceUSD === 516.79 || !p.currentPrice) ? 402.80 : p.currentPrice;
-        const priceUSD = (p.priceUSD === 516.79 || !p.priceUSD) ? 449.04 : p.priceUSD;
-        const valEUR = Number((p.shares * curPrice).toFixed(2));
-        const costEUR = p.totalInvestedEUR || (p.shares * (p.pmcWithCommission || p.buyPrice || 513.78));
-        const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 0;
         return {
           ...p,
           company: 'Advanced Micro Devices Inc.',
           country: 'USA',
-          currentPrice: curPrice,
-          priceUSD,
-          dayChangePercent: (p.dayChangePercent === 1.74 || !p.dayChangePercent) ? 11.04 : p.dayChangePercent,
-          currentValueEUR: valEUR,
-          gainLossEUR: gainEUR,
-          gainLossPercent: gainPct,
         };
       }
 
-      // Corrección Banco Santander (SAN) - cotización oficial de Yahoo Finance (10,70 €)
+      // Corrección Banco Santander (SAN) - España / EUR
       const isSAN = p.symbol && p.symbol.toUpperCase() === 'SAN';
-      if (isSAN && (Math.abs(p.currentPrice - 12.02) < 0.2 || p.currentPrice >= 11.5 || Math.abs(p.currentPrice - 10.64) < 0.05)) {
+      if (isSAN && (p.country !== 'España' || p.currency !== 'EUR')) {
         positionsChanged = true;
-        const priceEUR = 10.70;
-        const valEUR = Number((p.shares * priceEUR).toFixed(2));
-        const costEUR = (typeof p.totalInvestedEUR === 'number' && p.totalInvestedEUR > 0)
-          ? p.totalInvestedEUR
-          : p.shares * (p.pmcWithCommission || p.buyPrice || 10.74);
-        const gainEUR = Number((valEUR - costEUR).toFixed(2));
-        const gainPct = costEUR > 0 ? Number(((gainEUR / costEUR) * 100).toFixed(2)) : 0;
         return {
           ...p,
           company: 'Banco Santander',
           country: 'España',
           currency: 'EUR',
-          currentPrice: priceEUR,
-          currentValueEUR: valEUR,
-          gainLossEUR: gainEUR,
-          gainLossPercent: gainPct,
-          dayChangePercent: -1.18,
         };
       }
 

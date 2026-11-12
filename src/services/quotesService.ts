@@ -265,51 +265,7 @@ export async function fetchQuoteOnline(symbol: string): Promise<MarketQuote | nu
     console.warn(`[QuotesService] Local fetch for ${symbol} failed:`, err);
   }
 
-  // 2. Fallback directo en vivo vía proxy CORS para entornos cliente / PWA
-  try {
-    const directUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=1d`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
-    const pRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
-    if (pRes.ok) {
-      const chartData = await pRes.json();
-      const meta = chartData.chart?.result?.[0]?.meta;
-      if (meta && meta.regularMarketPrice > 0) {
-        const curPrice = meta.regularMarketPrice;
-        const prevClose = meta.chartPreviousClose ?? curPrice;
-        const change = curPrice - prevClose;
-        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-        const isUSD = meta.currency === 'USD';
-        const isGBP = meta.currency === 'GBP';
-        const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : 1.0;
-        const priceEUR = isUSD || isGBP ? curPrice / fxRate : curPrice;
-        const known = SYMBOL_MAP[symbol.toUpperCase()];
-        const country = known ? known.country : (isUSD ? 'USA' : (yahooSym.includes('.MC') ? 'España' : 'Europa'));
-        const region: 'ESPAÑA' | 'EUROPA' | 'EEUU' = known ? known.region : (country === 'España' ? 'ESPAÑA' : (country === 'USA' ? 'EEUU' : 'EUROPA'));
 
-        return {
-          symbol: yahooSym,
-          displaySymbol: symbol.toUpperCase(),
-          company: meta.shortName || known?.company || symbol.toUpperCase(),
-          country,
-          region,
-          exchange: meta.exchangeName || known?.exchange || (isUSD ? 'NYSE/NASDAQ' : 'Europa'),
-          currency: (meta.currency as Currency) || 'EUR',
-          price: curPrice,
-          priceEUR: Number(priceEUR.toFixed(2)),
-          change: Number(change.toFixed(2)),
-          changePercent: Number(changePercent.toFixed(2)),
-          dayHigh: meta.regularMarketDayHigh,
-          dayLow: meta.regularMarketDayLow,
-          high52: meta.fiftyTwoWeekHigh,
-          low52: meta.fiftyTwoWeekLow,
-          volume: meta.regularMarketVolume,
-          lastUpdated: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-        };
-      }
-    }
-  } catch (proxyErr) {
-    console.warn(`[QuotesService] Direct proxy for ${symbol} failed:`, proxyErr);
-  }
 
   // 3. Fallback de catálogo
   const popular = POPULAR_MARKET_STOCKS.find(
@@ -363,41 +319,23 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
     console.warn('[QuotesService] Batch fetch local failed, attempting direct proxy:', err);
   }
 
-  // 2. Si algún símbolo falta o falló la conexión local (ej. en standalone PWA), consultar directo vía proxy CORS en vivo
+  // 2. Si algún símbolo falta, consultar individualmente el endpoint local
   const missingSymbols = symbols.filter(s => !resultMap[s.toUpperCase()]);
   if (missingSymbols.length > 0) {
     await Promise.allSettled(
       missingSymbols.map(async s => {
-        const ySym = resolveYahooSymbol(s);
         try {
-          const directUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=1d`;
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
-          const pRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
-          if (pRes.ok) {
-            const chartData = await pRes.json();
-            const meta = chartData.chart?.result?.[0]?.meta;
-            if (meta && meta.regularMarketPrice > 0) {
-              const curPrice = meta.regularMarketPrice;
-              const prevClose = meta.chartPreviousClose ?? curPrice;
-              const change = curPrice - prevClose;
-              const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-              const isUSD = meta.currency === 'USD';
-              const isGBP = meta.currency === 'GBP';
-              const isDKK = meta.currency === 'DKK';
-              const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : isDKK ? 7.4604 : 1.0;
-              const priceEUR = isUSD || isGBP || isDKK ? curPrice / fxRate : curPrice;
-
-              resultMap[s.toUpperCase()] = {
-                price: curPrice,
-                priceEUR: Number(priceEUR.toFixed(2)),
-                currency: meta.currency || 'USD',
-                changePercent: Number(changePercent.toFixed(2)),
-              };
-              resultMap[ySym.toUpperCase()] = resultMap[s.toUpperCase()];
-            }
+          const q = await fetchQuoteOnline(s);
+          if (q && q.price > 0) {
+            resultMap[s.toUpperCase()] = {
+              price: q.price,
+              priceEUR: q.priceEUR,
+              currency: q.currency,
+              changePercent: q.changePercent,
+            };
           }
-        } catch (proxyErr) {
-          console.warn(`[QuotesService] Direct proxy fallback for ${s} failed:`, proxyErr);
+        } catch (e) {
+          console.warn(`[QuotesService] Individual fallback for ${s} failed:`, e);
         }
       })
     );

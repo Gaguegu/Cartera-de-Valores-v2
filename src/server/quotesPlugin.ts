@@ -289,9 +289,7 @@ export function quotesApiPlugin(): Plugin {
               return;
             }
 
-            const quotes: any[] = [];
-            for (let i = 0; i < symbols.length; i++) {
-              const s = symbols[i];
+            const quotesPromises = symbols.map(async s => {
               const querySymbol = YAHOO_SYMBOL_OVERRIDES[s] || s;
               try {
                 const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=1d&range=1d`;
@@ -303,7 +301,7 @@ export function quotesApiPlugin(): Plugin {
                   const change = curPrice - prevClose;
                   const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-                  quotes.push({
+                  return {
                     symbol: s,
                     querySymbol,
                     company: meta.shortName || s,
@@ -316,15 +314,16 @@ export function quotesApiPlugin(): Plugin {
                     high52: meta.fiftyTwoWeekHigh,
                     low52: meta.fiftyTwoWeekLow,
                     volume: meta.regularMarketVolume,
-                  });
+                  };
                 }
               } catch (err: any) {
                 console.info(`[Quotes Plugin] Symbol ${s} not resolved: ${err?.message || 'unknown'}`);
               }
-              if (i < symbols.length - 1) {
-                await new Promise(r => setTimeout(r, 60));
-              }
-            }
+              return null;
+            });
+
+            const results = await Promise.all(quotesPromises);
+            const quotes = results.filter(Boolean);
 
             res.end(JSON.stringify({ quotes }));
             return;
