@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
   Briefcase,
@@ -53,6 +53,33 @@ export function Sidebar({
   onLockApp,
   onOpenSecurityModal,
 }: SidebarProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Bloquear el scroll del fondo (body) cuando el menú lateral está abierto en móvil
+  // para evitar que los gestos se escapen a la página y provoquen el pull-to-refresh de Chrome
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      const originalOverscroll = document.body.style.overscrollBehavior;
+      const originalTouchAction = document.body.style.touchAction;
+
+      document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+      document.body.style.touchAction = 'none';
+
+      // Asegurar que al abrir empiece desde arriba
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.overscrollBehavior = originalOverscroll;
+        document.body.style.touchAction = originalTouchAction;
+      };
+    }
+  }, [isOpen]);
+
   const navItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Inicio', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'current', label: 'Cartera actual', icon: <Briefcase className="w-4 h-4" /> },
@@ -80,7 +107,7 @@ export function Sidebar({
 
       {/* Sidebar container - Fijo en la vista lateral sin desbordamiento */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0c182c] border-r border-slate-800/80 flex flex-col h-full overflow-hidden overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0c182c] border-r border-slate-800/80 flex flex-col h-[100dvh] lg:h-full overflow-hidden overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:z-auto lg:shrink-0 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -104,13 +131,18 @@ export function Sidebar({
           <button
             onClick={onClose}
             className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+            aria-label="Cerrar menú"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation list and Bottom Controls in one single smooth scrollable container */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 flex flex-col touch-pan-y">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-4 touch-pan-y"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           <div className="space-y-1">
             {navItems.map(item => {
               const isActive = currentTab === item.id;
@@ -134,8 +166,8 @@ export function Sidebar({
             })}
           </div>
 
-          {/* Bottom Banner & Controls - Fluye con el scroll en móvil y queda al final */}
-          <div className="pt-4 mt-auto border-t border-slate-800/80">
+          {/* Bottom Banner & Controls - Fluye con el scroll natural sin bugs de flexbox */}
+          <div className="pt-4 pb-6 border-t border-slate-800/80">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-blue-900/40 text-center">
               <span className="font-black text-xs text-white tracking-widest block uppercase">
                 Cartera de Valores
