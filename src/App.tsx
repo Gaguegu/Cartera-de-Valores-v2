@@ -1611,11 +1611,12 @@ export default function App() {
         setLastQuotesUpdatedAt(timeStr);
         localStorage.setItem('last_quotes_updated_at', timeStr);
 
+        const latestFx = getStoredFxRates();
         if (showToast) {
           const updatedCount = positions.filter(p => portMap[p.symbol.toUpperCase()]).length;
           setGlobalToast({
             title: 'Cotizaciones y Divisas Actualizadas',
-            message: `¡${updatedCount} de ${positions.length} valores de la cartera actualizados con éxito a las ${timeStr}! Divisas en vivo: 1 € = ${liveFx.usdEur.toFixed(4)} $ USD · 1 € = ${liveFx.gbpEur.toFixed(4)} £ GBP.`,
+            message: `¡${updatedCount} de ${positions.length} valores de la cartera actualizados con éxito a las ${timeStr}! Divisas en vivo: 1 € = ${latestFx.usdEur.toFixed(4)} $ USD · 1 € = ${latestFx.gbpEur.toFixed(4)} £ GBP.`,
             type: 'success',
           });
           setTimeout(() => setGlobalToast(null), 5000);

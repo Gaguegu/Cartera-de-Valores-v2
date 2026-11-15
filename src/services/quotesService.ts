@@ -100,10 +100,56 @@ export function saveStoredFxRates(rates: FxRates) {
   } catch {}
 }
 
+function buildTradingViewCandidates(symbol: string, yahooSymbol: string): string[] {
+  const cleanOrig = symbol.trim().toUpperCase();
+  const cleanYahoo = yahooSymbol.trim().toUpperCase();
+  if (cleanYahoo.endsWith('.MC')) {
+    return [`BME:${cleanYahoo.replace(/\.MC$/, '')}`];
+  }
+  if (cleanYahoo.endsWith('.DE')) {
+    return [`XETR:${cleanYahoo.replace(/\.DE$/, '')}`];
+  }
+  if (cleanYahoo.endsWith('.PA') || cleanYahoo.endsWith('.AS') || cleanYahoo.endsWith('.BR')) {
+    return [`EURONEXT:${cleanYahoo.replace(/\.(PA|AS|BR)$/, '')}`];
+  }
+  if (cleanYahoo.endsWith('.CO')) {
+    return [`OMXCOP:${cleanYahoo.replace(/\.CO$/, '').replace(/-/g, '_')}`];
+  }
+  if (cleanYahoo.endsWith('.L')) {
+    return [`LSE:${cleanYahoo.replace(/\.L$/, '')}`];
+  }
+  if (cleanYahoo.endsWith('.SW')) {
+    return [`SIX:${cleanYahoo.replace(/\.SW$/, '')}`];
+  }
+  if (cleanYahoo.endsWith('.MI')) {
+    return [`MIL:${cleanYahoo.replace(/\.MI$/, '')}`];
+  }
+  const base = cleanOrig.replace(/\.[A-Z]+$/, '');
+  return [`NASDAQ:${base}`, `NYSE:${base}`, `AMEX:${base}`, `BME:${base}`, `EURONEXT:${base}`];
+}
+
+async function fetchTradingViewScan(
+  tickers: string[],
+  columns: string[] = ['name', 'close', 'change', 'change_abs', 'currency', 'exchange', 'description']
+): Promise<Array<{ s: string; d: any[] }>> {
+  const res = await fetch('https://scanner.tradingview.com/global/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: JSON.stringify({ symbols: { tickers }, columns }),
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data?.data) ? data.data : [];
+}
+
 export async function fetchLiveFxRates(): Promise<FxRates> {
-  // 1. Consultar primero el endpoint de cotización en tiempo real de Yahoo Finance (/api/quotes/fx)
+  // 1. Consultar primero el endpoint del servidor (/api/quotes/fx)
   try {
-    const res = await fetch(`/api/quotes/fx?_t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
+    const res = await fetch(`/api/quotes/fx?_t=${Date.now()}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3500),
+    });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
@@ -120,36 +166,30 @@ export async function fetchLiveFxRates(): Promise<FxRates> {
       }
     }
   } catch (err) {
-    console.warn('[QuotesService] /api/quotes/fx failed, trying indices:', err);
+    console.warn('[QuotesService] /api/quotes/fx unavailable, trying direct live FX:', err);
   }
 
-  // 2. Intentar endpoint /api/quotes/indices (que también extrae EURUSD=X y EURGBP=X de Yahoo Finance)
+  // 2. Respaldo directo en vivo desde el navegador (TradingView FX CORS)
   try {
-    const res = await fetch(`/api/quotes/indices?_t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
-    if (res.ok) {
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const data = await res.json();
-        if (data.indices && Array.isArray(data.indices)) {
-          const fxUsd = data.indices.find((i: any) => i.symbol === 'EURUSD=X');
-          const fxGbp = data.indices.find((i: any) => i.symbol === 'EURGBP=X');
-          const usdEur = fxUsd && fxUsd.price > 0 ? Number(fxUsd.price.toFixed(4)) : currentEurUsdRate;
-          const gbpEur = fxGbp && fxGbp.price > 0 ? Number(fxGbp.price.toFixed(4)) : currentGbpEurRate;
-          const rates: FxRates = {
-            usdEur,
-            gbpEur,
-            updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          };
-          saveStoredFxRates(rates);
-          return rates;
-        }
-      }
+    const rows = await fetchTradingViewScan(['FX:EURUSD', 'FX:EURGBP'], ['name', 'close']);
+    const eurUsdRow = rows.find(r => r.s === 'FX:EURUSD');
+    const eurGbpRow = rows.find(r => r.s === 'FX:EURGBP');
+    const usdEur = Number(eurUsdRow?.d?.[1]) > 0 ? Number(Number(eurUsdRow?.d?.[1]).toFixed(4)) : 0;
+    const gbpEur = Number(eurGbpRow?.d?.[1]) > 0 ? Number(Number(eurGbpRow?.d?.[1]).toFixed(4)) : currentGbpEurRate;
+    if (usdEur > 0) {
+      const rates: FxRates = {
+        usdEur,
+        gbpEur,
+        updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      };
+      saveStoredFxRates(rates);
+      return rates;
     }
   } catch (err) {
-    console.warn('[QuotesService] fetchLiveFxRates indices fallback failed:', err);
+    console.warn('[QuotesService] Direct FX scan failed:', err);
   }
 
-  // 3. Fallback adicional directo si no hay backend activo (Frankfurter)
+  // 3. Fallback adicional directo (Frankfurter BCE)
   try {
     const frankRes = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', {
       headers: { 'Accept': 'application/json' },
@@ -182,12 +222,15 @@ export function resolveYahooSymbol(symbol: string): string {
 
 export async function fetchLiveIndices(): Promise<MarketIndex[]> {
   try {
-    const res = await fetch(`/api/quotes/indices?_t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
+    const res = await fetch(`/api/quotes/indices?_t=${Date.now()}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3500),
+    });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         const data = await res.json();
-        if (data.indices && Array.isArray(data.indices)) {
+        if (data.indices && Array.isArray(data.indices) && data.indices.length > 0) {
           const fxUsd = data.indices.find((i: any) => i.symbol === 'EURUSD=X');
           if (fxUsd && fxUsd.price > 0) {
             currentEurUsdRate = fxUsd.price;
@@ -202,18 +245,60 @@ export async function fetchLiveIndices(): Promise<MarketIndex[]> {
       }
     }
   } catch (err) {
-    console.warn('[QuotesService] Could not fetch live indices, using fallback:', err);
+    console.warn('[QuotesService] /api/quotes/indices unavailable, trying direct live indices:', err);
+  }
+
+  // Fallback directo en vivo (TradingView CORS)
+  try {
+    const tvMap: Record<string, { symbol: string; name: string }> = {
+      'SP:SPX': { symbol: '^GSPC', name: 'S&P 500' },
+      'NASDAQ:NDX': { symbol: '^NDX', name: 'Nasdaq 100' },
+      'BME:IBC': { symbol: '^IBEX', name: 'IBEX 35' },
+      'TVC:SX5E': { symbol: '^STOXX50E', name: 'EuroStoxx 50' },
+      'FX:EURUSD': { symbol: 'EURUSD=X', name: 'EUR / USD' },
+    };
+    const rows = await fetchTradingViewScan(Object.keys(tvMap), ['name', 'close', 'change', 'change_abs']);
+    if (rows.length > 0) {
+      const liveIndices: MarketIndex[] = [];
+      for (const row of rows) {
+        const info = tvMap[row.s];
+        const price = Number(row.d?.[1] || 0);
+        const chgPct = Number(row.d?.[2] || 0);
+        const chgAbs = Number(row.d?.[3] || 0);
+        if (info && price > 0) {
+          if (info.symbol === 'EURUSD=X') {
+            currentEurUsdRate = Number(price.toFixed(4));
+            saveStoredFxRates({
+              usdEur: currentEurUsdRate,
+              gbpEur: currentGbpEurRate,
+              updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+            });
+          }
+          liveIndices.push({
+            symbol: info.symbol,
+            name: info.name,
+            price: Number(price.toFixed(info.symbol === 'EURUSD=X' ? 4 : 2)),
+            change: Number(chgAbs.toFixed(2)),
+            changePercent: Number(chgPct.toFixed(2)),
+          });
+        }
+      }
+      if (liveIndices.length > 0) {
+        return liveIndices;
+      }
+    }
+  } catch (err) {
+    console.warn('[QuotesService] Direct indices scan failed:', err);
   }
 
   getStoredFxRates();
 
-  // Fallback con datos realistas (5 índices/divisas principales para 1 sola fila limpia)
   return [
-    { symbol: '^GSPC', name: 'S&P 500', price: 7623.68, change: -39.75, changePercent: -0.52 },
-    { symbol: '^NDX', name: 'Nasdaq 100', price: 28957.53, change: -1.16, changePercent: 0.00 },
-    { symbol: '^IBEX', name: 'IBEX 35', price: 18989.80, change: 76.30, changePercent: 0.40 },
-    { symbol: '^STOXX50E', name: 'EuroStoxx 50', price: 6068.22, change: -18.79, changePercent: -0.31 },
-    { symbol: 'EURUSD=X', name: 'EUR / USD', price: currentEurUsdRate, change: 0.002, changePercent: 0.18 },
+    { symbol: '^GSPC', name: 'S&P 500', price: 7561.67, change: -30.73, changePercent: -0.40 },
+    { symbol: '^NDX', name: 'Nasdaq 100', price: 27943.74, change: -345.46, changePercent: -1.22 },
+    { symbol: '^IBEX', name: 'IBEX 35', price: 20020.10, change: 54.60, changePercent: 0.27 },
+    { symbol: '^STOXX50E', name: 'EuroStoxx 50', price: 6386.87, change: -12.12, changePercent: -0.19 },
+    { symbol: 'EURUSD=X', name: 'EUR / USD', price: currentEurUsdRate, change: -0.003, changePercent: -0.30 },
   ];
 }
 
@@ -224,8 +309,8 @@ export async function fetchQuoteOnline(symbol: string, allowCatalogFallback: boo
   // 1. Intentar endpoint local
   try {
     const res = await fetch(`/api/quotes/quote?symbol=${encodeURIComponent(yahooSym)}&_t=${Date.now()}`, {
-      credentials: 'include',
       cache: 'no-store',
+      signal: AbortSignal.timeout(3500),
     });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
@@ -268,7 +353,58 @@ export async function fetchQuoteOnline(symbol: string, allowCatalogFallback: boo
     console.warn(`[QuotesService] Local fetch for ${symbol} failed:`, err);
   }
 
+  // 2. Respaldo directo en vivo desde el navegador (TradingView Scanner CORS)
+  try {
+    const candidates = buildTradingViewCandidates(symbol, yahooSym);
+    const rows = await fetchTradingViewScan([...candidates, 'FX:EURUSD', 'FX:EURGBP']);
+    const eurUsdRow = rows.find(r => r.s === 'FX:EURUSD');
+    if (Number(eurUsdRow?.d?.[1]) > 0) {
+      currentEurUsdRate = Number(Number(eurUsdRow?.d?.[1]).toFixed(4));
+    }
+    const eurGbpRow = rows.find(r => r.s === 'FX:EURGBP');
+    if (Number(eurGbpRow?.d?.[1]) > 0) {
+      currentGbpEurRate = Number(Number(eurGbpRow?.d?.[1]).toFixed(4));
+    }
 
+    for (const cand of candidates) {
+      const match = rows.find(r => r.s === cand && Number(r.d?.[1]) > 0);
+      if (match) {
+        const curPrice = Number(match.d[1]);
+        const changePercent = Number(match.d[2] || 0);
+        const changeAbs = Number(match.d[3] || 0);
+        const rawCurrency = String(match.d[4] || 'USD').toUpperCase();
+        const currency = (rawCurrency === 'DKK' ? 'EUR' : rawCurrency) as Currency;
+        const exchange = String(match.d[5] || '');
+        const company = String(match.d[6] || '');
+
+        const isUSD = rawCurrency === 'USD';
+        const isGBP = rawCurrency === 'GBP';
+        const isDKK = rawCurrency === 'DKK';
+        const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : isDKK ? 7.4604 : 1.0;
+        const priceEUR = isUSD || isGBP || isDKK ? curPrice / fxRate : curPrice;
+        const known = SYMBOL_MAP[symbol.toUpperCase()];
+        const country = known ? known.country : (isUSD ? 'USA' : (yahooSym.includes('.MC') ? 'España' : 'Europa'));
+        const region: 'ESPAÑA' | 'EUROPA' | 'EEUU' = known ? known.region : (country === 'España' ? 'ESPAÑA' : (country === 'USA' ? 'EEUU' : 'EUROPA'));
+
+        return {
+          symbol: yahooSym,
+          displaySymbol: symbol.toUpperCase(),
+          company: company || known?.company || symbol.toUpperCase(),
+          country,
+          region,
+          exchange: exchange || known?.exchange || (isUSD ? 'NYSE/NASDAQ' : 'Europa'),
+          currency,
+          price: curPrice,
+          priceEUR: Number(priceEUR.toFixed(2)),
+          change: Number(changeAbs.toFixed(2)),
+          changePercent: Number(changePercent.toFixed(2)),
+          lastUpdated: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn(`[QuotesService] Direct live fallback for ${symbol} failed:`, err);
+  }
 
   // 3. Fallback de catálogo (solo si se permite explícitamente)
   if (!allowCatalogFallback) {
@@ -296,8 +432,8 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
   // 1. Intentar endpoint local del servidor /api/quotes/batch
   try {
     const res = await fetch(`/api/quotes/batch?symbols=${encodeURIComponent(yahooSymbols.join(','))}&_t=${Date.now()}`, {
-      credentials: 'include',
       cache: 'no-store',
+      signal: AbortSignal.timeout(4500),
     });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
@@ -315,7 +451,7 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
               price: q.price,
               priceEUR: Number(priceEUR.toFixed(2)),
               currency: q.currency,
-              changePercent: q.changePercent || 0,
+              changePercent: Number((q.changePercent || 0).toFixed(2)),
             };
             resultMap[q.symbol.toUpperCase()] = resultMap[origSym];
           }
@@ -323,29 +459,74 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
       }
     }
   } catch (err) {
-    console.warn('[QuotesService] Batch fetch local failed, attempting individual lookups:', err);
+    console.warn('[QuotesService] Batch fetch local failed, using direct live market stream:', err);
   }
 
-  // 2. Si algún símbolo falta, consultar individualmente el endpoint en vivo (sin fallback estático)
+  // 2. Si algún símbolo falta (o si el backend no está disponible en PWA/estático), consultar directo en vivo vía TradingView Scanner CORS
   const missingSymbols = symbols.filter(s => !resultMap[s.toUpperCase()]);
   if (missingSymbols.length > 0) {
-    await Promise.allSettled(
-      missingSymbols.map(async s => {
-        try {
-          const q = await fetchQuoteOnline(s, false);
-          if (q && q.price > 0) {
-            resultMap[s.toUpperCase()] = {
-              price: q.price,
-              priceEUR: q.priceEUR,
-              currency: q.currency,
-              changePercent: q.changePercent,
+    try {
+      const symbolToCandidates = new Map<string, string[]>();
+      const allTickers = new Set<string>(['FX:EURUSD', 'FX:EURGBP']);
+      for (const s of missingSymbols) {
+        const ySym = resolveYahooSymbol(s);
+        const cands = buildTradingViewCandidates(s, ySym);
+        symbolToCandidates.set(s.toUpperCase(), cands);
+        for (const c of cands) allTickers.add(c);
+      }
+
+      const rows = await fetchTradingViewScan(Array.from(allTickers));
+      const rowMap = new Map(rows.map(r => [r.s, r.d]));
+
+      const fxUsdRow = rowMap.get('FX:EURUSD');
+      const fxUsdVal = Number(fxUsdRow?.[1] || 0);
+      if (fxUsdVal > 0) {
+        currentEurUsdRate = Number(fxUsdVal.toFixed(4));
+      }
+      const fxGbpRow = rowMap.get('FX:EURGBP');
+      const fxGbpVal = Number(fxGbpRow?.[1] || 0);
+      if (fxGbpVal > 0) {
+        currentGbpEurRate = Number(fxGbpVal.toFixed(4));
+      }
+      if (fxUsdVal > 0) {
+        saveStoredFxRates({
+          usdEur: currentEurUsdRate,
+          gbpEur: currentGbpEurRate,
+          updatedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        });
+      }
+
+      for (const s of missingSymbols) {
+        const upper = s.toUpperCase();
+        const ySym = resolveYahooSymbol(s).toUpperCase();
+        const cands = symbolToCandidates.get(upper) || [];
+        for (const cand of cands) {
+          const d = rowMap.get(cand);
+          if (d && Number(d[1]) > 0) {
+            const curPrice = Number(d[1]);
+            const changePercent = Number(d[2] || 0);
+            const currency = String(d[4] || 'USD').toUpperCase();
+            const isUSD = currency === 'USD';
+            const isGBP = currency === 'GBP';
+            const isDKK = currency === 'DKK';
+            const fxRate = isUSD ? currentEurUsdRate : isGBP ? currentGbpEurRate : isDKK ? 7.4604 : 1.0;
+            const priceEUR = isUSD || isGBP || isDKK ? curPrice / fxRate : curPrice;
+
+            const entry = {
+              price: Number(curPrice.toFixed(2)),
+              priceEUR: Number(priceEUR.toFixed(2)),
+              currency,
+              changePercent: Number(changePercent.toFixed(2)),
             };
+            resultMap[upper] = entry;
+            resultMap[ySym] = entry;
+            break;
           }
-        } catch (e) {
-          console.warn(`[QuotesService] Individual lookup for ${s} failed:`, e);
         }
-      })
-    );
+      }
+    } catch (e) {
+      console.warn('[QuotesService] Direct TradingView batch lookup failed:', e);
+    }
   }
 
   return resultMap;
@@ -452,8 +633,11 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
 
   // 1. Intentar endpoint local (/api/quotes/dividends)
   try {
-    const res = await fetch(`/api/quotes/dividends?symbols=${encodeURIComponent(symbols.join(','))}`);
-    if (res.ok) {
+    const res = await fetch(`/api/quotes/dividends?symbols=${encodeURIComponent(symbols.join(','))}&_t=${Date.now()}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
       const data = await res.json();
       if (data && Array.isArray(data.dividends) && data.dividends.length > 0) {
         return data.dividends.map((item: any) => {
@@ -473,10 +657,10 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
       }
     }
   } catch (err) {
-    console.warn('[QuotesService] Local /api/quotes/dividends unavailable, using direct web sources:', err);
+    console.warn('[QuotesService] Local /api/quotes/dividends unavailable, using catalog:', err);
   }
 
-  // 2. Intentar consulta directa a Yahoo Finance para cada posición
+  // 2. Intentar consulta directa a Yahoo Finance con timeout corto
   const directDividends: UpcomingDividend[] = [];
   const fxUsdToEur = 1 / currentEurUsdRate;
 
@@ -487,20 +671,12 @@ export async function fetchPortfolioDividendsOnline(positions: StockPosition[]):
 
     let chartData: any = null;
     try {
-      const res = await fetch(yUrl);
+      const res = await fetch(yUrl, { signal: AbortSignal.timeout(2000) });
       if (res.ok) {
         chartData = await res.json();
       }
     } catch {
-      try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yUrl)}`;
-        const pRes = await fetch(proxyUrl);
-        if (pRes.ok) {
-          chartData = await pRes.json();
-        }
-      } catch {
-        // Silencioso
-      }
+      // Silencioso en navegador sin CORS
     }
 
     const meta = chartData?.chart?.result?.[0]?.meta;
