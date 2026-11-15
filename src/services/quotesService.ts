@@ -103,7 +103,7 @@ export function saveStoredFxRates(rates: FxRates) {
 export async function fetchLiveFxRates(): Promise<FxRates> {
   // 1. Consultar primero el endpoint de cotización en tiempo real de Yahoo Finance (/api/quotes/fx)
   try {
-    const res = await fetch('/api/quotes/fx', { credentials: 'include' });
+    const res = await fetch(`/api/quotes/fx?_t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
@@ -125,7 +125,7 @@ export async function fetchLiveFxRates(): Promise<FxRates> {
 
   // 2. Intentar endpoint /api/quotes/indices (que también extrae EURUSD=X y EURGBP=X de Yahoo Finance)
   try {
-    const res = await fetch('/api/quotes/indices', { credentials: 'include' });
+    const res = await fetch(`/api/quotes/indices?_t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
@@ -182,7 +182,7 @@ export function resolveYahooSymbol(symbol: string): string {
 
 export async function fetchLiveIndices(): Promise<MarketIndex[]> {
   try {
-    const res = await fetch('/api/quotes/indices', { credentials: 'include' });
+    const res = await fetch(`/api/quotes/indices?_t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
@@ -217,13 +217,16 @@ export async function fetchLiveIndices(): Promise<MarketIndex[]> {
   ];
 }
 
-export async function fetchQuoteOnline(symbol: string): Promise<MarketQuote | null> {
+export async function fetchQuoteOnline(symbol: string, allowCatalogFallback: boolean = true): Promise<MarketQuote | null> {
   const yahooSym = resolveYahooSymbol(symbol);
   getStoredFxRates();
 
   // 1. Intentar endpoint local
   try {
-    const res = await fetch(`/api/quotes/quote?symbol=${encodeURIComponent(yahooSym)}`, { credentials: 'include' });
+    const res = await fetch(`/api/quotes/quote?symbol=${encodeURIComponent(yahooSym)}&_t=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
@@ -267,7 +270,10 @@ export async function fetchQuoteOnline(symbol: string): Promise<MarketQuote | nu
 
 
 
-  // 3. Fallback de catálogo
+  // 3. Fallback de catálogo (solo si se permite explícitamente)
+  if (!allowCatalogFallback) {
+    return null;
+  }
   const popular = POPULAR_MARKET_STOCKS.find(
     s => s.symbol.toUpperCase() === yahooSym.toUpperCase() || s.displaySymbol?.toUpperCase() === symbol.toUpperCase()
   );
@@ -289,8 +295,9 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
 
   // 1. Intentar endpoint local del servidor /api/quotes/batch
   try {
-    const res = await fetch(`/api/quotes/batch?symbols=${encodeURIComponent(yahooSymbols.join(','))}`, {
+    const res = await fetch(`/api/quotes/batch?symbols=${encodeURIComponent(yahooSymbols.join(','))}&_t=${Date.now()}`, {
       credentials: 'include',
+      cache: 'no-store',
     });
     if (res.ok) {
       const contentType = res.headers.get('content-type') || '';
@@ -316,16 +323,16 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
       }
     }
   } catch (err) {
-    console.warn('[QuotesService] Batch fetch local failed, attempting direct proxy:', err);
+    console.warn('[QuotesService] Batch fetch local failed, attempting individual lookups:', err);
   }
 
-  // 2. Si algún símbolo falta, consultar individualmente el endpoint local
+  // 2. Si algún símbolo falta, consultar individualmente el endpoint en vivo (sin fallback estático)
   const missingSymbols = symbols.filter(s => !resultMap[s.toUpperCase()]);
   if (missingSymbols.length > 0) {
     await Promise.allSettled(
       missingSymbols.map(async s => {
         try {
-          const q = await fetchQuoteOnline(s);
+          const q = await fetchQuoteOnline(s, false);
           if (q && q.price > 0) {
             resultMap[s.toUpperCase()] = {
               price: q.price,
@@ -335,30 +342,10 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Record<string
             };
           }
         } catch (e) {
-          console.warn(`[QuotesService] Individual fallback for ${s} failed:`, e);
+          console.warn(`[QuotesService] Individual lookup for ${s} failed:`, e);
         }
       })
     );
-  }
-
-  // 3. Fallback de catálogo para cualquier ticker que no se haya podido resolver
-  for (const s of symbols) {
-    const clean = s.toUpperCase();
-    if (!resultMap[clean]) {
-      const pop = POPULAR_MARKET_STOCKS.find(
-        p => p.symbol.toUpperCase() === clean || p.displaySymbol?.toUpperCase() === clean
-      );
-      if (pop) {
-        const isUSD = pop.currency === 'USD';
-        const priceEUR = isUSD ? Number((pop.price / currentEurUsdRate).toFixed(2)) : pop.priceEUR;
-        resultMap[clean] = {
-          price: pop.price,
-          priceEUR,
-          currency: pop.currency,
-          changePercent: pop.changePercent,
-        };
-      }
-    }
   }
 
   return resultMap;

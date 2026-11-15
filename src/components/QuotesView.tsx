@@ -65,7 +65,12 @@ export function QuotesView({
 
   const refreshTopQuotes = async () => {
     try {
-      const topSymbols = ['SAN', 'ITX', 'IBE', 'BBVA', 'CABK', 'REP', 'TEF', 'RED', 'NTGY', 'GRF', 'BKT', 'VIS', 'AAPL', 'MSFT', 'NVDA', 'AMZN', 'META', 'GOOGL'];
+      const topSymbols = Array.from(new Set([
+        'SAN', 'ITX', 'IBE', 'BBVA', 'CABK', 'REP', 'TEF', 'RED', 'NTGY', 'GRF', 'BKT', 'VIS',
+        'AAPL', 'MSFT', 'NVDA', 'AMZN', 'META', 'GOOGL', 'AMD', 'CEG', 'BE',
+        ...positions.map(p => p.symbol.toUpperCase()),
+        ...watchlist.map(w => w.symbol.toUpperCase()),
+      ]));
       const batch = await fetchBatchQuotes(topSymbols);
       if (batch && Object.keys(batch).length > 0) {
         setQuotes(prev =>
@@ -159,8 +164,12 @@ export function QuotesView({
         }
       }
 
-      onUpdatePortfolioPrices(updateData);
-      showToast(`¡Cartera actualizada! Se han actualizado ${updatedCount} de ${positions.length} valores con las cotizaciones más recientes.`);
+      if (updatedCount > 0) {
+        onUpdatePortfolioPrices(updateData);
+        showToast(`¡Cartera actualizada! Se han actualizado ${updatedCount} de ${positions.length} valores con las cotizaciones más recientes.`);
+      } else {
+        showToast('No se pudieron obtener cotizaciones en tiempo real en este momento.');
+      }
       // Refrescar también los índices
       loadIndices();
     } catch (err) {

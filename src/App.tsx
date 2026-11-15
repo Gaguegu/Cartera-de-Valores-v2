@@ -1620,6 +1620,13 @@ export default function App() {
           });
           setTimeout(() => setGlobalToast(null), 5000);
         }
+      } else if (showToast) {
+        setGlobalToast({
+          title: 'Aviso de conexión',
+          message: 'No se pudieron obtener cotizaciones en tiempo real en este momento. Inténtalo de nuevo.',
+          type: 'error',
+        });
+        setTimeout(() => setGlobalToast(null), 5000);
       }
     } catch (err) {
       console.warn('Error refreshing live quotes:', err);
