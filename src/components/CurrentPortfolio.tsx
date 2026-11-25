@@ -52,7 +52,7 @@ export function CurrentPortfolio({
   const [selectedCountry, setSelectedCountry] = useState<string>('TODOS');
   const [selectedSector, setSelectedSector] = useState<string>('TODOS');
   const [showFilters, setShowFilters] = useState(false);
-  const [sortField, setSortField] = useState<keyof StockPosition>('currentValueEUR');
+  const [sortField, setSortField] = useState<keyof StockPosition | 'investedCost'>('currentValueEUR');
   const [sortAsc, setSortAsc] = useState(false);
   const [mobileView, setMobileView] = useState<'cards' | 'table'>('cards');
 
@@ -192,6 +192,11 @@ export function CurrentPortfolio({
 
   // Sorting
   const sorted = [...filtered].sort((a, b) => {
+    if (sortField === 'investedCost') {
+      const aVal = getPositionInvestedCost(a);
+      const bVal = getPositionInvestedCost(b);
+      return sortAsc ? aVal - bVal : bVal - aVal;
+    }
     if (sortField === 'buyPrice') {
       const aVal = getPositionPmcWithCommission(a);
       const bVal = getPositionPmcWithCommission(b);
@@ -233,6 +238,7 @@ export function CurrentPortfolio({
       'Cantidad',
       'Precio Compra (€) [PMC con comisiones]',
       'Precio Compra Puro (€)',
+      'Total Compras (€) [con comisiones]',
       'Precio Actual (€)',
       'Valor Total (€)',
       'Plusvalía (€)',
@@ -247,6 +253,7 @@ export function CurrentPortfolio({
       p.shares,
       getPositionPmcWithCommission(p),
       p.buyPrice,
+      getPositionInvestedCost(p),
       p.currentPrice,
       p.currentValueEUR,
       p.gainLossEUR,
@@ -764,8 +771,11 @@ export function CurrentPortfolio({
                       <div className="font-mono font-bold text-white text-sm">
                         {formatEUR(pos.currentValueEUR)}
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-slate-400 font-mono block">
                         {pos.shares} títulos · PMC {formatNumber(pmcWithComm)} €
+                      </span>
+                      <span className="text-[10px] text-blue-300 font-mono font-semibold block">
+                        Compra c/com: {formatEUR(getPositionInvestedCost(pos))}
                       </span>
                     </div>
                   </div>
@@ -823,7 +833,7 @@ export function CurrentPortfolio({
                     setSortField('symbol');
                     setSortAsc(!sortAsc);
                   }}
-                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white border-b border-slate-700/80"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center gap-1">
                     <span>Símbolo</span>
@@ -835,22 +845,22 @@ export function CurrentPortfolio({
                     setSortField('company');
                     setSortAsc(!sortAsc);
                   }}
-                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 cursor-pointer hover:text-white border-b border-slate-700/80"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center gap-1">
                     <span>Empresa</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 border-b border-slate-700/80">País</th>
-                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 border-b border-slate-700/80">Divisa</th>
-                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Cantidad</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-2.5 border-b border-slate-700/80">País</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-2.5 border-b border-slate-700/80">Divisa</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right border-b border-slate-700/80">Cantidad</th>
                 <th
                   onClick={() => {
                     setSortField('buyPrice');
                     setSortAsc(!sortAsc);
                   }}
-                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
                   title="Precio Medio de Compra por acción incluyendo comisiones de compra (PMC con comisiones)"
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -859,13 +869,27 @@ export function CurrentPortfolio({
                   </div>
                   <div className="text-[10px] text-blue-300 font-normal">PMC con comisiones</div>
                 </th>
-                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right border-b border-slate-700/80">Precio actual (€)</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right border-b border-slate-700/80">Precio actual (€)</th>
+                <th
+                  onClick={() => {
+                    setSortField('investedCost');
+                    setSortAsc(!sortAsc);
+                  }}
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right cursor-pointer hover:text-white border-b border-slate-700/80 whitespace-nowrap"
+                  title="Total invertido en las compras de esta empresa incluyendo comisiones de compra"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>Total compra (€)</span>
+                    <ArrowUpDown className="w-3 h-3" />
+                  </div>
+                  <div className="text-[10px] text-blue-300 font-normal">con comisiones</div>
+                </th>
                 <th
                   onClick={() => {
                     setSortField('currentValueEUR');
                     setSortAsc(!sortAsc);
                   }}
-                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Valor (€)</span>
@@ -877,14 +901,14 @@ export function CurrentPortfolio({
                     setSortField('gainLossPercent');
                     setSortAsc(!sortAsc);
                   }}
-                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-4 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Plusvalía %</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-center border-b border-slate-700/80">Acciones</th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-2.5 text-center border-b border-slate-700/80">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -895,7 +919,7 @@ export function CurrentPortfolio({
                   className="hover:bg-slate-800/50 cursor-pointer transition-colors group"
                 >
                   {/* Símbolo */}
-                  <td className="py-3.5 px-4 font-bold text-white">
+                  <td className="py-3.5 px-3 font-bold text-white">
                     <div className="flex items-center gap-2.5">
                       <span
                         className="w-3 h-3 rounded-full shrink-0 shadow-sm"
@@ -906,7 +930,7 @@ export function CurrentPortfolio({
                   </td>
 
                   {/* Empresa */}
-                  <td className="py-3.5 px-4 text-slate-200 font-medium">
+                  <td className="py-3.5 px-3 text-slate-200 font-medium">
                     <div className="flex flex-col items-start gap-1">
                       <span className="font-semibold text-white">{pos.company}</span>
                       {(() => {
@@ -927,17 +951,17 @@ export function CurrentPortfolio({
                   </td>
 
                   {/* País */}
-                  <td className="py-3.5 px-3 text-slate-400 font-semibold">
+                  <td className="py-3.5 px-2.5 text-slate-400 font-semibold">
                     {pos.country}
                   </td>
 
                   {/* Divisa */}
-                  <td className="py-3.5 px-3 text-slate-400 font-mono">
+                  <td className="py-3.5 px-2.5 text-slate-400 font-mono">
                     {pos.currency}
                   </td>
 
                   {/* Cantidad */}
-                  <td className="py-3.5 px-4 text-right font-medium text-white">
+                  <td className="py-3.5 px-3 text-right font-medium text-white">
                     {pos.shares}
                   </td>
 
@@ -947,7 +971,7 @@ export function CurrentPortfolio({
                     const posCost = getPositionInvestedCost(pos);
                     const hasComm = Boolean(pos.totalCommissionEUR && pos.totalCommissionEUR > 0);
                     return (
-                      <td className="py-3.5 px-4 text-right text-slate-200 font-mono">
+                      <td className="py-3.5 px-3 text-right text-slate-200 font-mono whitespace-nowrap">
                         <div className="font-semibold text-white">
                           {formatNumber(pmcWithComm)} €
                         </div>
@@ -964,7 +988,7 @@ export function CurrentPortfolio({
                   })()}
 
                   {/* Precio actual (€) y dólares solo a título informativo */}
-                  <td className="py-3.5 px-4 text-right text-slate-200 font-mono font-medium">
+                  <td className="py-3.5 px-3 text-right text-slate-200 font-mono font-medium whitespace-nowrap">
                     <div>{formatNumber(pos.currentPrice)} €</div>
                     {pos.dayChangePercent !== undefined && pos.dayChangePercent !== 0 && (
                       <div className="mt-0.5">
@@ -987,14 +1011,22 @@ export function CurrentPortfolio({
                     )}
                   </td>
 
+                  {/* Total compra (€) con comisiones */}
+                  <td
+                    className="py-3.5 px-3 text-right font-semibold text-blue-300 font-mono whitespace-nowrap"
+                    title={`Total invertido en las compras de ${pos.company} (comisiones incluidas): ${formatEUR(getPositionInvestedCost(pos))}`}
+                  >
+                    {formatEUR(getPositionInvestedCost(pos))}
+                  </td>
+
                   {/* Valor (€) - Color neutro blanco (no verde, para no confundir con plusvalías) */}
-                  <td className="py-3.5 px-4 text-right font-bold text-white font-mono">
+                  <td className="py-3.5 px-3 text-right font-bold text-white font-mono whitespace-nowrap">
                     {formatEUR(pos.currentValueEUR)}
                   </td>
 
                   {/* Plusvalía % y € (Pérdidas estrictamente en rojo, ganancias en verde) */}
                   <td
-                    className={`py-3.5 px-4 text-right font-bold font-mono ${
+                    className={`py-3.5 px-3 text-right font-bold font-mono whitespace-nowrap ${
                       (pos.gainLossEUR !== undefined && pos.gainLossEUR < 0) || pos.gainLossPercent < 0
                         ? 'text-red-500'
                         : pos.gainLossPercent > 0
@@ -1019,7 +1051,7 @@ export function CurrentPortfolio({
                   </td>
 
                   {/* Options */}
-                  <td className="py-3.5 px-3 text-center">
+                  <td className="py-3.5 px-2.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       {onOpenAlertsModal && (
                         <button
@@ -1076,7 +1108,7 @@ export function CurrentPortfolio({
 
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400">
+                  <td colSpan={11} className="py-12 text-center text-slate-400">
                     <p className="text-sm font-semibold text-slate-300">
                       No hay posiciones abiertas para los filtros seleccionados
                       {selectedYear !== 'TODOS' ? ` (Año de compra ${selectedYear})` : ''}.
