@@ -240,7 +240,7 @@ export function CurrentPortfolio({
       'Precio Compra Puro (€)',
       'Total Compras (€) [con comisiones]',
       'Precio Actual (€)',
-      'Valor Total (€)',
+      'Valor Actual (€)',
       'Plusvalía (€)',
       'Plusvalía (%)',
       'Sector',
@@ -869,7 +869,6 @@ export function CurrentPortfolio({
                   </div>
                   <div className="text-[10px] text-blue-300 font-normal">PMC con comisiones</div>
                 </th>
-                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right border-b border-slate-700/80">Precio actual (€)</th>
                 <th
                   onClick={() => {
                     setSortField('investedCost');
@@ -884,15 +883,16 @@ export function CurrentPortfolio({
                   </div>
                   <div className="text-[10px] text-blue-300 font-normal">con comisiones</div>
                 </th>
+                <th className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right border-b border-slate-700/80">Precio actual (€)</th>
                 <th
                   onClick={() => {
                     setSortField('currentValueEUR');
                     setSortAsc(!sortAsc);
                   }}
-                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right cursor-pointer hover:text-white border-b border-slate-700/80"
+                  className="sticky top-0 z-10 bg-[#0e1b30] py-3.5 px-3 text-right cursor-pointer hover:text-white border-b border-slate-700/80 whitespace-nowrap"
                 >
                   <div className="flex items-center justify-end gap-1">
-                    <span>Valor (€)</span>
+                    <span>Valor actual (€)</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
@@ -987,6 +987,14 @@ export function CurrentPortfolio({
                     );
                   })()}
 
+                  {/* Total compra (€) con comisiones */}
+                  <td
+                    className="py-3.5 px-3 text-right font-semibold text-blue-300 font-mono whitespace-nowrap"
+                    title={`Total invertido en las compras de ${pos.company} (comisiones incluidas): ${formatEUR(getPositionInvestedCost(pos))}`}
+                  >
+                    {formatEUR(getPositionInvestedCost(pos))}
+                  </td>
+
                   {/* Precio actual (€) y dólares solo a título informativo */}
                   <td className="py-3.5 px-3 text-right text-slate-200 font-mono font-medium whitespace-nowrap">
                     <div>{formatNumber(pos.currentPrice)} €</div>
@@ -1011,15 +1019,7 @@ export function CurrentPortfolio({
                     )}
                   </td>
 
-                  {/* Total compra (€) con comisiones */}
-                  <td
-                    className="py-3.5 px-3 text-right font-semibold text-blue-300 font-mono whitespace-nowrap"
-                    title={`Total invertido en las compras de ${pos.company} (comisiones incluidas): ${formatEUR(getPositionInvestedCost(pos))}`}
-                  >
-                    {formatEUR(getPositionInvestedCost(pos))}
-                  </td>
-
-                  {/* Valor (€) - Color neutro blanco (no verde, para no confundir con plusvalías) */}
+                  {/* Valor actual (€) - Color neutro blanco (no verde, para no confundir con plusvalías) */}
                   <td className="py-3.5 px-3 text-right font-bold text-white font-mono whitespace-nowrap">
                     {formatEUR(pos.currentValueEUR)}
                   </td>
