@@ -705,6 +705,10 @@ export function CurrentPortfolio({
           ) : (
             sorted.map(pos => {
               const pmcWithComm = getPositionPmcWithCommission(pos);
+              const posCost = getPositionInvestedCost(pos);
+              const pctOfTotal = totalPortfolioInvestedWithCommission > 0
+                ? (posCost / totalPortfolioInvestedWithCommission) * 100
+                : 0;
               const isLoss = (pos.gainLossEUR !== undefined && pos.gainLossEUR < 0) || pos.gainLossPercent < 0;
               return (
                 <div
@@ -712,7 +716,7 @@ export function CurrentPortfolio({
                   onClick={() => onSelectStock(pos)}
                   className="p-3.5 bg-[#12233f] hover:bg-slate-800/50 active:bg-slate-800/80 transition-colors cursor-pointer space-y-2.5"
                 >
-                  {/* Fila 1: Ticker + Empresa + País / Plusvalía badge */}
+                  {/* Fila 1: Ticker + País + Títulos destacados + Empresa / Plusvalía badge */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span
@@ -720,13 +724,16 @@ export function CurrentPortfolio({
                         style={{ backgroundColor: pos.color || '#3b82f6' }}
                       />
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono font-bold text-sm text-white">{pos.symbol}</span>
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
                             {pos.country}
                           </span>
+                          <span className="text-[11px] font-mono font-extrabold px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 whitespace-nowrap">
+                            {pos.shares} {pos.shares === 1 ? 'título' : 'títulos'}
+                          </span>
                         </div>
-                        <p className="text-xs text-slate-300 font-medium truncate max-w-[190px]">{pos.company}</p>
+                        <p className="text-xs text-slate-300 font-medium truncate max-w-[205px] mt-0.5">{pos.company}</p>
                       </div>
                     </div>
 
@@ -745,38 +752,51 @@ export function CurrentPortfolio({
                     </div>
                   </div>
 
-                  {/* Fila 2: Grid 2 columnas con métricas clave */}
-                  <div className="grid grid-cols-2 gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/60 text-xs">
+                  {/* Fila 2: Grid simétrico 2x2 (Actual arriba / Compra con comisiones abajo) */}
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/60 text-xs">
                     <div>
                       <span className="text-[10px] text-slate-400 block font-medium">Precio actual (€)</span>
-                      <div className="font-mono font-bold text-white text-sm">
+                      <div className="font-mono font-bold text-white text-sm whitespace-nowrap">
                         {formatNumber(pos.currentPrice)} €
                       </div>
-                      {pos.priceUSD && Math.abs(pos.priceUSD - pos.currentPrice) > 0.05 && (
-                        <span className="text-[10px] text-slate-400 font-normal">
-                          ({formatNumber(pos.priceUSD)} $)
-                        </span>
-                      )}
-                      {pos.dayChangePercent !== undefined && pos.dayChangePercent !== 0 && (
-                        <span className={`inline-block ml-1 px-1 py-0.5 text-[9px] font-bold rounded ${
-                          pos.dayChangePercent > 0 ? 'text-emerald-400' : 'text-rose-400'
-                        }`}>
-                          {pos.dayChangePercent > 0 ? `+${pos.dayChangePercent.toFixed(2)}%` : `${pos.dayChangePercent.toFixed(2)}%`} hoy
-                        </span>
-                      )}
+                      <div className="flex items-center flex-wrap gap-1 mt-0.5">
+                        {pos.priceUSD && Math.abs(pos.priceUSD - pos.currentPrice) > 0.05 && (
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            ({formatNumber(pos.priceUSD)} $)
+                          </span>
+                        )}
+                        {pos.dayChangePercent !== undefined && pos.dayChangePercent !== 0 && (
+                          <span className={`inline-block px-1 py-0.5 text-[9px] font-bold rounded ${
+                            pos.dayChangePercent > 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
+                            {pos.dayChangePercent > 0 ? `+${pos.dayChangePercent.toFixed(2)}%` : `${pos.dayChangePercent.toFixed(2)}%`} hoy
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block font-medium">Valor total</span>
-                      <div className="font-mono font-bold text-white text-sm">
+                      <span className="text-[10px] text-slate-400 block font-medium">Valor actual (€)</span>
+                      <div className="font-mono font-bold text-white text-sm whitespace-nowrap">
                         {formatEUR(pos.currentValueEUR)}
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono block">
-                        {pos.shares} títulos · PMC {formatNumber(pmcWithComm)} €
+                      <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                        {formatNumber(pctOfTotal, 2)}% de compras
                       </span>
-                      <span className="text-[10px] text-blue-300 font-mono font-semibold block">
-                        Compra c/com: {formatEUR(getPositionInvestedCost(pos))}
-                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80">
+                      <span className="text-[10px] text-slate-400 block font-medium">Precio compra (c/com)</span>
+                      <div className="font-mono font-bold text-blue-300 text-xs whitespace-nowrap">
+                        {formatNumber(pmcWithComm)} €
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80 text-right">
+                      <span className="text-[10px] text-slate-400 block font-medium">Total compra (c/com)</span>
+                      <div className="font-mono font-bold text-blue-300 text-xs whitespace-nowrap">
+                        {formatEUR(posCost)}
+                      </div>
                     </div>
                   </div>
 
