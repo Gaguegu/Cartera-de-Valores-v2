@@ -718,22 +718,22 @@ export function CurrentPortfolio({
                 >
                   {/* Fila 1: Ticker + País + Títulos destacados + Empresa / Plusvalía badge */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span
-                        className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
+                        className="w-3 h-3 rounded-full shrink-0 shadow-sm"
                         style={{ backgroundColor: pos.color || '#3b82f6' }}
                       />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono font-bold text-sm text-white">{pos.symbol}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-nowrap">
+                          <span className="font-mono font-bold text-sm text-white shrink-0">{pos.symbol}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 shrink-0">
                             {pos.country}
                           </span>
-                          <span className="text-[11px] font-mono font-extrabold px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 whitespace-nowrap">
-                            {pos.shares} {pos.shares === 1 ? 'título' : 'títulos'}
+                          <span className="text-[11px] font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 whitespace-nowrap shrink-0">
+                            {pos.shares} tít.
                           </span>
                         </div>
-                        <p className="text-xs text-slate-300 font-medium truncate max-w-[205px] mt-0.5">{pos.company}</p>
+                        <p className="text-xs text-slate-300 font-medium truncate mt-0.5">{pos.company}</p>
                       </div>
                     </div>
 
