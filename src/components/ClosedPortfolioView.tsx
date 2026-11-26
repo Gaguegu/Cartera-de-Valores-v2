@@ -446,6 +446,9 @@ export function ClosedPortfolioView({
                     <div className="mt-1 text-[10px] text-slate-400 font-mono">
                       Venta: <strong className="text-white">{formatEUR(m.totalSale)}</strong>
                     </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      ({item.shares} {item.shares === 1 ? 'título' : 'títulos'})
+                    </div>
                   </div>
                 </div>
 
@@ -630,8 +633,11 @@ export function ClosedPortfolioView({
                       </td>
 
                       {/* Importe total de la venta más comisión */}
-                      <td className="py-3.5 px-4 text-right font-bold text-white font-mono">
-                        {formatEUR(m.totalSale)}
+                      <td className="py-3.5 px-4 text-right text-slate-200 font-mono">
+                        <div className="font-bold text-white">{formatEUR(m.totalSale)}</div>
+                        <div className="text-[10px] text-slate-400 font-normal">
+                          ({item.shares} {item.shares === 1 ? 'título' : 'títulos'})
+                        </div>
                       </td>
 
                       {/* Resultado € */}
